@@ -1,9 +1,14 @@
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.buildkonfig)
 }
+
+group = project.property("GROUP") as String
+version = project.property("VERSION_NAME") as String
 
 kotlin {
     androidTarget {
@@ -31,6 +36,17 @@ kotlin {
         }
         androidMain.dependencies {
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+    }
+}
+
+buildkonfig {
+    packageName = "com.bugsy.core"
+
+    defaultConfigs {
+        buildConfigField(STRING, "VERSION", project.property("VERSION_NAME") as String)
     }
 }
 

@@ -10,18 +10,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.bugsy.ui.theme.BugsyColors
+import com.bugsy.ui.theme.BugsySpacing
 
 @Composable
 fun DragHandle(modifier: Modifier = Modifier) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier.fillMaxWidth().padding(top = 10.dp, bottom = 2.dp),
+        modifier = modifier.fillMaxWidth()
+            .padding(top = BugsySpacing.dragHandlePaddingTop, bottom = BugsySpacing.dragHandlePaddingBottom),
     ) {
         Box(
-            Modifier.width(38.dp).height(4.dp)
-                .background(BugsyColors.TextDisabled, RoundedCornerShape(2.dp)),
+            Modifier.width(BugsySpacing.dragHandleWidth).height(BugsySpacing.dragHandleHeight)
+                .background(BugsyColors.TextDisabled, RoundedCornerShape(BugsySpacing.dragHandleCorner)),
         )
     }
 }

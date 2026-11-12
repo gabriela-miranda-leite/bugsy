@@ -17,12 +17,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.tab_device
+import bugsy.ui.generated.resources.tab_flags
+import bugsy.ui.generated.resources.tab_requests
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
+import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
-enum class BugsyTab { Requests, Flags, Device }
+enum class BugsyTab(val labelRes: StringResource) {
+    Requests(Res.string.tab_requests),
+    Flags(Res.string.tab_flags),
+    Device(Res.string.tab_device),
+}
 
 @Composable
 fun BugsyTabBar(
@@ -34,28 +45,28 @@ fun BugsyTabBar(
     Column(modifier) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = BugsySpacing.sheetHorizontal),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(BugsySpacing.tabItemSpacing),
         ) {
             BugsyTab.entries.forEach { tab ->
                 val active = tab == selected
                 Box(
                     modifier = Modifier
                         .clickable { onSelect(tab) }
-                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                        .padding(horizontal = BugsySpacing.tabItemPaddingHorizontal, vertical = BugsySpacing.tabItemPaddingVertical),
                 ) {
                     if (active) {
                         Box(
                             Modifier.align(Alignment.BottomCenter)
-                                .fillMaxWidth().height(2.dp)
+                                .fillMaxWidth().height(BugsySpacing.tabIndicatorHeight)
                                 .background(BugsyColors.Brand),
                         )
                     }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        horizontalArrangement = Arrangement.spacedBy(BugsySpacing.tabBadgeSpacing),
                     ) {
                         Text(
-                            text = tab.name,
+                            text = stringResource(tab.labelRes),
                             style = if (active) {
                                 BugsyTypography.Body.copy(fontWeight = FontWeight.Medium)
                             } else {
@@ -66,7 +77,10 @@ fun BugsyTabBar(
                         if (tab == BugsyTab.Requests && requestCount > 0) {
                             Box(
                                 Modifier.background(BugsyColors.Brand, CircleShape)
-                                    .padding(horizontal = 6.dp, vertical = 1.dp),
+                                    .padding(
+                                        horizontal = BugsySpacing.countBadgePaddingHorizontal,
+                                        vertical = BugsySpacing.countBadgePaddingVertical,
+                                    ),
                             ) {
                                 Text(
                                     requestCount.toString(),
@@ -80,5 +94,15 @@ fun BugsyTabBar(
             }
         }
         HorizontalDivider(thickness = BugsySpacing.strokeBorder, color = BugsyColors.Border)
+    }
+}
+
+@Preview
+@Composable
+private fun BugsyTabBarPreview() {
+    BugsyTheme {
+        Box(Modifier.background(BugsyColors.Surface)) {
+            BugsyTabBar(selected = BugsyTab.Requests, requestCount = 3, onSelect = {})
+        }
     }
 }

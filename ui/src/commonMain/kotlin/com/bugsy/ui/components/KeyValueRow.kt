@@ -11,17 +11,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTypography
 
 @Composable
-fun KeyValueRow(key: String, value: String, keyMinWidth: Dp = 130.dp, modifier: Modifier = Modifier) {
+fun KeyValueRow(
+    key: String,
+    value: String,
+    keyMinWidth: Dp = BugsySpacing.keyValueKeyMinWidthDefault,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm),
-            modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = BugsySpacing.keyValueRowVertical),
         ) {
             Text(
                 key,

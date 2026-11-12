@@ -1,7 +1,9 @@
 package com.bugsy.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,10 +17,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.bugsy.core.model.DebugRequest
+import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
+import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.formatDuration
 import com.bugsy.ui.theme.statusColor
@@ -31,7 +35,7 @@ fun RequestRow(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(BugsySpacing.rowItemSpacing),
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -63,8 +67,20 @@ fun RequestRow(
             text = formatDuration(request.durationMs),
             style = BugsyTypography.Caption,
             color = BugsyColors.TextDisabled,
-            modifier = Modifier.widthIn(min = 38.dp),
+            modifier = Modifier.widthIn(min = BugsySpacing.durationColumnMinWidth),
             textAlign = TextAlign.End,
         )
+    }
+}
+
+@Preview
+@Composable
+private fun RequestRowPreview() {
+    BugsyTheme {
+        Column(Modifier.background(BugsyColors.Surface)) {
+            PreviewFixtures.requests.forEach { request ->
+                RequestRow(request = request, onClick = {})
+            }
+        }
     }
 }

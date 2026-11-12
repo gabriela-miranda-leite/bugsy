@@ -19,10 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.unit.dp
+import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.search_placeholder
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTypography
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun BugsySearchBar(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
@@ -37,21 +39,21 @@ fun BugsySearchBar(value: String, onValueChange: (String) -> Unit, modifier: Mod
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BugsyColors.SurfaceCard, RoundedCornerShape(8.dp))
-                    .border(BugsySpacing.strokeBorder, BugsyColors.Border, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                    .background(BugsyColors.SurfaceCard, RoundedCornerShape(BugsySpacing.cornerCard))
+                    .border(BugsySpacing.strokeBorder, BugsyColors.Border, RoundedCornerShape(BugsySpacing.cornerCard))
+                    .padding(horizontal = BugsySpacing.searchBarPaddingHorizontal, vertical = BugsySpacing.searchBarPaddingVertical),
             ) {
                 Icon(
                     Icons.Outlined.Search,
                     contentDescription = null,
                     tint = BugsyColors.TextDisabled,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(BugsySpacing.iconSizeMedium),
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(BugsySpacing.searchBarIconSpacing))
                 Box(Modifier.weight(1f)) {
                     if (value.isEmpty()) {
                         Text(
-                            "Filter by URL or method…",
+                            stringResource(Res.string.search_placeholder),
                             style = BugsyTypography.Code.copy(color = BugsyColors.TextDisabled),
                         )
                     }

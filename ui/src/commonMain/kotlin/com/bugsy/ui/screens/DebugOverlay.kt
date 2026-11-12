@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.bugsy.ui.DebugViewModel
 import com.bugsy.ui.components.BugsyTab
 import com.bugsy.ui.components.BugsyTabBar
@@ -47,4 +48,10 @@ fun DebugOverlay(
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun DebugOverlayPreview() {
+    DebugOverlay(viewModel = remember { DebugViewModel() }, onDismiss = {})
 }

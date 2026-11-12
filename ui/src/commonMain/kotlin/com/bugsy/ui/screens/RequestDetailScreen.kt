@@ -1,6 +1,8 @@
 package com.bugsy.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,8 +25,17 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.label_duration
+import bugsy.ui.generated.resources.label_request_body
+import bugsy.ui.generated.resources.label_request_headers
+import bugsy.ui.generated.resources.label_response_body
+import bugsy.ui.generated.resources.label_status
+import bugsy.ui.generated.resources.label_time
+import bugsy.ui.generated.resources.tab_requests
 import com.bugsy.core.model.DebugRequest
+import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.CodeBlock
 import com.bugsy.ui.components.ExpandableSection
 import com.bugsy.ui.components.KeyValueRow
@@ -33,9 +44,11 @@ import com.bugsy.ui.components.MethodBadge
 import com.bugsy.ui.components.SectionLabel
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
+import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.formatDuration
 import com.bugsy.ui.theme.statusColor
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun RequestDetailScreen(request: DebugRequest, onBack: () -> Unit) {
@@ -52,9 +65,14 @@ fun RequestDetailScreen(request: DebugRequest, onBack: () -> Unit) {
                 .padding(start = BugsySpacing.sm),
         ) {
             TextButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null, tint = BugsyColors.Brand, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(2.dp))
-                Text("Requests", style = BugsyTypography.Body, color = BugsyColors.Brand)
+                Icon(
+                    Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = null,
+                    tint = BugsyColors.Brand,
+                    modifier = Modifier.size(BugsySpacing.iconSizeMedium),
+                )
+                Spacer(Modifier.width(BugsySpacing.backButtonIconSpacing))
+                Text(stringResource(Res.string.tab_requests), style = BugsyTypography.Body, color = BugsyColors.Brand)
             }
         }
 
@@ -72,24 +90,32 @@ fun RequestDetailScreen(request: DebugRequest, onBack: () -> Unit) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm)) {
                     MetricCard(
-                        "Status",
+                        stringResource(Res.string.label_status),
                         request.statusCode?.toString() ?: "—",
                         valueColor = statusColor(request.statusCode),
                         modifier = Modifier.weight(1f),
                     )
-                    MetricCard("Duration", formatDuration(request.durationMs), modifier = Modifier.weight(1f))
-                    MetricCard("Time", request.timestamp.formatHms(), modifier = Modifier.weight(1f))
+                    MetricCard(
+                        stringResource(Res.string.label_duration),
+                        formatDuration(request.durationMs),
+                        modifier = Modifier.weight(1f),
+                    )
+                    MetricCard(
+                        stringResource(Res.string.label_time),
+                        request.timestamp.formatHms(),
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
 
             if (request.requestHeaders.isNotEmpty()) {
-                item { SectionLabel("Request headers") }
+                item { SectionLabel(stringResource(Res.string.label_request_headers)) }
                 items(request.requestHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v) }
             }
 
             if (request.requestBody?.isNotBlank() == true) {
                 item {
-                    ExpandableSection("Request body", initiallyExpanded = true) {
+                    ExpandableSection(stringResource(Res.string.label_request_body), initiallyExpanded = true) {
                         CodeBlock(request.requestBody ?: "")
                     }
                 }
@@ -98,7 +124,7 @@ fun RequestDetailScreen(request: DebugRequest, onBack: () -> Unit) {
             if (request.responseBody?.isNotBlank() == true) {
                 item {
                     val long = (request.responseBody?.length ?: 0) > 400
-                    ExpandableSection("Response body", initiallyExpanded = !long) {
+                    ExpandableSection(stringResource(Res.string.label_response_body), initiallyExpanded = !long) {
                         CodeBlock(request.responseBody ?: "")
                     }
                 }
@@ -123,3 +149,13 @@ private fun Long.formatHms(): String {
 }
 
 private fun Long.pad(): String = this.toString().padStart(2, '0')
+
+@Preview
+@Composable
+private fun RequestDetailScreenPreview() {
+    BugsyTheme {
+        Box(Modifier.background(BugsyColors.Surface)) {
+            RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {})
+        }
+    }
+}

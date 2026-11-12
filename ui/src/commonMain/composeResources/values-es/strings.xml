@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="bugsy_title">Bugsy</string>
+    <string name="cd_bugsy_icon">Bugsy</string>
+    <string name="cd_close">Cerrar</string>
+    <string name="cd_expand">Expandir</string>
+    <string name="cd_collapse">Contraer</string>
+
+    <string name="action_clear">Limpiar</string>
+    <string name="action_copy">Copiar</string>
+    <string name="action_copied">¡Copiado!</string>
+
+    <string name="tab_requests">Solicitudes</string>
+    <string name="tab_flags">Flags</string>
+    <string name="tab_device">Dispositivo</string>
+
+    <string name="search_placeholder">Filtrar por URL o método…</string>
+    <string name="empty_no_requests">Ninguna solicitud capturada</string>
+    <string name="empty_no_requests_filtered">Ninguna solicitud para \"%1$s\"</string>
+
+    <string name="label_curl">cURL</string>
+    <string name="label_status">Estado</string>
+    <string name="label_duration">Duración</string>
+    <string name="label_time">Hora</string>
+    <string name="label_request_headers">Cabeceras de la solicitud</string>
+    <string name="label_request_body">Cuerpo de la solicitud</string>
+    <string name="label_response_body">Cuerpo de la respuesta</string>
+
+    <string name="flags_coming_soon">Flags próximamente</string>
+    <string name="device_info_coming_soon">Información del dispositivo próximamente</string>
+</resources>

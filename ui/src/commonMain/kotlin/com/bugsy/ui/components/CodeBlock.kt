@@ -29,12 +29,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.action_copied
+import bugsy.ui.generated.resources.action_copy
+import bugsy.ui.generated.resources.label_curl
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
+import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun CodeBlock(text: String, onCopy: (() -> Unit)? = null, modifier: Modifier = Modifier) {
@@ -48,7 +54,7 @@ fun CodeBlock(text: String, onCopy: (() -> Unit)? = null, modifier: Modifier = M
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(bottom = BugsySpacing.sm),
             ) {
-                SectionLabel("cURL")
+                SectionLabel(stringResource(Res.string.label_curl))
                 val tint = if (copied) BugsyColors.Status2xx else BugsyColors.Brand
                 OutlinedButton(
                     onClick = {
@@ -63,30 +69,47 @@ fun CodeBlock(text: String, onCopy: (() -> Unit)? = null, modifier: Modifier = M
                         BugsySpacing.strokeBorder,
                         if (copied) BugsyColors.Status2xx else BugsyColors.Border,
                     ),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(6.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = BugsySpacing.codeBlockButtonPaddingHorizontal,
+                        vertical = BugsySpacing.codeBlockButtonPaddingVertical,
+                    ),
+                    shape = RoundedCornerShape(BugsySpacing.cornerButtonSmall),
                 ) {
                     Icon(
                         if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
                         contentDescription = null,
                         tint = tint,
-                        modifier = Modifier.size(12.dp),
+                        modifier = Modifier.size(BugsySpacing.iconSizeSmall),
                     )
-                    Spacer(Modifier.width(4.dp))
-                    Text(if (copied) "Copied!" else "Copy", style = BugsyTypography.Caption, color = tint)
+                    Spacer(Modifier.width(BugsySpacing.codeBlockButtonIconSpacing))
+                    Text(
+                        stringResource(if (copied) Res.string.action_copied else Res.string.action_copy),
+                        style = BugsyTypography.Caption,
+                        color = tint,
+                    )
                 }
             }
         }
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(BugsyColors.Background, RoundedCornerShape(8.dp))
-                .border(BugsySpacing.strokeBorder, BugsyColors.Border, RoundedCornerShape(8.dp))
+                .background(BugsyColors.Background, RoundedCornerShape(BugsySpacing.cornerCard))
+                .border(BugsySpacing.strokeBorder, BugsyColors.Border, RoundedCornerShape(BugsySpacing.cornerCard))
                 .padding(BugsySpacing.md),
         ) {
             SelectionContainer {
                 Text(text, style = BugsyTypography.CodeSmall.copy(color = BugsyColors.TextMuted))
             }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun CodeBlockPreview() {
+    BugsyTheme {
+        Box(Modifier.background(BugsyColors.Surface).padding(BugsySpacing.lg)) {
+            CodeBlock(text = "curl https://api.bugsy.dev/v1/users/42", onCopy = {})
         }
     }
 }

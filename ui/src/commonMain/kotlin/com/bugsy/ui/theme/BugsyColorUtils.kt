@@ -25,3 +25,6 @@ fun formatDuration(ms: Long): String {
     val tenths = (ms % 1_000) / 100
     return "$wholeSeconds.${tenths}s"
 }
+
+fun formatUrl(url: String): String =
+    url.substringBefore('#').substringBefore('?').substringAfter("://")

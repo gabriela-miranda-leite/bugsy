@@ -53,4 +53,27 @@ class BugsyColorUtilsTest {
         assertEquals("2.3s", formatDuration(2_340))
         assertEquals("12.0s", formatDuration(12_000))
     }
+
+    @Test
+    fun `formatUrl strips scheme and query params`() {
+        assertEquals(
+            "api.example.com/users/1",
+            formatUrl("https://api.example.com/users/1?page=2&limit=10"),
+        )
+    }
+
+    @Test
+    fun `formatUrl keeps host and path when there is no query`() {
+        assertEquals("localhost:8080/path", formatUrl("http://localhost:8080/path"))
+    }
+
+    @Test
+    fun `formatUrl strips fragment as well as query`() {
+        assertEquals("host/path", formatUrl("https://host/path?x=1#section"))
+    }
+
+    @Test
+    fun `formatUrl leaves a schemeless url untouched aside from its query`() {
+        assertEquals("/relative/path", formatUrl("/relative/path?x=1"))
+    }
 }

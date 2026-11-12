@@ -27,6 +27,15 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import org.jetbrains.compose.resources.stringResource
 
+fun filterRequests(requests: List<DebugRequest>, filter: String): List<DebugRequest> =
+    if (filter.isBlank()) {
+        requests
+    } else {
+        requests.filter {
+            it.url.contains(filter, ignoreCase = true) || it.method.contains(filter, ignoreCase = true)
+        }
+    }
+
 @Composable
 fun RequestListScreen(requests: List<DebugRequest>) {
     var filter by remember { mutableStateOf("") }
@@ -37,15 +46,7 @@ fun RequestListScreen(requests: List<DebugRequest>) {
         return
     }
 
-    val filtered = remember(requests, filter) {
-        if (filter.isBlank()) {
-            requests
-        } else {
-            requests.filter {
-                it.url.contains(filter, ignoreCase = true) || it.method.contains(filter, ignoreCase = true)
-            }
-        }
-    }
+    val filtered = remember(requests, filter) { filterRequests(requests, filter) }
 
     Column {
         Box(Modifier.padding(horizontal = BugsySpacing.lg, vertical = BugsySpacing.searchBarVerticalMargin)) {

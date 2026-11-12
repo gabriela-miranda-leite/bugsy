@@ -1,0 +1,78 @@
+package com.bugsy.core
+
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class OkHttpDebugInterceptorTest {
+
+    private val server = MockWebServer()
+    private val interceptor = OkHttpDebugInterceptor()
+
+    @BeforeTest
+    fun setUp() {
+        server.start()
+        DebugRepository.clear()
+    }
+
+    @AfterTest
+    fun tearDown() {
+        server.shutdown()
+    }
+
+    @Test
+    fun `captures request and response with headers and body masked, without altering the response`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Authorization", "Bearer response-secret")
+                .setBody("""{"token":"xyz","ok":true}""")
+        )
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        val requestBody = """{"username":"gabi","password":"1234"}""".toRequestBody()
+        val request = Request.Builder()
+            .url(server.url("/login"))
+            .header("Authorization", "Bearer request-secret")
+            .post(requestBody)
+            .build()
+
+        val response = client.newCall(request).execute()
+        val responseBodyString = response.body!!.string()
+
+        assertEquals(200, response.code)
+        assertEquals("""{"token":"xyz","ok":true}""", responseBodyString)
+
+        val captured = DebugRepository.getAll()
+        assertEquals(1, captured.size)
+
+        val entry = captured.first()
+        assertEquals("***", entry.requestHeaders["Authorization"])
+        assertEquals("***", entry.responseHeaders["Authorization"])
+        assertTrue(entry.requestBody!!.contains("\"password\":\"***\""))
+        assertTrue(entry.responseBody!!.contains("\"token\":\"***\""))
+        assertEquals(200, entry.statusCode)
+    }
+
+    @Test
+    fun `does not capture when detached`() {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("ok"))
+
+        interceptor.detach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        val request = Request.Builder().url(server.url("/ping")).build()
+        client.newCall(request).execute().close()
+
+        assertTrue(DebugRepository.getAll().isEmpty())
+    }
+}

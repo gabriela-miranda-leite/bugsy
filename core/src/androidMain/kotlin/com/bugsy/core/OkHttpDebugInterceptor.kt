@@ -1,9 +1,69 @@
 package com.bugsy.core
 
-/**
- * Implementação real do interceptor OkHttp — ver DEB-13.
- */
-internal class OkHttpDebugInterceptor {
-    fun attach() = Unit
-    fun detach() = Unit
+import com.bugsy.core.model.DebugRequest
+import okhttp3.Headers
+import okhttp3.Interceptor
+import okhttp3.Request
+import okhttp3.Response
+import okio.Buffer
+import java.util.UUID
+
+internal class OkHttpDebugInterceptor : Interceptor {
+
+    @Volatile
+    private var isActive = false
+
+    fun attach() {
+        isActive = true
+    }
+
+    fun detach() {
+        isActive = false
+    }
+
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        if (!isActive) return chain.proceed(request)
+
+        val startNs = System.nanoTime()
+        val response = chain.proceed(request)
+
+        try {
+            DebugRepository.add(buildDebugRequest(request, response, startNs))
+        } catch (e: Exception) {
+            println("Bugsy: failed to capture debug request — ${e.message}")
+        }
+
+        return response
+    }
+
+    private fun buildDebugRequest(request: Request, response: Response, startNs: Long): DebugRequest {
+        val requestBody = request.body?.let { body ->
+            val buffer = Buffer()
+            body.writeTo(buffer)
+            buffer.readUtf8()
+        }
+        val responseBody = response.peekBody(MAX_BODY_BYTES).string()
+
+        return DebugRequest(
+            id = UUID.randomUUID().toString(),
+            url = request.url.toString(),
+            method = request.method,
+            requestHeaders = HeaderRedactor.redact(request.headers.toMap()),
+            requestBody = BodyFieldMasker.mask(requestBody),
+            statusCode = response.code,
+            responseHeaders = HeaderRedactor.redact(response.headers.toMap()),
+            responseBody = BodyFieldMasker.mask(responseBody),
+            durationMs = (System.nanoTime() - startNs) / 1_000_000,
+            timestamp = System.currentTimeMillis(),
+            curlCommand = "" // CurlGenerator ainda não existe — ver DEB-15
+        )
+    }
+
+    private fun Headers.toMap(): Map<String, String> =
+        names().associateWith { name -> get(name).orEmpty() }
+
+    private companion object {
+        const val MAX_BODY_BYTES = 1L * 1024 * 1024
+    }
 }

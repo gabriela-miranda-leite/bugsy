@@ -1,0 +1,38 @@
+package com.bugsy.ui
+
+import com.bugsy.core.model.DebugRequest
+
+/**
+ * Dados de exemplo usados apenas em @Preview composables — nunca chegam a um app host.
+ */
+internal object PreviewFixtures {
+    val getRequest = DebugRequest(
+        id = "1",
+        url = "https://api.bugsy.dev/v1/users/42",
+        method = "GET",
+        requestHeaders = mapOf("Accept" to "application/json"),
+        requestBody = null,
+        statusCode = 200,
+        responseHeaders = mapOf("Content-Type" to "application/json"),
+        responseBody = """{"id":42,"name":"Ada Lovelace"}""",
+        durationMs = 128,
+        timestamp = 1_700_000_000_000,
+        curlCommand = "curl https://api.bugsy.dev/v1/users/42",
+    )
+
+    val postRequestError = DebugRequest(
+        id = "2",
+        url = "https://api.bugsy.dev/v1/orders",
+        method = "POST",
+        requestHeaders = mapOf("Content-Type" to "application/json", "Authorization" to "Bearer ***"),
+        requestBody = """{"items":[{"sku":"BUG-1","qty":2}]}""",
+        statusCode = 500,
+        responseHeaders = emptyMap(),
+        responseBody = """{"error":"internal_error"}""",
+        durationMs = 2_340,
+        timestamp = 1_700_000_050_000,
+        curlCommand = "curl -X POST https://api.bugsy.dev/v1/orders -d '{\"items\":[...]}'",
+    )
+
+    val requests = listOf(getRequest, postRequestError)
+}

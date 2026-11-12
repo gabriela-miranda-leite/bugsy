@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="bugsy_title">Bugsy</string>
+    <string name="cd_bugsy_icon">Bugsy</string>
+    <string name="cd_close">Close</string>
+    <string name="cd_expand">Expand</string>
+    <string name="cd_collapse">Collapse</string>
+
+    <string name="action_clear">Clear</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_copied">Copied!</string>
+
+    <string name="tab_requests">Requests</string>
+    <string name="tab_flags">Flags</string>
+    <string name="tab_device">Device</string>
+
+    <string name="search_placeholder">Filter by URL or method…</string>
+    <string name="empty_no_requests">No requests captured</string>
+    <string name="empty_no_requests_filtered">No requests for \"%1$s\"</string>
+
+    <string name="label_curl">cURL</string>
+    <string name="label_status">Status</string>
+    <string name="label_duration">Duration</string>
+    <string name="label_time">Time</string>
+    <string name="label_request_headers">Request headers</string>
+    <string name="label_request_body">Request body</string>
+    <string name="label_response_body">Response body</string>
+
+    <string name="flags_coming_soon">Flags coming soon</string>
+    <string name="device_info_coming_soon">Device info coming soon</string>
+</resources>

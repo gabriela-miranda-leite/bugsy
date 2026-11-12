@@ -35,9 +35,13 @@ kotlin {
         commonMain.dependencies {
         }
         androidMain.dependencies {
+            implementation(libs.okhttp)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+        }
+        androidUnitTest.dependencies {
+            implementation(libs.okhttp.mockwebserver)
         }
     }
 }

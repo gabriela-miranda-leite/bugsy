@@ -25,6 +25,7 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.formatDuration
+import com.bugsy.ui.theme.formatUrl
 import com.bugsy.ui.theme.statusColor
 
 @Composable
@@ -52,7 +53,7 @@ fun RequestRow(
     ) {
         MethodBadge(request.method)
         Text(
-            text = request.url,
+            text = formatUrl(request.url),
             style = BugsyTypography.Code.copy(color = BugsyColors.TextDimmed),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

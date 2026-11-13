@@ -54,6 +54,18 @@ object Bugsy {
      */
     fun removeSensitiveHeader(name: String) = HeaderRedactor.remove(name)
 
+    /**
+     * Passa a mascarar o valor do campo [name] (case-insensitive, em qualquer nível do JSON ou como `campo=valor`)
+     * nos bodies capturados a partir deste ponto.
+     */
+    fun addSensitiveBodyField(name: String) = BodyFieldMasker.add(name)
+
+    /**
+     * Deixa de mascarar [name], inclusive um dos padrões (`password`, `cpf`, `token`, `secret`).
+     * Atenção: remover um campo de credencial expõe o valor real na UI.
+     */
+    fun removeSensitiveBodyField(name: String) = BodyFieldMasker.remove(name)
+
     fun show() {
         _isVisible.value = true
     }

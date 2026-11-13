@@ -12,6 +12,23 @@
 		A10000000000000000000003 /* Bugsy.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* Bugsy.xcframework */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		AA0000000000000000000001 /* Copy Compose Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Compose Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Strings/fontes do overlay (Compose Multiplatform) precisam estar no bundle do app.\nif [ \"$PLATFORM_NAME\" = \"iphoneos\" ]; then TARGET=iosArm64; else TARGET=iosSimulatorArm64; fi\nSRC=\"$SRCROOT/../ui/build/kotlin-multiplatform-resources/aggregated-resources/$TARGET/composeResources\"\nDEST=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/compose-resources/composeResources\"\nmkdir -p \"$DEST\"\nrsync -a --delete \"$SRC/\" \"$DEST/\"\n# Fontes (recursos não-XML) ficam no diretório de recursos preparados do módulo ui.\nrsync -a \"$SRCROOT/../ui/build/generated/compose/resourceGenerator/preparedResources/commonMain/composeResources/font\" \"$DEST/bugsy.ui.generated.resources/\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXFileReference section */
 		A20000000000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A20000000000000000000002 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -74,6 +91,7 @@
 			buildPhases = (
 				A60000000000000000000001 /* Sources */,
 				A30000000000000000000001 /* Frameworks */,
+				AA0000000000000000000001 /* Copy Compose Resources */,
 			);
 			buildRules = (
 			);
@@ -129,6 +147,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -142,6 +161,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;

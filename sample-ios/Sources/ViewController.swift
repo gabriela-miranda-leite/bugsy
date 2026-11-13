@@ -31,6 +31,14 @@ final class ViewController: UIViewController {
         ])
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Modo automático para validar a integração sem interação: BUGSY_SAMPLE_AUTORUN=1
+        guard ProcessInfo.processInfo.environment["BUGSY_SAMPLE_AUTORUN"] == "1" else { return }
+        makeRequest()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { Bugsy.shared.show() }
+    }
+
     @objc private func makeRequest() {
         var request = URLRequest(url: URL(string: "https://httpbin.org/get")!)
         request.setValue("Bearer sample-secret", forHTTPHeaderField: "Authorization")

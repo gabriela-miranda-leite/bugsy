@@ -30,7 +30,8 @@ private fun presentOverlay() {
     if (presentedController != null) return
     val root = currentRootViewController() ?: return
 
-    val controller = ComposeUIViewController {
+    // O overlay é só de debug: não deve derrubar o app host por falta de CADisableMinimumFrameDurationOnPhone no Info.plist.
+    val controller = ComposeUIViewController(configure = { enforceStrictPlistSanityCheck = false }) {
         DebugOverlay(viewModel = DebugViewModel(), onDismiss = { Bugsy.hide() })
     }
     presentedController = controller

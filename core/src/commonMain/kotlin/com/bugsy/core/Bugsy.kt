@@ -9,6 +9,22 @@ object Bugsy {
     private val _isVisible = MutableStateFlow(false)
     val isVisible: StateFlow<Boolean> = _isVisible
 
+    private var shakeDetector: ShakeDetector? = null
+
+    fun initialize(config: BugsyConfig = BugsyConfig()) {
+        destroy()
+
+        if (config.trigger == Trigger.Shake) {
+            shakeDetector = ShakeDetector.create(config.shakeThresholdG, onShake = ::show)
+                .also { it.start() }
+        }
+    }
+
+    fun destroy() {
+        shakeDetector?.stop()
+        shakeDetector = null
+    }
+
     fun show() {
         _isVisible.value = true
     }

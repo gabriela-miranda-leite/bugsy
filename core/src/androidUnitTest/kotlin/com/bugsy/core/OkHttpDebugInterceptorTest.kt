@@ -25,6 +25,7 @@ class OkHttpDebugInterceptorTest {
     @AfterTest
     fun tearDown() {
         HeaderRedactor.reset()
+        BodyFieldMasker.reset()
         server.shutdown()
     }
 
@@ -92,5 +93,18 @@ class OkHttpDebugInterceptorTest {
         assertEquals("***", entry.requestHeaders["X-Custom-Token"])
         assertEquals("***", entry.responseHeaders["X-Custom-Token"])
         assertTrue("req-secret" !in entry.curlCommand)
+    }
+
+    @Test
+    fun `masks sensitive fields of a response body that is cut at the capture limit`() {
+        val padding = "x".repeat(1_100_000)
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"password":"leaked-secret","blob":"$padding"}"""))
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        client.newCall(Request.Builder().url(server.url("/")).build()).execute().close()
+
+        val captured = DebugRepository.getAll().single().responseBody!!
+        assertTrue("leaked-secret" !in captured)
     }
 }

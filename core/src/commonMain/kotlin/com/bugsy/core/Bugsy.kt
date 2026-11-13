@@ -10,19 +10,28 @@ object Bugsy {
     val isVisible: StateFlow<Boolean> = _isVisible
 
     private var shakeDetector: ShakeDetector? = null
+    private var floatingButtonController: FloatingButtonController? = null
 
     fun initialize(config: BugsyConfig = BugsyConfig()) {
         destroy()
 
-        if (config.trigger == Trigger.Shake) {
-            shakeDetector = ShakeDetector.create(config.shakeThresholdG, onShake = ::show)
-                .also { it.start() }
+        when (config.trigger) {
+            Trigger.Shake -> {
+                shakeDetector = ShakeDetector.create(config.shakeThresholdG, onShake = ::show)
+                    .also { it.start() }
+            }
+            Trigger.FloatingButton -> {
+                floatingButtonController = FloatingButtonController.create(onTap = ::show)
+                    .also { it.start() }
+            }
         }
     }
 
     fun destroy() {
         shakeDetector?.stop()
         shakeDetector = null
+        floatingButtonController?.stop()
+        floatingButtonController = null
     }
 
     fun show() {

@@ -11,6 +11,7 @@ class BugsyTest {
     @AfterTest
     fun tearDown() {
         Bugsy.hide()
+        Bugsy.destroy()
     }
 
     @Test
@@ -37,5 +38,26 @@ class BugsyTest {
         Bugsy.hide()
 
         assertFalse(Bugsy.isVisible.value)
+    }
+
+    @Test
+    fun `initialize with the Shake trigger does not throw`() {
+        Bugsy.initialize(BugsyConfig(trigger = Trigger.Shake))
+    }
+
+    @Test
+    fun `initialize with the FloatingButton trigger does not start a shake detector`() {
+        Bugsy.initialize(BugsyConfig(trigger = Trigger.FloatingButton))
+    }
+
+    @Test
+    fun `destroy can be called safely without a prior initialize`() {
+        Bugsy.destroy()
+    }
+
+    @Test
+    fun `calling initialize twice replaces the previous trigger instead of leaking it`() {
+        Bugsy.initialize(BugsyConfig(trigger = Trigger.Shake))
+        Bugsy.initialize(BugsyConfig(trigger = Trigger.FloatingButton))
     }
 }

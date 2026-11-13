@@ -37,6 +37,8 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.okhttp)
+            implementation(libs.androidx.startup.runtime)
+            implementation(libs.androidx.lifecycle.process)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

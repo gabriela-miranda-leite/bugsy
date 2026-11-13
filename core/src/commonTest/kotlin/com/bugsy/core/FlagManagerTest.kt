@@ -79,6 +79,23 @@ class FlagManagerTest {
     }
 
     @Test
+    fun `resetAll clears every override`() {
+        val manager = FlagManager {
+            listOf(
+                DebugFlag("a", "A", false, false),
+                DebugFlag("b", "B", "x", false),
+            )
+        }
+        manager.override("a", true)
+        manager.override("b", "y")
+
+        manager.resetAll()
+
+        assertEquals(listOf<Any>(false, "x"), manager.flags.value.map { it.value })
+        assertTrue(manager.flags.value.none { it.isOverridden })
+    }
+
+    @Test
     fun `refresh picks up provider changes while keeping overrides`() {
         val manager = manager()
         manager.override("feature_x", "local")

@@ -29,7 +29,8 @@
 
     <string name="flags_empty_title">Nenhuma flag configurada</string>
     <string name="flags_empty_subtitle">As feature flags vão aparecer aqui.</string>
-    <string name="flags_action_reset">Redefinir</string>
+    <string name="flags_badge_override">override</string>
+    <string name="flags_action_reset_all">Redefinir todos os overrides (%1$d)</string>
 
     <string name="device_section_app">App</string>
     <string name="device_section_device">Dispositivo</string>

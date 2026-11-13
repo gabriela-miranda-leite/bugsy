@@ -36,6 +36,15 @@ class FlagManager(private val flagsProvider: () -> List<DebugFlag>) {
         }
     }
 
+    fun resetAll() {
+        runBlocking {
+            mutex.withLock {
+                overrides.clear()
+                _flags.value = effectiveFlags()
+            }
+        }
+    }
+
     fun refresh() {
         runBlocking {
             mutex.withLock { _flags.value = effectiveFlags() }

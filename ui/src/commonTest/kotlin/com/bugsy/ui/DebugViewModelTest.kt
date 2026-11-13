@@ -41,13 +41,13 @@ class DebugViewModelTest {
     }
 
     @Test
-    fun `overrideFlag and resetFlag update the flags exposed to the UI`() {
+    fun `overrideFlag and resetAllFlags update the flags exposed to the UI`() {
         Bugsy.initialize(BugsyConfig(flagsProvider = { listOf(DebugFlag("feature_x", "Feature X", false, false)) }))
 
         viewModel.overrideFlag("feature_x", true)
         assertEquals(true, viewModel.flags.value.single().value)
 
-        viewModel.resetFlag("feature_x")
+        viewModel.resetAllFlags()
         assertEquals(false, viewModel.flags.value.single().value)
 
         Bugsy.destroy()

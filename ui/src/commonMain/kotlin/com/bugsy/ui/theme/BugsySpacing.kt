@@ -90,4 +90,13 @@ object BugsySpacing {
 
     // Device info
     val copyAllButtonHeight = 44.dp
+
+    // Flags
+    val flagRowVertical = 14.dp
+    val flagBadgeSpacing = 6.dp
+    val flagBadgePaddingHorizontal = 10.dp
+    val flagBadgePaddingVertical = 1.dp
+    val flagValueKeyMinWidth = 144.dp
+    val resetAllButtonHeight = 48.dp
+    val cornerButtonLarge = 12.dp
 }

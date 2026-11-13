@@ -50,7 +50,7 @@ fun DebugOverlay(
                 BugsyTab.Flags -> FlagsScreen(
                     flags = flags,
                     onOverride = viewModel::overrideFlag,
-                    onReset = viewModel::resetFlag,
+                    onResetAll = viewModel::resetAllFlags,
                 )
                 BugsyTab.Device -> DeviceInfoScreen(info = viewModel.deviceInfo)
             }

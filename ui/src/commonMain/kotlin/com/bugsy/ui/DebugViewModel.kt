@@ -33,7 +33,7 @@ class DebugViewModel {
 
     fun overrideFlag(key: String, value: Any) = Bugsy.flagManager.override(key, value)
 
-    fun resetFlag(key: String) = Bugsy.flagManager.reset(key)
+    fun resetAllFlags() = Bugsy.flagManager.resetAll()
 
     fun refreshFlags() = Bugsy.flagManager.refresh()
 }

@@ -28,6 +28,11 @@ object BugsyColors {
     // Brand
     val Brand = Color(0xFFFF710B)
 
+    // Flags
+    val SwitchOn       = Color(0xFF3A8A4C)
+    val SwitchOff      = Color(0xFF47474E)
+    val OverrideBadge  = Color(0xFFA27CF0)
+
     // HTTP method badges (HeadText/HeadBg unverified — no HEAD/OPTIONS example in Figma)
     val GetText = Color(0xFF60A5FA)
     val GetBg = Color(0xFF112142)

@@ -53,8 +53,10 @@ internal object PreviewFixtures {
     )
 
     val flags = listOf(
-        DebugFlag(key = "new_checkout", label = "New checkout", value = true, isOverridden = true),
-        DebugFlag(key = "dark_mode", label = "Dark mode", value = false, isOverridden = false),
-        DebugFlag(key = "api_base_url", label = "API base URL", value = "https://staging.bugsy.dev", isOverridden = false),
+        DebugFlag(key = "featureNewCheckout", label = "featureNewCheckout", value = true, isOverridden = true),
+        DebugFlag(key = "featureRecommendations", label = "featureRecommendations", value = false, isOverridden = false),
+        DebugFlag(key = "maintenanceMode", label = "maintenanceMode", value = false, isOverridden = false),
+        DebugFlag(key = "debugLogging", label = "debugLogging", value = true, isOverridden = true),
+        DebugFlag(key = "apiEnvironment", label = "apiEnvironment", value = "sandbox", isOverridden = false),
     )
 }

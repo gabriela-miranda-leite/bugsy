@@ -183,7 +183,21 @@ class BugsyScreenshotTest {
                     DragHandle()
                     BugsySheetHeader(requestCount = 2, onClear = {}, onDismiss = {})
                     BugsyTabBar(selected = BugsyTab.Flags, requestCount = 2, onSelect = {})
-                    FlagsScreen()
+                    FlagsScreen(flags = emptyList(), onOverride = { _, _ -> }, onResetAll = {})
+                }
+            }
+        }
+    }
+
+    @Test
+    fun debugOverlayFlagsWithData() {
+        paparazzi.snapshot {
+            BugsyTheme {
+                Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
+                    DragHandle()
+                    BugsySheetHeader(requestCount = 2, onClear = {}, onDismiss = {})
+                    BugsyTabBar(selected = BugsyTab.Flags, requestCount = 2, onSelect = {})
+                    FlagsScreen(flags = PreviewFixtures.flags, onOverride = { _, _ -> }, onResetAll = {})
                 }
             }
         }

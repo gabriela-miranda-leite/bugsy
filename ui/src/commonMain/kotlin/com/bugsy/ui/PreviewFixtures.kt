@@ -1,5 +1,6 @@
 package com.bugsy.ui
 
+import com.bugsy.core.model.DebugFlag
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.core.model.DeviceInfo
 
@@ -49,5 +50,13 @@ internal object PreviewFixtures {
         bugsyVersion = "0.1.0-alpha",
         kotlinVersion = "2.0.0",
         composeVersion = "1.7.0",
+    )
+
+    val flags = listOf(
+        DebugFlag(key = "featureNewCheckout", label = "featureNewCheckout", value = true, isOverridden = true),
+        DebugFlag(key = "featureRecommendations", label = "featureRecommendations", value = false, isOverridden = false),
+        DebugFlag(key = "maintenanceMode", label = "maintenanceMode", value = false, isOverridden = false),
+        DebugFlag(key = "debugLogging", label = "debugLogging", value = true, isOverridden = true),
+        DebugFlag(key = "apiEnvironment", label = "apiEnvironment", value = "sandbox", isOverridden = false),
     )
 }

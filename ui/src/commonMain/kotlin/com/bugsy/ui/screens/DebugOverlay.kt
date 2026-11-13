@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +26,9 @@ fun DebugOverlay(
 ) {
     var selectedTab by remember { mutableStateOf(BugsyTab.Requests) }
     val requests by viewModel.requests.collectAsState()
+    val flags by viewModel.flags.collectAsState()
+
+    LaunchedEffect(viewModel) { viewModel.refreshFlags() }
 
     BugsyTheme {
         Column(
@@ -43,7 +47,11 @@ fun DebugOverlay(
             )
             when (selectedTab) {
                 BugsyTab.Requests -> RequestListScreen(requests = requests)
-                BugsyTab.Flags -> FlagsScreen()
+                BugsyTab.Flags -> FlagsScreen(
+                    flags = flags,
+                    onOverride = viewModel::overrideFlag,
+                    onResetAll = viewModel::resetAllFlags,
+                )
                 BugsyTab.Device -> DeviceInfoScreen(info = viewModel.deviceInfo)
             }
         }

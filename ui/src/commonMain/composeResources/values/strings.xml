@@ -29,6 +29,8 @@
 
     <string name="flags_empty_title">No flags configured</string>
     <string name="flags_empty_subtitle">Feature flags will appear here.</string>
+    <string name="flags_badge_override">override</string>
+    <string name="flags_action_reset_all">Reset all overrides (%1$d)</string>
 
     <string name="device_section_app">App</string>
     <string name="device_section_device">Device</string>

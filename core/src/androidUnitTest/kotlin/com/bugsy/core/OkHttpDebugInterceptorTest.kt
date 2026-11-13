@@ -24,6 +24,7 @@ class OkHttpDebugInterceptorTest {
 
     @AfterTest
     fun tearDown() {
+        HeaderRedactor.reset()
         server.shutdown()
     }
 
@@ -74,5 +75,22 @@ class OkHttpDebugInterceptorTest {
         client.newCall(request).execute().close()
 
         assertTrue(DebugRepository.getAll().isEmpty())
+    }
+
+    @Test
+    fun `redacts custom headers added through Bugsy in the captured request and response`() {
+        Bugsy.addSensitiveHeader("X-Custom-Token")
+        server.enqueue(MockResponse().setResponseCode(200).setHeader("X-Custom-Token", "resp-secret").setBody("{}"))
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        client.newCall(
+            Request.Builder().url(server.url("/")).header("X-Custom-Token", "req-secret").build()
+        ).execute().close()
+
+        val entry = DebugRepository.getAll().single()
+        assertEquals("***", entry.requestHeaders["X-Custom-Token"])
+        assertEquals("***", entry.responseHeaders["X-Custom-Token"])
+        assertTrue("req-secret" !in entry.curlCommand)
     }
 }

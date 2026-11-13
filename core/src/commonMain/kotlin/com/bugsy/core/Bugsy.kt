@@ -9,11 +9,15 @@ object Bugsy {
     private val _isVisible = MutableStateFlow(false)
     val isVisible: StateFlow<Boolean> = _isVisible
 
+    private var _flagManager = FlagManager { emptyList() }
+    val flagManager: FlagManager get() = _flagManager
+
     private var shakeDetector: ShakeDetector? = null
     private var floatingButtonController: FloatingButtonController? = null
 
     fun initialize(config: BugsyConfig = BugsyConfig()) {
         destroy()
+        _flagManager = FlagManager(config.flagsProvider)
 
         when (config.trigger) {
             Trigger.Shake -> {

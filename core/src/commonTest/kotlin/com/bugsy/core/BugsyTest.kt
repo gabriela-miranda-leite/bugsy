@@ -1,5 +1,6 @@
 package com.bugsy.core
 
+import com.bugsy.core.model.DebugFlag
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -59,5 +60,14 @@ class BugsyTest {
     fun `calling initialize twice replaces the previous trigger instead of leaking it`() {
         Bugsy.initialize(BugsyConfig(trigger = Trigger.Shake))
         Bugsy.initialize(BugsyConfig(trigger = Trigger.FloatingButton))
+    }
+
+    @Test
+    fun `initialize exposes flags from the configured flagsProvider`() {
+        Bugsy.initialize(
+            BugsyConfig(flagsProvider = { listOf(DebugFlag("feature_x", "Feature X", false, false)) })
+        )
+
+        assertEquals(listOf("feature_x"), Bugsy.flagManager.flags.value.map { it.key })
     }
 }

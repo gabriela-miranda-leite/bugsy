@@ -12,12 +12,14 @@ object Bugsy {
     private var _flagManager = FlagManager { emptyList() }
     val flagManager: FlagManager get() = _flagManager
 
+    private var debugInterceptor: DebugInterceptor? = null
     private var shakeDetector: ShakeDetector? = null
     private var floatingButtonController: FloatingButtonController? = null
 
     fun initialize(config: BugsyConfig = BugsyConfig()) {
         destroy()
         _flagManager = FlagManager(config.flagsProvider)
+        debugInterceptor = DebugInterceptor.create().also { it.attach() }
 
         when (config.trigger) {
             Trigger.Shake -> {
@@ -32,6 +34,8 @@ object Bugsy {
     }
 
     fun destroy() {
+        debugInterceptor?.detach()
+        debugInterceptor = null
         shakeDetector?.stop()
         shakeDetector = null
         floatingButtonController?.stop()

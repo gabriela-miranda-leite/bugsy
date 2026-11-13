@@ -42,6 +42,18 @@ object Bugsy {
         floatingButtonController = null
     }
 
+    /**
+     * Passa a mascarar o valor de [name] (case-insensitive) nas requests capturadas a partir deste ponto.
+     * Requests já capturadas não são alteradas.
+     */
+    fun addSensitiveHeader(name: String) = HeaderRedactor.add(name)
+
+    /**
+     * Deixa de mascarar [name], inclusive um dos padrões (`Authorization`, `Cookie`, `X-Api-Key`).
+     * Atenção: remover um header de credenciais expõe o valor real na UI.
+     */
+    fun removeSensitiveHeader(name: String) = HeaderRedactor.remove(name)
+
     fun show() {
         _isVisible.value = true
     }

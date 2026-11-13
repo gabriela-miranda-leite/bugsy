@@ -1,5 +1,6 @@
 package com.bugsy.ui
 
+import com.bugsy.core.model.DebugFlag
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.core.model.DeviceInfo
 
@@ -49,5 +50,11 @@ internal object PreviewFixtures {
         bugsyVersion = "0.1.0-alpha",
         kotlinVersion = "2.0.0",
         composeVersion = "1.7.0",
+    )
+
+    val flags = listOf(
+        DebugFlag(key = "new_checkout", label = "New checkout", value = true, isOverridden = true),
+        DebugFlag(key = "dark_mode", label = "Dark mode", value = false, isOverridden = false),
+        DebugFlag(key = "api_base_url", label = "API base URL", value = "https://staging.bugsy.dev", isOverridden = false),
     )
 }

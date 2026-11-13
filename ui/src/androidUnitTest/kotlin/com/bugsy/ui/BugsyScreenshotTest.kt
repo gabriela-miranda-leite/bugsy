@@ -183,7 +183,7 @@ class BugsyScreenshotTest {
                     DragHandle()
                     BugsySheetHeader(requestCount = 2, onClear = {}, onDismiss = {})
                     BugsyTabBar(selected = BugsyTab.Flags, requestCount = 2, onSelect = {})
-                    FlagsScreen()
+                    FlagsScreen(flags = emptyList(), onOverride = { _, _ -> }, onReset = {})
                 }
             }
         }

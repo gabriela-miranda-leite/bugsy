@@ -29,6 +29,7 @@
 
     <string name="flags_empty_title">Ninguna flag configurada</string>
     <string name="flags_empty_subtitle">Los feature flags aparecerán aquí.</string>
+    <string name="flags_action_reset">Restablecer</string>
 
     <string name="device_section_app">App</string>
     <string name="device_section_device">Dispositivo</string>

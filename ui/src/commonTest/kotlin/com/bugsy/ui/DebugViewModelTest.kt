@@ -1,6 +1,9 @@
 package com.bugsy.ui
 
+import com.bugsy.core.Bugsy
+import com.bugsy.core.BugsyConfig
 import com.bugsy.core.DebugRepository
+import com.bugsy.core.model.DebugFlag
 import com.bugsy.core.model.DebugRequest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -35,6 +38,19 @@ class DebugViewModelTest {
         viewModel.clearRequests()
 
         assertTrue(viewModel.requests.value.isEmpty())
+    }
+
+    @Test
+    fun `overrideFlag and resetFlag update the flags exposed to the UI`() {
+        Bugsy.initialize(BugsyConfig(flagsProvider = { listOf(DebugFlag("feature_x", "Feature X", false, false)) }))
+
+        viewModel.overrideFlag("feature_x", true)
+        assertEquals(true, viewModel.flags.value.single().value)
+
+        viewModel.resetFlag("feature_x")
+        assertEquals(false, viewModel.flags.value.single().value)
+
+        Bugsy.destroy()
     }
 
     private fun fakeRequest(id: String) = DebugRequest(

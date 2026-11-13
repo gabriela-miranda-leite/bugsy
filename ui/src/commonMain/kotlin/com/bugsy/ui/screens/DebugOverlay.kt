@@ -44,7 +44,7 @@ fun DebugOverlay(
             when (selectedTab) {
                 BugsyTab.Requests -> RequestListScreen(requests = requests)
                 BugsyTab.Flags -> FlagsScreen()
-                BugsyTab.Device -> DeviceInfoScreen()
+                BugsyTab.Device -> DeviceInfoScreen(info = viewModel.deviceInfo)
             }
         }
     }

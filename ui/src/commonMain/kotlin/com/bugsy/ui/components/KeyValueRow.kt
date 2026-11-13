@@ -10,6 +10,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
@@ -34,7 +35,7 @@ fun KeyValueRow(
             )
             Text(
                 value,
-                style = BugsyTypography.Code.copy(color = BugsyColors.TextSecondary),
+                style = BugsyTypography.Code.copy(color = BugsyColors.TextSecondary, fontWeight = FontWeight.Medium),
                 modifier = Modifier.weight(1f),
             )
         }

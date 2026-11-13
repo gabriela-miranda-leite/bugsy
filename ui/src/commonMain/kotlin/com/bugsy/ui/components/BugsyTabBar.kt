@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
@@ -50,9 +52,12 @@ fun BugsyTabBar(
             BugsyTab.entries.forEach { tab ->
                 val active = tab == selected
                 Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
+                        .width(IntrinsicSize.Min)
+                        .height(BugsySpacing.tabItemHeight)
                         .clickable { onSelect(tab) }
-                        .padding(horizontal = BugsySpacing.tabItemPaddingHorizontal, vertical = BugsySpacing.tabItemPaddingVertical),
+                        .padding(horizontal = BugsySpacing.tabItemPaddingHorizontal),
                 ) {
                     if (active) {
                         Box(
@@ -72,7 +77,7 @@ fun BugsyTabBar(
                             } else {
                                 BugsyTypography.Body
                             },
-                            color = if (active) BugsyColors.TextPrimary else BugsyColors.TextDimmed,
+                            color = if (active) BugsyColors.TextPrimary else BugsyColors.TextDisabled,
                         )
                         if (tab == BugsyTab.Requests && requestCount > 0) {
                             Box(
@@ -93,7 +98,7 @@ fun BugsyTabBar(
                 }
             }
         }
-        HorizontalDivider(thickness = BugsySpacing.strokeBorder, color = BugsyColors.Border)
+        HorizontalDivider(thickness = BugsySpacing.strokeBorder, color = BugsyColors.BorderHeader)
     }
 }
 

@@ -15,8 +15,9 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.Modifier
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
-import bugsy.ui.generated.resources.empty_no_requests
 import bugsy.ui.generated.resources.empty_no_requests_filtered
+import bugsy.ui.generated.resources.empty_no_requests_subtitle
+import bugsy.ui.generated.resources.empty_no_requests_title
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.BugsySearchBar
@@ -53,13 +54,14 @@ fun RequestListScreen(requests: List<DebugRequest>) {
             BugsySearchBar(value = filter, onValueChange = { filter = it })
         }
         if (filtered.isEmpty()) {
-            EmptyState(
-                if (filter.isNotBlank()) {
-                    stringResource(Res.string.empty_no_requests_filtered, filter)
-                } else {
-                    stringResource(Res.string.empty_no_requests)
-                },
-            )
+            if (filter.isNotBlank()) {
+                EmptyState(title = stringResource(Res.string.empty_no_requests_filtered, filter))
+            } else {
+                EmptyState(
+                    title = stringResource(Res.string.empty_no_requests_title),
+                    subtitle = stringResource(Res.string.empty_no_requests_subtitle),
+                )
+            }
         } else {
             LazyColumn(Modifier.fillMaxWidth()) {
                 items(filtered, key = { it.id }) { req ->

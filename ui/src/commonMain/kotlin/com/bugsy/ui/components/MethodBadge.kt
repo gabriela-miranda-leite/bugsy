@@ -11,14 +11,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
-import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.methodColors
+import com.bugsy.ui.theme.robotoFontFamily
 
 @Composable
 fun MethodBadge(method: String, modifier: Modifier = Modifier) {
@@ -32,7 +34,7 @@ fun MethodBadge(method: String, modifier: Modifier = Modifier) {
     ) {
         Text(
             text = method.uppercase(),
-            style = BugsyTypography.Label.copy(fontFamily = FontFamily.Monospace),
+            style = TextStyle(fontFamily = robotoFontFamily(), fontWeight = FontWeight.Bold, fontSize = 12.sp),
             color = textColor,
             maxLines = 1,
         )

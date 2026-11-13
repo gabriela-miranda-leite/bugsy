@@ -53,9 +53,9 @@ object BugsySpacing {
 
     // Tab bar
     val tabItemSpacing = 2.dp
+    val tabItemHeight = 44.dp
     val tabItemPaddingHorizontal = 14.dp
-    val tabItemPaddingVertical = 7.dp
-    val tabIndicatorHeight = 2.dp
+    val tabIndicatorHeight = 3.dp
     val tabBadgeSpacing = 5.dp
 
     // Search bar
@@ -83,7 +83,11 @@ object BugsySpacing {
 
     // Empty state
     val emptyStatePaddingVertical = 40.dp
+    val emptyStateTitleSpacing = 14.dp
 
     // Request detail — back button
     val backButtonIconSpacing = 2.dp
+
+    // Device info
+    val copyAllButtonHeight = 44.dp
 }

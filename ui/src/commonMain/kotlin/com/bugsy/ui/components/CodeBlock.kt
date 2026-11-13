@@ -67,7 +67,7 @@ fun CodeBlock(text: String, onCopy: (() -> Unit)? = null, modifier: Modifier = M
                     },
                     border = BorderStroke(
                         BugsySpacing.strokeBorder,
-                        if (copied) BugsyColors.Status2xx else BugsyColors.Border,
+                        if (copied) BugsyColors.Status2xx else BugsyColors.BorderButton,
                     ),
                     contentPadding = PaddingValues(
                         horizontal = BugsySpacing.codeBlockButtonPaddingHorizontal,

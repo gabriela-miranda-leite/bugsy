@@ -15,7 +15,8 @@
     <string name="tab_device">Device</string>
 
     <string name="search_placeholder">Filter by URL or method…</string>
-    <string name="empty_no_requests">No requests captured</string>
+    <string name="empty_no_requests_title">No requests</string>
+    <string name="empty_no_requests_subtitle">New requests will appear here.</string>
     <string name="empty_no_requests_filtered">No requests for \"%1$s\"</string>
 
     <string name="label_curl">cURL</string>
@@ -23,9 +24,23 @@
     <string name="label_duration">Duration</string>
     <string name="label_time">Time</string>
     <string name="label_request_headers">Request headers</string>
-    <string name="label_request_body">Request body</string>
+    <string name="label_response_headers">Response headers</string>
     <string name="label_response_body">Response body</string>
 
-    <string name="flags_coming_soon">Flags coming soon</string>
-    <string name="device_info_coming_soon">Device info coming soon</string>
+    <string name="flags_empty_title">No flags configured</string>
+    <string name="flags_empty_subtitle">Feature flags will appear here.</string>
+
+    <string name="device_section_app">App</string>
+    <string name="device_section_device">Device</string>
+    <string name="device_section_runtime">Runtime</string>
+    <string name="device_label_version">Version</string>
+    <string name="device_label_environment">Environment</string>
+    <string name="device_label_build">Build</string>
+    <string name="device_label_model">Model</string>
+    <string name="device_label_os">OS</string>
+    <string name="device_label_locale">Locale</string>
+    <string name="device_label_bugsy">Bugsy</string>
+    <string name="device_label_kotlin">Kotlin</string>
+    <string name="device_label_compose">Compose</string>
+    <string name="device_action_copy_all">Copy all</string>
 </resources>

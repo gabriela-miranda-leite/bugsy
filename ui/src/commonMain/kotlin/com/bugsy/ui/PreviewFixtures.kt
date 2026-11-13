@@ -1,6 +1,7 @@
 package com.bugsy.ui
 
 import com.bugsy.core.model.DebugRequest
+import com.bugsy.core.model.DeviceInfo
 
 /**
  * Dados de exemplo usados apenas em @Preview composables — nunca chegam a um app host.
@@ -35,4 +36,18 @@ internal object PreviewFixtures {
     )
 
     val requests = listOf(getRequest, postRequestError)
+
+    val deviceInfo = DeviceInfo(
+        appVersionName = "2.1.4",
+        appVersionCode = "241",
+        environment = "staging",
+        buildType = "debug",
+        deviceModel = "Pixel 7 Pro",
+        osName = "Android",
+        osVersion = "14",
+        locale = "pt-BR",
+        bugsyVersion = "0.1.0-alpha",
+        kotlinVersion = "2.0.0",
+        composeVersion = "1.7.0",
+    )
 }

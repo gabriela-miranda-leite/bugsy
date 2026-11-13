@@ -28,9 +28,9 @@ import androidx.compose.ui.text.AnnotatedString
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.label_duration
-import bugsy.ui.generated.resources.label_request_body
 import bugsy.ui.generated.resources.label_request_headers
 import bugsy.ui.generated.resources.label_response_body
+import bugsy.ui.generated.resources.label_response_headers
 import bugsy.ui.generated.resources.label_status
 import bugsy.ui.generated.resources.label_time
 import bugsy.ui.generated.resources.tab_requests
@@ -47,6 +47,7 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.formatDuration
+import com.bugsy.ui.theme.prettyPrintJson
 import com.bugsy.ui.theme.statusColor
 import org.jetbrains.compose.resources.stringResource
 
@@ -60,7 +61,7 @@ fun RequestDetailScreen(request: DebugRequest, onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
                 .drawBehind {
                     val s = BugsySpacing.strokeBorder.toPx()
-                    drawLine(BugsyColors.Border, Offset(0f, size.height), Offset(size.width, size.height), s)
+                    drawLine(BugsyColors.BorderHeader, Offset(0f, size.height), Offset(size.width, size.height), s)
                 }
                 .padding(start = BugsySpacing.sm),
         ) {
@@ -113,19 +114,16 @@ fun RequestDetailScreen(request: DebugRequest, onBack: () -> Unit) {
                 items(request.requestHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v) }
             }
 
-            if (request.requestBody?.isNotBlank() == true) {
-                item {
-                    ExpandableSection(stringResource(Res.string.label_request_body), initiallyExpanded = true) {
-                        CodeBlock(request.requestBody ?: "")
-                    }
-                }
+            if (request.responseHeaders.isNotEmpty()) {
+                item { SectionLabel(stringResource(Res.string.label_response_headers)) }
+                items(request.responseHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v) }
             }
 
             if (request.responseBody?.isNotBlank() == true) {
                 item {
                     val long = (request.responseBody?.length ?: 0) > 400
                     ExpandableSection(stringResource(Res.string.label_response_body), initiallyExpanded = !long) {
-                        CodeBlock(request.responseBody ?: "")
+                        CodeBlock(prettyPrintJson(request.responseBody ?: ""))
                     }
                 }
             }

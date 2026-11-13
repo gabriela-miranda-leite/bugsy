@@ -22,7 +22,7 @@ fun DragHandle(modifier: Modifier = Modifier) {
     ) {
         Box(
             Modifier.width(BugsySpacing.dragHandleWidth).height(BugsySpacing.dragHandleHeight)
-                .background(BugsyColors.TextDisabled, RoundedCornerShape(BugsySpacing.dragHandleCorner)),
+                .background(BugsyColors.DragHandle, RoundedCornerShape(BugsySpacing.dragHandleCorner)),
         )
     }
 }

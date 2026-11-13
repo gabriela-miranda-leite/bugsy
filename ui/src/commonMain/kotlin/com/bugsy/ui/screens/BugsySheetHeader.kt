@@ -70,7 +70,7 @@ fun BugsySheetHeader(requestCount: Int, onClear: () -> Unit, onDismiss: () -> Un
         Spacer(Modifier.weight(1f))
         OutlinedButton(
             onClick = onClear,
-            border = BorderStroke(BugsySpacing.strokeBorder, BugsyColors.Border),
+            border = BorderStroke(BugsySpacing.strokeBorder, BugsyColors.BorderStrong),
             shape = RoundedCornerShape(BugsySpacing.cornerButton),
             contentPadding = PaddingValues(
                 horizontal = BugsySpacing.clearButtonPaddingHorizontal,

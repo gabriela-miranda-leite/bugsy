@@ -38,7 +38,7 @@ senhas, CPF) por acidente.
 
 | Android | iOS |
 |---|---|
-| _vídeo/GIF em breve_ | _vídeo/GIF em breve_ |
+| <video src="https://github.com/user-attachments/assets/d0d36d73-6a73-4659-8ef9-784bb9906590" controls width="300"></video> | _vídeo/GIF em breve_ |
 
 ## Instalação
 

@@ -40,7 +40,11 @@ mavenPublishing {
 }
 
 signing {
-    useGpgCmd()
+    if (System.getenv("CI") != null) {
+        useInMemoryPgpKeys(System.getenv("SIGNING_KEY"), System.getenv("SIGNING_PASSWORD"))
+    } else {
+        useGpgCmd()
+    }
 }
 
 // Artifact for release builds: same public API as core + ui, with no instrumentation.

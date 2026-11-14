@@ -19,7 +19,6 @@ import platform.UIKit.UIViewController
 import platform.UIKit.UIView.Companion.animateWithDuration
 import platform.UIKit.UIWindow
 import platform.UIKit.UIWindowLevelAlert
-import platform.UIKit.addSubview
 import platform.darwin.NSObject
 
 private const val BUTTON_SIZE = 56.0

@@ -86,7 +86,7 @@ object BugsySpacing {
     val emptyStateTitleSpacing = 14.dp
 
     // Request detail — back button
-    val backButtonIconSpacing = 2.dp
+    val backButtonIconSpacing = 8.dp
 
     // Device info
     val copyAllButtonHeight = 44.dp
@@ -99,4 +99,19 @@ object BugsySpacing {
     val flagValueKeyMinWidth = 144.dp
     val resetAllButtonHeight = 48.dp
     val cornerButtonLarge = 12.dp
+
+    // Modal do overlay: altura fixa em todas as telas, nas duas plataformas
+    const val overlayHeightFraction = 0.8f
+    val sheetCorner = 22.dp
+
+    val copyIconButtonSize = 36.dp
+
+    // Linhas clicáveis (listas e pares chave/valor)
+    val rowDividerThickness = 1.dp
+    val clickableRowVertical = 12.dp
+    val requestRowVertical = 14.dp
+    val requestRowChevronSize = 18.dp
+    val copyAffordanceSize = 16.dp
+    // Altura padrão de controles da barra de busca (campo de busca e botão da lixeira): sempre iguais.
+    val controlHeight = 44.dp
 }

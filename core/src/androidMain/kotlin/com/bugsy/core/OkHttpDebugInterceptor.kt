@@ -45,21 +45,18 @@ internal class OkHttpDebugInterceptor : Interceptor {
         }
         val responseBody = response.peekBody(MAX_BODY_BYTES).string()
 
-        val debugRequest = DebugRequest(
+        return RequestCapture.build(
             id = UUID.randomUUID().toString(),
             url = request.url.toString(),
             method = request.method,
-            requestHeaders = HeaderRedactor.redact(request.headers.toMap()),
-            requestBody = BodyFieldMasker.mask(requestBody),
+            requestHeaders = request.headers.toMap(),
+            requestBody = requestBody,
             statusCode = response.code,
-            responseHeaders = HeaderRedactor.redact(response.headers.toMap()),
-            responseBody = BodyFieldMasker.mask(responseBody),
+            responseHeaders = response.headers.toMap(),
+            responseBody = responseBody,
             durationMs = (System.nanoTime() - startNs) / 1_000_000,
             timestamp = System.currentTimeMillis(),
-            curlCommand = ""
         )
-
-        return debugRequest.copy(curlCommand = CurlGenerator.generate(debugRequest))
     }
 
     private fun Headers.toMap(): Map<String, String> =

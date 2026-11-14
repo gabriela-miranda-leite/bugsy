@@ -35,10 +35,13 @@ internal object BodyFieldMasker {
         sensitiveFields.value = defaultSensitiveFields
     }
 
-    fun mask(body: String?): String? {
-        if (body == null) return null
+    fun mask(body: String?): String? = maskTracked(body).value
+
+    /** Como [mask], mas informa se algum valor sensível foi realmente substituído. */
+    fun maskTracked(body: String?): MaskedText {
+        if (body == null) return MaskedText(null, redacted = false)
         val fields = sensitiveFields.value
-        if (fields.isEmpty() || body.isBlank()) return body
+        if (fields.isEmpty() || body.isBlank()) return MaskedText(body, redacted = false)
 
         val parsed = try {
             Json.parseToJsonElement(body)
@@ -46,24 +49,42 @@ internal object BodyFieldMasker {
             null
         }
         // O parser aceita texto solto (ex: `pin=1234`) como literal; só objetos e arrays são tratados como JSON.
-        return if (parsed is JsonObject || parsed is JsonArray) maskElement(parsed, fields).toString() else maskText(body, fields)
+        if (parsed is JsonObject || parsed is JsonArray) {
+            val tracker = Tracker()
+            return MaskedText(maskElement(parsed, fields, tracker).toString(), tracker.redacted)
+        }
+        val masked = maskText(body, fields)
+        return MaskedText(masked, redacted = masked != body)
     }
 
-    private fun maskElement(element: JsonElement, fields: Set<String>): JsonElement = when (element) {
+    internal class MaskedText(val value: String?, val redacted: Boolean)
+
+    private class Tracker {
+        var redacted = false
+    }
+
+    private fun maskElement(element: JsonElement, fields: Set<String>, tracker: Tracker): JsonElement = when (element) {
         is JsonObject -> JsonObject(
             element.mapValues { (key, value) ->
-                if (key.lowercase() in fields) JsonPrimitive(MASK) else maskElement(value, fields)
+                if (key.lowercase() in fields) {
+                    if (value != JsonPrimitive(MASK)) tracker.redacted = true
+                    JsonPrimitive(MASK)
+                } else {
+                    maskElement(value, fields, tracker)
+                }
             }
         )
-        is JsonArray -> JsonArray(element.map { maskElement(it, fields) })
-        is JsonPrimitive -> maskEmbeddedJson(element, fields)
+        is JsonArray -> JsonArray(element.map { maskElement(it, fields, tracker) })
+        is JsonPrimitive -> maskEmbeddedJson(element, tracker)
     }
 
-    private fun maskEmbeddedJson(primitive: JsonPrimitive, fields: Set<String>): JsonPrimitive {
+    private fun maskEmbeddedJson(primitive: JsonPrimitive, tracker: Tracker): JsonPrimitive {
         if (!primitive.isString) return primitive
         val text = primitive.content.trimStart()
         if (!text.startsWith("{") && !text.startsWith("[")) return primitive
-        return JsonPrimitive(mask(primitive.content) ?: primitive.content)
+        val inner = maskTracked(primitive.content)
+        if (inner.redacted) tracker.redacted = true
+        return JsonPrimitive(inner.value ?: primitive.content)
     }
 
     private fun maskText(body: String, fields: Set<String>): String {

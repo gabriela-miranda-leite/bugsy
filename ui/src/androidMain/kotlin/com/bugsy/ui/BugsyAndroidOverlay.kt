@@ -1,15 +1,13 @@
 package com.bugsy.ui
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import com.bugsy.core.Bugsy
 import com.bugsy.ui.screens.DebugOverlay
 
@@ -25,9 +23,9 @@ fun BugsyAndroidOverlay() {
             onDismissRequest = { Bugsy.hide() },
             properties = DialogProperties(usePlatformDefaultWidth = false),
         ) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-                DebugOverlay(viewModel = remember { DebugViewModel() }, onDismiss = { Bugsy.hide() })
-            }
+            // O escurecimento do fundo é desenhado pelo próprio DebugOverlay (acompanha o arrasto).
+            (LocalView.current.parent as? DialogWindowProvider)?.window?.setDimAmount(0f)
+            DebugOverlay(viewModel = remember { DebugViewModel() }, onDismiss = { Bugsy.hide() })
         }
     }
 }

@@ -52,4 +52,18 @@ class UrlProtocolInterceptorTest {
 
         assertNull(request.requestBody)
     }
+
+    @Test
+    fun `capture keeps the real values only in the in-memory secret curl`() {
+        CaptureSettings.configure(allowRevealingSecrets = true)
+        val request = IosRequestCapture.build(
+            url = "https://api.bugsy.dev/login", method = "POST",
+            requestHeaders = mapOf("Authorization" to "Bearer real-token"), requestBody = """{"password":"p4ss"}""",
+            statusCode = 200, responseHeaders = emptyMap(), responseBody = null, durationMs = 1,
+        )
+
+        assertTrue("real-token" !in request.curlCommand && "p4ss" !in request.curlCommand)
+        assertTrue("Bearer real-token" in request.secrets!!.curlCommand)
+        assertTrue("real-token" !in request.toString())
+    }
 }

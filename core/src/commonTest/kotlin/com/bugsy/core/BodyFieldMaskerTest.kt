@@ -131,4 +131,14 @@ class BodyFieldMaskerTest {
 
         assertEquals("""{"pin":"1","password":"***"}""", maskedJson("""{"pin":"1","password":"x"}"""))
     }
+
+    @Test
+    fun `maskTracked reports whether something was actually redacted`() {
+        assertTrue(BodyFieldMasker.maskTracked("""{"password":"x"}""").redacted)
+        assertTrue(BodyFieldMasker.maskTracked("pin=1").redacted.not())
+        assertTrue(BodyFieldMasker.maskTracked("""{"user":"gabi"}""").redacted.not())
+        assertTrue(BodyFieldMasker.maskTracked("password=abc").redacted)
+        assertTrue(BodyFieldMasker.maskTracked("""{"password":"***"}""").redacted.not())
+        assertNull(BodyFieldMasker.maskTracked(null).value)
+    }
 }

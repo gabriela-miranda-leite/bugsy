@@ -26,6 +26,7 @@ class OkHttpDebugInterceptorTest {
     fun tearDown() {
         HeaderRedactor.reset()
         BodyFieldMasker.reset()
+        CaptureSettings.configure(allowRevealingSecrets = true)
         server.shutdown()
     }
 
@@ -106,5 +107,65 @@ class OkHttpDebugInterceptorTest {
 
         val captured = DebugRepository.getAll().single().responseBody!!
         assertTrue("leaked-secret" !in captured)
+    }
+
+    @Test
+    fun `a client built with addBugsyInterceptor is captured once Bugsy is initialized`() {
+        Bugsy.initialize()
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+        val client = OkHttpClient.Builder().addBugsyInterceptor().build()
+
+        client.newCall(Request.Builder().url(server.url("/ping")).build()).execute().close()
+        Bugsy.destroy()
+
+        val entry = DebugRepository.getAll().single()
+        assertEquals(200, entry.statusCode)
+        assertTrue(entry.url.endsWith("/ping"))
+    }
+
+    @Test
+    fun `a client built with addBugsyInterceptor captures nothing after destroy`() {
+        Bugsy.initialize()
+        Bugsy.destroy()
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+        val client = OkHttpClient.Builder().addBugsyInterceptor().build()
+
+        client.newCall(Request.Builder().url(server.url("/ping")).build()).execute().close()
+
+        assertEquals(0, DebugRepository.getAll().size)
+    }
+
+    @Test
+    fun `keeps the real values in memory next to the masked ones`() {
+        server.enqueue(MockResponse().setResponseCode(200).setHeader("Set-Cookie", "session=abc").setBody("""{"token":"resp-token"}"""))
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        client.newCall(
+            Request.Builder().url(server.url("/login")).header("Authorization", "Bearer real-token")
+                .post("""{"password":"p4ss"}""".toRequestBody()).build()
+        ).execute().close()
+
+        val entry = DebugRepository.getAll().single()
+        assertTrue("real-token" !in entry.curlCommand && "p4ss" !in entry.curlCommand)
+        assertEquals("***", entry.requestHeaders["Authorization"])
+        assertEquals("""{"token":"***"}""", entry.responseBody)
+        val secrets = entry.secrets!!
+        assertEquals("Bearer real-token", secrets.requestHeaders["Authorization"])
+        assertEquals("""{"token":"resp-token"}""", secrets.responseBody)
+        assertTrue("p4ss" in secrets.curlCommand)
+        assertTrue("real-token" !in entry.toString())
+    }
+
+    @Test
+    fun `does not keep the real values when revealing is disabled`() {
+        CaptureSettings.configure(allowRevealingSecrets = false)
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        client.newCall(Request.Builder().url(server.url("/")).header("Authorization", "Bearer real-token").build()).execute().close()
+
+        assertEquals(null, DebugRepository.getAll().single().secrets)
     }
 }

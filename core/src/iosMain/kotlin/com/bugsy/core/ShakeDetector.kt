@@ -31,16 +31,26 @@ actual class ShakeDetector private constructor(
     @OptIn(ExperimentalForeignApi::class)
     private class Delegate(
         thresholdG: Float,
-        onShake: () -> Unit
+        private val onShake: () -> Unit
     ) {
         private val motionManager = CMMotionManager()
         private val magnitudeDetector = ShakeMagnitudeDetector(thresholdG = thresholdG, onShake = onShake)
+
+        private var lastMotionShakeMs = 0L
+        private val motionShakeListener: () -> Unit = {
+            val now = (NSDate().timeIntervalSince1970 * 1000).toLong()
+            if (now - lastMotionShakeMs >= MOTION_DEBOUNCE_MS) {
+                lastMotionShakeMs = now
+                onShake()
+            }
+        }
 
         private var becomeActiveObserver: Any? = null
         private var enterBackgroundObserver: Any? = null
 
         fun start() {
             registerUpdates()
+            addMotionShakeListener(motionShakeListener)
 
             becomeActiveObserver = NSNotificationCenter.defaultCenter.addObserverForName(
                 name = UIApplicationDidBecomeActiveNotification,
@@ -56,6 +66,7 @@ actual class ShakeDetector private constructor(
         }
 
         fun stop() {
+            removeMotionShakeListener(motionShakeListener)
             unregisterUpdates()
             becomeActiveObserver?.let { NSNotificationCenter.defaultCenter.removeObserver(it) }
             enterBackgroundObserver?.let { NSNotificationCenter.defaultCenter.removeObserver(it) }
@@ -86,6 +97,7 @@ actual class ShakeDetector private constructor(
 
         private companion object {
             const val EARTH_GRAVITY_MS2 = 9.80665
+            const val MOTION_DEBOUNCE_MS = 1_000L
         }
     }
 }

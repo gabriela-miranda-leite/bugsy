@@ -12,13 +12,21 @@ object Bugsy {
     private var _flagManager = FlagManager { emptyList() }
     val flagManager: FlagManager get() = _flagManager
 
+    private var customInfoProvider: () -> List<Pair<String, String>> = { emptyList() }
+
+    /** Lido de novo a cada chamada — ver [BugsyConfig.customInfoProvider]. */
+    fun customInfo(): List<Pair<String, String>> = customInfoProvider()
+
     private var debugInterceptor: DebugInterceptor? = null
     private var shakeDetector: ShakeDetector? = null
     private var floatingButtonController: FloatingButtonController? = null
+    private var notificationTrigger: NotificationTrigger? = null
 
     fun initialize(config: BugsyConfig = BugsyConfig()) {
         destroy()
         _flagManager = FlagManager(config.flagsProvider)
+        customInfoProvider = config.customInfoProvider
+        CaptureSettings.configure(allowRevealingSecrets = config.allowRevealingSecrets)
         debugInterceptor = DebugInterceptor.create().also { it.attach() }
 
         when (config.trigger) {
@@ -28,6 +36,10 @@ object Bugsy {
             }
             Trigger.FloatingButton -> {
                 floatingButtonController = FloatingButtonController.create(onTap = ::show)
+                    .also { it.start() }
+            }
+            Trigger.Notification -> {
+                notificationTrigger = NotificationTrigger.create(onTap = ::show)
                     .also { it.start() }
             }
         }
@@ -40,6 +52,8 @@ object Bugsy {
         shakeDetector = null
         floatingButtonController?.stop()
         floatingButtonController = null
+        notificationTrigger?.stop()
+        notificationTrigger = null
     }
 
     /**

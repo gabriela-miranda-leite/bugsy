@@ -112,4 +112,26 @@ class FlagManagerTest {
 
         assertEquals(false, manager().flagX().value)
     }
+
+    @Test
+    fun `value returns the provider value when there is no override`() {
+        val manager = manager()
+
+        assertEquals(false, manager.value("feature_x"))
+    }
+
+    @Test
+    fun `value returns the override when one is set`() {
+        val manager = manager()
+        manager.override("feature_x", true)
+
+        assertEquals(true, manager.value("feature_x"))
+    }
+
+    @Test
+    fun `value is null for a key unknown to the provider`() {
+        val manager = manager()
+
+        assertEquals(null, manager.value("unknown"))
+    }
 }

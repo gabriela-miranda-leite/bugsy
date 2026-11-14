@@ -18,6 +18,7 @@ import com.bugsy.ui.screens.DeviceInfoScreen
 import com.bugsy.ui.screens.FlagsScreen
 import com.bugsy.ui.screens.RequestDetailScreen
 import com.bugsy.ui.screens.RequestListScreen
+import com.bugsy.ui.screens.SettingsScreen
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsyTheme
 import androidx.compose.foundation.background
@@ -26,6 +27,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.junit.Before
@@ -34,6 +37,7 @@ import org.junit.Test
 
 // V_SCROLL precisa de um teto finito — LazyColumn lança exceção com altura infinita.
 private val MaxSnapshotHeight = 5_000.dp
+private val OverlayContainerHeight = 800.dp
 
 class BugsyScreenshotTest {
 
@@ -84,7 +88,7 @@ class BugsyScreenshotTest {
     @Test
     fun bugsyTabBar() {
         snapshotOnSurface {
-            BugsyTabBar(selected = BugsyTab.Requests, requestCount = 3, onSelect = {})
+            BugsyTabBar(selected = BugsyTab.Requests, onSelect = {})
         }
     }
 
@@ -107,7 +111,7 @@ class BugsyScreenshotTest {
     @Test
     fun bugsySheetHeader() {
         snapshotOnSurface {
-            BugsySheetHeader(requestCount = 12, onClear = {}, onDismiss = {})
+            BugsySheetHeader(onSettings = {}, onDismiss = {})
         }
     }
 
@@ -133,10 +137,30 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun requestDetailScreenWithSecrets() {
+        snapshotOnSurface {
+            RequestDetailScreen(request = PreviewFixtures.postRequestWithSecrets, onBack = {})
+        }
+    }
+
+    @Test
+    fun requestDetailScreenRevealed() {
+        snapshotOnSurface {
+            RequestDetailScreen(request = PreviewFixtures.postRequestWithSecrets, onBack = {}, revealed = true)
+        }
+    }
+
+    @Test
+    fun settingsScreen() {
+        snapshotOnSurface { SettingsScreen() }
+    }
+
+    @Test
     fun debugOverlay() {
         paparazzi.snapshot {
-            Box(Modifier.heightIn(max = MaxSnapshotHeight)) {
-                DebugOverlay(viewModel = DebugViewModel(), onDismiss = {})
+            // O overlay ocupa 80% da altura disponível: o container fixa essa altura (tela de ~800dp).
+            Box(Modifier.fillMaxWidth().height(OverlayContainerHeight)) {
+                DebugOverlay(viewModel = DebugViewModel(), onDismiss = {}, animateEntrance = false)
             }
         }
     }
@@ -149,8 +173,8 @@ class BugsyScreenshotTest {
             BugsyTheme {
                 Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
                     DragHandle()
-                    BugsySheetHeader(requestCount = 2, onClear = {}, onDismiss = {})
-                    BugsyTabBar(selected = BugsyTab.Requests, requestCount = 2, onSelect = {})
+                    BugsySheetHeader(onSettings = {}, onDismiss = {})
+                    BugsyTabBar(selected = BugsyTab.Requests, onSelect = {})
                     RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {})
                 }
             }
@@ -165,8 +189,8 @@ class BugsyScreenshotTest {
             BugsyTheme {
                 Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
                     DragHandle()
-                    BugsySheetHeader(requestCount = 2, onClear = {}, onDismiss = {})
-                    BugsyTabBar(selected = BugsyTab.Device, requestCount = 2, onSelect = {})
+                    BugsySheetHeader(onSettings = {}, onDismiss = {})
+                    BugsyTabBar(selected = BugsyTab.Device, onSelect = {})
                     DeviceInfoScreen(info = PreviewFixtures.deviceInfo)
                 }
             }
@@ -181,8 +205,8 @@ class BugsyScreenshotTest {
             BugsyTheme {
                 Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
                     DragHandle()
-                    BugsySheetHeader(requestCount = 2, onClear = {}, onDismiss = {})
-                    BugsyTabBar(selected = BugsyTab.Flags, requestCount = 2, onSelect = {})
+                    BugsySheetHeader(onSettings = {}, onDismiss = {})
+                    BugsyTabBar(selected = BugsyTab.Flags, onSelect = {})
                     FlagsScreen(flags = emptyList(), onOverride = { _, _ -> }, onResetAll = {})
                 }
             }
@@ -195,8 +219,8 @@ class BugsyScreenshotTest {
             BugsyTheme {
                 Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
                     DragHandle()
-                    BugsySheetHeader(requestCount = 2, onClear = {}, onDismiss = {})
-                    BugsyTabBar(selected = BugsyTab.Flags, requestCount = 2, onSelect = {})
+                    BugsySheetHeader(onSettings = {}, onDismiss = {})
+                    BugsyTabBar(selected = BugsyTab.Flags, onSelect = {})
                     FlagsScreen(flags = PreviewFixtures.flags, onOverride = { _, _ -> }, onResetAll = {})
                 }
             }

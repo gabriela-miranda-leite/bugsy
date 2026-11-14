@@ -2,6 +2,7 @@ package com.bugsy.ui
 
 import com.bugsy.core.model.DebugFlag
 import com.bugsy.core.model.DebugRequest
+import com.bugsy.core.model.RequestSecrets
 import com.bugsy.core.model.DeviceInfo
 
 /**
@@ -36,6 +37,20 @@ internal object PreviewFixtures {
         curlCommand = "curl -X POST https://api.bugsy.dev/v1/orders -d '{\"items\":[...]}'",
     )
 
+    val postRequestWithSecrets = postRequestError.copy(
+        id = "3",
+        requestBody = """{"user":"gabi","password":"***"}""",
+        responseBody = """{"token":"***","ok":true}""",
+        curlCommand = "curl -X POST 'https://api.bugsy.dev/v1/orders' \\\n  -H 'Authorization: Bearer ***'",
+        secrets = RequestSecrets(
+            requestHeaders = mapOf("Content-Type" to "application/json", "Authorization" to "Bearer real-token"),
+            requestBody = """{"user":"gabi","password":"p4ssw0rd"}""",
+            responseHeaders = emptyMap(),
+            responseBody = """{"token":"resp-token","ok":true}""",
+            curlCommand = "curl -X POST 'https://api.bugsy.dev/v1/orders' \\\n  -H 'Authorization: Bearer real-token'",
+        ),
+    )
+
     val requests = listOf(getRequest, postRequestError)
 
     val deviceInfo = DeviceInfo(
@@ -50,6 +65,12 @@ internal object PreviewFixtures {
         bugsyVersion = "0.1.0-alpha",
         kotlinVersion = "2.0.0",
         composeVersion = "1.7.0",
+    )
+
+    val customInfo = listOf(
+        "user_id" to "u_42",
+        "email" to "ada@bugsy.dev",
+        "document" to "123.456.789-00",
     )
 
     val flags = listOf(

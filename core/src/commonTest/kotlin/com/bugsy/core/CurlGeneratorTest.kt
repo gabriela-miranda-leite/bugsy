@@ -2,6 +2,7 @@ package com.bugsy.core
 
 import com.bugsy.core.model.DebugRequest
 import kotlin.test.Test
+import kotlin.test.assertNull
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -39,9 +40,10 @@ fun BugsySearchBar(value: String, onValueChange: (String) -> Unit, modifier: Mod
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(BugsySpacing.controlHeight)
                     .background(BugsyColors.SurfaceCard, RoundedCornerShape(BugsySpacing.cornerCard))
                     .border(BugsySpacing.strokeBorder, BugsyColors.Border, RoundedCornerShape(BugsySpacing.cornerCard))
-                    .padding(horizontal = BugsySpacing.searchBarPaddingHorizontal, vertical = BugsySpacing.searchBarPaddingVertical),
+                    .padding(horizontal = BugsySpacing.searchBarPaddingHorizontal),
             ) {
                 Icon(
                     Icons.Outlined.Search,

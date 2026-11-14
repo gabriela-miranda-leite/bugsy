@@ -53,6 +53,15 @@ class DebugViewModelTest {
         Bugsy.destroy()
     }
 
+    @Test
+    fun `customInfo reflects the configured customInfoProvider`() {
+        Bugsy.initialize(BugsyConfig(customInfoProvider = { listOf("user_id" to "u_42") }))
+
+        assertEquals(listOf("user_id" to "u_42"), viewModel.customInfo)
+
+        Bugsy.destroy()
+    }
+
     private fun fakeRequest(id: String) = DebugRequest(
         id = id,
         url = "https://example.com",

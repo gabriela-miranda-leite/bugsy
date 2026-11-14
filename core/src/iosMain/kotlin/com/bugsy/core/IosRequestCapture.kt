@@ -39,20 +39,18 @@ internal object IosRequestCapture {
         responseBody: String?,
         durationMs: Long,
     ): DebugRequest {
-        val request = DebugRequest(
+        return RequestCapture.build(
             id = NSUUID().UUIDString,
             url = url,
             method = method,
-            requestHeaders = HeaderRedactor.redact(requestHeaders),
-            requestBody = BodyFieldMasker.mask(requestBody),
+            requestHeaders = requestHeaders,
+            requestBody = requestBody,
             statusCode = statusCode,
-            responseHeaders = HeaderRedactor.redact(responseHeaders),
-            responseBody = BodyFieldMasker.mask(responseBody),
+            responseHeaders = responseHeaders,
+            responseBody = responseBody,
             durationMs = durationMs,
             timestamp = (NSDate().timeIntervalSince1970 * 1000).toLong(),
-            curlCommand = "",
         )
-        return request.copy(curlCommand = CurlGenerator.generate(request))
     }
 }
 

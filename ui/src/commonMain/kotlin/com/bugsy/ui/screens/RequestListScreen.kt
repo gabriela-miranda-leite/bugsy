@@ -25,6 +25,20 @@ import com.bugsy.ui.components.EmptyState
 import com.bugsy.ui.components.RequestRow
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
+import bugsy.ui.generated.resources.cd_clear_requests
+import com.bugsy.ui.settings.BugsySettings
 import com.bugsy.ui.theme.BugsyTheme
 import org.jetbrains.compose.resources.stringResource
 
@@ -38,20 +52,49 @@ fun filterRequests(requests: List<DebugRequest>, filter: String): List<DebugRequ
     }
 
 @Composable
-fun RequestListScreen(requests: List<DebugRequest>) {
+fun RequestListScreen(requests: List<DebugRequest>, onClear: () -> Unit = {}) {
     var filter by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<DebugRequest?>(null) }
+    // A escolha de mostrar/ocultar dados sensíveis vale para todas as requests enquanto o overlay está aberto.
+    // O ponto de partida (e qualquer mudança) vem das Configurações.
+    val revealDefault by BugsySettings.revealSensitiveByDefault.collectAsState()
+    var revealed by remember { mutableStateOf(revealDefault) }
+    LaunchedEffect(revealDefault) { revealed = revealDefault }
 
     selected?.let { req ->
-        RequestDetailScreen(request = req, onBack = { selected = null })
+        RequestDetailScreen(
+            request = req,
+            onBack = { selected = null },
+            revealed = revealed,
+            onRevealedChange = { revealed = it },
+        )
         return
     }
 
     val filtered = remember(requests, filter) { filterRequests(requests, filter) }
 
     Column {
-        Box(Modifier.padding(horizontal = BugsySpacing.lg, vertical = BugsySpacing.searchBarVerticalMargin)) {
-            BugsySearchBar(value = filter, onValueChange = { filter = it })
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm),
+            modifier = Modifier.padding(horizontal = BugsySpacing.lg, vertical = BugsySpacing.searchBarVerticalMargin),
+        ) {
+            BugsySearchBar(value = filter, onValueChange = { filter = it }, modifier = Modifier.weight(1f))
+            IconButton(
+                onClick = onClear,
+                enabled = requests.isNotEmpty(),
+                modifier = Modifier
+                    .size(BugsySpacing.controlHeight)
+                    .border(BugsySpacing.strokeBorder, BugsyColors.Border, RoundedCornerShape(BugsySpacing.cornerCard))
+                    .background(BugsyColors.SurfaceCard, RoundedCornerShape(BugsySpacing.cornerCard)),
+            ) {
+                Icon(
+                    Icons.Outlined.DeleteOutline,
+                    contentDescription = stringResource(Res.string.cd_clear_requests),
+                    tint = if (requests.isNotEmpty()) BugsyColors.Status4xx else BugsyColors.TextDisabled,
+                    modifier = Modifier.size(BugsySpacing.iconSizeMedium),
+                )
+            }
         }
         if (filtered.isEmpty()) {
             if (filter.isNotBlank()) {

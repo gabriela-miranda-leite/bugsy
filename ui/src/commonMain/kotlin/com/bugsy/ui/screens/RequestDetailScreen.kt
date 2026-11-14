@@ -42,6 +42,8 @@ import bugsy.ui.generated.resources.label_response_body
 import bugsy.ui.generated.resources.label_response_headers
 import bugsy.ui.generated.resources.label_status
 import bugsy.ui.generated.resources.label_time
+import bugsy.ui.generated.resources.loading_request_details_title
+import bugsy.ui.generated.resources.loading_subtitle_default
 import bugsy.ui.generated.resources.tab_requests
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.ui.PreviewFixtures
@@ -50,6 +52,7 @@ import com.bugsy.ui.components.CopyIconButton
 import com.bugsy.ui.components.SectionHeader
 import com.bugsy.ui.components.ExpandableSection
 import com.bugsy.ui.components.KeyValueRow
+import com.bugsy.ui.components.LoadingState
 import com.bugsy.ui.components.MetricCard
 import com.bugsy.ui.components.MethodBadge
 import com.bugsy.ui.components.SectionLabel
@@ -72,6 +75,7 @@ fun RequestDetailScreen(
     onBack: () -> Unit,
     revealed: Boolean = false,
     onRevealedChange: (Boolean) -> Unit = {},
+    isLoading: Boolean = false,
 ) {
     val clipboard = LocalClipboardManager.current
     val secrets = request.secrets
@@ -108,6 +112,14 @@ fun RequestDetailScreen(
             if (secrets != null) {
                 RevealToggle(showReal = showReal, onToggle = { onRevealedChange(!showReal) })
             }
+        }
+
+        if (isLoading) {
+            LoadingState(
+                title = stringResource(Res.string.loading_request_details_title),
+                subtitle = stringResource(Res.string.loading_subtitle_default),
+            )
+            return@Column
         }
 
         LazyColumn(
@@ -221,6 +233,16 @@ private fun RequestDetailScreenPreview() {
     BugsyTheme {
         Box(Modifier.background(BugsyColors.Surface)) {
             RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {})
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun RequestDetailScreenLoadingPreview() {
+    BugsyTheme {
+        Box(Modifier.background(BugsyColors.Surface)) {
+            RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {}, isLoading = true)
         }
     }
 }

@@ -18,10 +18,13 @@ import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.flags_action_reset_all
 import bugsy.ui.generated.resources.flags_empty_subtitle
 import bugsy.ui.generated.resources.flags_empty_title
+import bugsy.ui.generated.resources.loading_flags_title
+import bugsy.ui.generated.resources.loading_subtitle_default
 import com.bugsy.core.model.DebugFlag
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.EmptyState
 import com.bugsy.ui.components.FlagValueRow
+import com.bugsy.ui.components.LoadingState
 import com.bugsy.ui.components.ToggleRow
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
@@ -37,7 +40,16 @@ fun FlagsScreen(
     flags: List<DebugFlag>,
     onOverride: (key: String, value: Any) -> Unit,
     onResetAll: () -> Unit,
+    isLoading: Boolean = false,
 ) {
+    if (isLoading) {
+        LoadingState(
+            title = stringResource(Res.string.loading_flags_title),
+            subtitle = stringResource(Res.string.loading_subtitle_default),
+        )
+        return
+    }
+
     if (flags.isEmpty()) {
         EmptyState(
             title = stringResource(Res.string.flags_empty_title),
@@ -91,4 +103,10 @@ private fun FlagsScreenPreview() {
 @Composable
 private fun FlagsScreenEmptyPreview() {
     BugsyTheme { FlagsScreen(flags = emptyList(), onOverride = { _, _ -> }, onResetAll = {}) }
+}
+
+@Preview
+@Composable
+private fun FlagsScreenLoadingPreview() {
+    BugsyTheme { FlagsScreen(flags = emptyList(), onOverride = { _, _ -> }, onResetAll = {}, isLoading = true) }
 }

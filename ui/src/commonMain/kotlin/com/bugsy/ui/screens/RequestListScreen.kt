@@ -18,10 +18,13 @@ import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.empty_no_requests_filtered
 import bugsy.ui.generated.resources.empty_no_requests_subtitle
 import bugsy.ui.generated.resources.empty_no_requests_title
+import bugsy.ui.generated.resources.loading_requests_title
+import bugsy.ui.generated.resources.loading_subtitle_default
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.BugsySearchBar
 import com.bugsy.ui.components.EmptyState
+import com.bugsy.ui.components.LoadingState
 import com.bugsy.ui.components.RequestRow
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
@@ -52,7 +55,15 @@ fun filterRequests(requests: List<DebugRequest>, filter: String): List<DebugRequ
     }
 
 @Composable
-fun RequestListScreen(requests: List<DebugRequest>, onClear: () -> Unit = {}) {
+fun RequestListScreen(requests: List<DebugRequest>, onClear: () -> Unit = {}, isLoading: Boolean = false) {
+    if (isLoading) {
+        LoadingState(
+            title = stringResource(Res.string.loading_requests_title),
+            subtitle = stringResource(Res.string.loading_subtitle_default),
+        )
+        return
+    }
+
     var filter by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<DebugRequest?>(null) }
     // The show/hide choice for sensitive data applies to all requests while the overlay is open.
@@ -131,6 +142,16 @@ private fun RequestListScreenEmptyPreview() {
     BugsyTheme {
         Box(Modifier.background(BugsyColors.Surface)) {
             RequestListScreen(requests = emptyList())
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun RequestListScreenLoadingPreview() {
+    BugsyTheme {
+        Box(Modifier.background(BugsyColors.Surface)) {
+            RequestListScreen(requests = emptyList(), isLoading = true)
         }
     }
 }

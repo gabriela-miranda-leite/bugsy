@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import java.util.Locale
 
 // V_SCROLL needs a finite ceiling — LazyColumn throws an exception with infinite height.
 private val MaxSnapshotHeight = 5_000.dp
@@ -46,6 +47,11 @@ class BugsyScreenshotTest {
 
     @Before
     fun setUpComposeResourcesContext() {
+        // Compose Resources' stringResource() picks the locale from the JVM's default Locale,
+        // not from Paparazzi's DeviceConfig — force it to English so snapshots are deterministic
+        // regardless of the machine running the tests.
+        Locale.setDefault(Locale.ENGLISH)
+
         // Paparazzi doesn't trigger the ContentProvider that compose-resources uses to
         // initialize the Context on Android — without this, stringResource() breaks.
         // AndroidContextProvider is `internal` in Kotlin but public in bytecode, so
@@ -130,6 +136,13 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun requestListScreenLoading() {
+        snapshotOnSurface {
+            RequestListScreen(requests = emptyList(), isLoading = true)
+        }
+    }
+
+    @Test
     fun requestDetailScreen() {
         snapshotOnSurface {
             RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {})
@@ -147,6 +160,14 @@ class BugsyScreenshotTest {
     fun requestDetailScreenRevealed() {
         snapshotOnSurface {
             RequestDetailScreen(request = PreviewFixtures.postRequestWithSecrets, onBack = {}, revealed = true)
+        }
+    }
+
+    @Test
+    fun requestDetailScreenLoading() {
+        // The back-button header stays, only the body below it shows the loading state.
+        snapshotOnSurface {
+            RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {}, isLoading = true)
         }
     }
 
@@ -198,6 +219,20 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun debugOverlayDeviceInfoLoading() {
+        paparazzi.snapshot {
+            BugsyTheme {
+                Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
+                    DragHandle()
+                    BugsySheetHeader(onSettings = {}, onDismiss = {})
+                    BugsyTabBar(selected = BugsyTab.Device, onSelect = {})
+                    DeviceInfoScreen(info = null)
+                }
+            }
+        }
+    }
+
+    @Test
     fun debugOverlayFlagsEmpty() {
         // Reproduces the DebugOverlay composition (drag handle + header + fixed tabs) with
         // FlagsScreen (empty state) as the body — in isolation, the screen looks cut off at the top.
@@ -222,6 +257,20 @@ class BugsyScreenshotTest {
                     BugsySheetHeader(onSettings = {}, onDismiss = {})
                     BugsyTabBar(selected = BugsyTab.Flags, onSelect = {})
                     FlagsScreen(flags = PreviewFixtures.flags, onOverride = { _, _ -> }, onResetAll = {})
+                }
+            }
+        }
+    }
+
+    @Test
+    fun debugOverlayFlagsLoading() {
+        paparazzi.snapshot {
+            BugsyTheme {
+                Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
+                    DragHandle()
+                    BugsySheetHeader(onSettings = {}, onDismiss = {})
+                    BugsyTabBar(selected = BugsyTab.Flags, onSelect = {})
+                    FlagsScreen(flags = emptyList(), onOverride = { _, _ -> }, onResetAll = {}, isLoading = true)
                 }
             }
         }

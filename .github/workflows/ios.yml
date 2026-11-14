@@ -1,0 +1,46 @@
+name: iOS
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # iOS needs macOS: simulator tests, Release build of the sample, and the binary's release gate.
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: iOS simulator tests
+        run: ./gradlew :core:iosSimulatorArm64Test :bugsy-noop:iosSimulatorArm64Test :ui:iosSimulatorArm64Test
+
+      - name: Build iOS frameworks and sample (Release)
+        run: |
+          ./gradlew :ui:linkDebugFrameworkIosSimulatorArm64 :ui:iosSimulatorArm64AggregateResources :bugsy-noop:linkReleaseFrameworkIosSimulatorArm64
+          xcodebuild -project sample-ios/BugsySample.xcodeproj -scheme BugsySample -sdk iphonesimulator \
+            -configuration Release -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios-release build CODE_SIGNING_ALLOWED=NO ARCHS=arm64
+
+      - name: Release gate (no instrumentation in the iOS release binary)
+        run: |
+          ./gradlew :sample-android:assembleRelease
+          ./scripts/check-release-clean.sh \
+            sample-android/build/outputs/apk/release/sample-android-release-unsigned.apk \
+            build/ios-release/Build/Products/Release-iphonesimulator/BugsySample.app/BugsySample

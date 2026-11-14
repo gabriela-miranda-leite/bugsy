@@ -15,7 +15,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 trigger: .shake,
                 shakeThresholdG: BugsyConfig.companion.DEFAULT_SHAKE_THRESHOLD_G,
                 flagsProvider: { [] },
-                allowCopyingSecrets: true
+                allowRevealingSecrets: true
             )
         )
 

@@ -26,7 +26,7 @@ class OkHttpDebugInterceptorTest {
     fun tearDown() {
         HeaderRedactor.reset()
         BodyFieldMasker.reset()
-        CaptureSettings.configure(allowCopyingSecrets = true)
+        CaptureSettings.configure(allowRevealingSecrets = true)
         server.shutdown()
     }
 
@@ -136,8 +136,8 @@ class OkHttpDebugInterceptorTest {
     }
 
     @Test
-    fun `keeps a curl with the real values in memory next to the masked one`() {
-        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+    fun `keeps the real values in memory next to the masked ones`() {
+        server.enqueue(MockResponse().setResponseCode(200).setHeader("Set-Cookie", "session=abc").setBody("""{"token":"resp-token"}"""))
         interceptor.attach()
         val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
 
@@ -148,20 +148,24 @@ class OkHttpDebugInterceptorTest {
 
         val entry = DebugRepository.getAll().single()
         assertTrue("real-token" !in entry.curlCommand && "p4ss" !in entry.curlCommand)
-        assertTrue("Bearer real-token" in entry.curlCommandWithSecrets!!.value)
-        assertTrue("p4ss" in entry.curlCommandWithSecrets!!.value)
+        assertEquals("***", entry.requestHeaders["Authorization"])
+        assertEquals("""{"token":"***"}""", entry.responseBody)
+        val secrets = entry.secrets!!
+        assertEquals("Bearer real-token", secrets.requestHeaders["Authorization"])
+        assertEquals("""{"token":"resp-token"}""", secrets.responseBody)
+        assertTrue("p4ss" in secrets.curlCommand)
         assertTrue("real-token" !in entry.toString())
     }
 
     @Test
-    fun `does not keep the real values when copying secrets is disabled`() {
-        CaptureSettings.configure(allowCopyingSecrets = false)
+    fun `does not keep the real values when revealing is disabled`() {
+        CaptureSettings.configure(allowRevealingSecrets = false)
         server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
         interceptor.attach()
         val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
 
         client.newCall(Request.Builder().url(server.url("/")).header("Authorization", "Bearer real-token").build()).execute().close()
 
-        assertEquals(null, DebugRepository.getAll().single().curlCommandWithSecrets)
+        assertEquals(null, DebugRepository.getAll().single().secrets)
     }
 }

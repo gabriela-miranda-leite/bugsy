@@ -2,7 +2,7 @@ package com.bugsy.ui
 
 import com.bugsy.core.model.DebugFlag
 import com.bugsy.core.model.DebugRequest
-import com.bugsy.core.model.SecretText
+import com.bugsy.core.model.RequestSecrets
 import com.bugsy.core.model.DeviceInfo
 
 /**
@@ -39,8 +39,16 @@ internal object PreviewFixtures {
 
     val postRequestWithSecrets = postRequestError.copy(
         id = "3",
-        curlCommand = "curl -X POST 'https://api.bugsy.dev/v1/orders' \\\n  -H 'Authorization: ***'",
-        curlCommandWithSecrets = SecretText("curl -X POST 'https://api.bugsy.dev/v1/orders' \\\n  -H 'Authorization: Bearer real-token'"),
+        requestBody = """{"user":"gabi","password":"***"}""",
+        responseBody = """{"token":"***","ok":true}""",
+        curlCommand = "curl -X POST 'https://api.bugsy.dev/v1/orders' \\\n  -H 'Authorization: Bearer ***'",
+        secrets = RequestSecrets(
+            requestHeaders = mapOf("Content-Type" to "application/json", "Authorization" to "Bearer real-token"),
+            requestBody = """{"user":"gabi","password":"p4ssw0rd"}""",
+            responseHeaders = emptyMap(),
+            responseBody = """{"token":"resp-token","ok":true}""",
+            curlCommand = "curl -X POST 'https://api.bugsy.dev/v1/orders' \\\n  -H 'Authorization: Bearer real-token'",
+        ),
     )
 
     val requests = listOf(getRequest, postRequestError)

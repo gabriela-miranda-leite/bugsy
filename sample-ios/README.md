@@ -44,7 +44,7 @@ Bugsy.shared.initialize(
         trigger: .shake,
         shakeThresholdG: BugsyConfig.companion.DEFAULT_SHAKE_THRESHOLD_G,
         flagsProvider: { [] },
-        allowCopyingSecrets: true // false esconde o botão "Copiar com valores reais"
+        allowRevealingSecrets: true // false esconde o botão "Copiar com valores reais"
     )
 )
 // ...depois de criar a window:

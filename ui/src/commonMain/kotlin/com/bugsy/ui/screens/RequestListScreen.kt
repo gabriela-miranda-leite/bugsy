@@ -41,9 +41,16 @@ fun filterRequests(requests: List<DebugRequest>, filter: String): List<DebugRequ
 fun RequestListScreen(requests: List<DebugRequest>) {
     var filter by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<DebugRequest?>(null) }
+    // A escolha de mostrar/ocultar dados sensíveis vale para todas as requests enquanto o overlay está aberto.
+    var revealed by remember { mutableStateOf(false) }
 
     selected?.let { req ->
-        RequestDetailScreen(request = req, onBack = { selected = null })
+        RequestDetailScreen(
+            request = req,
+            onBack = { selected = null },
+            revealed = revealed,
+            onRevealedChange = { revealed = it },
+        )
         return
     }
 

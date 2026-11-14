@@ -34,8 +34,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.action_copied
 import bugsy.ui.generated.resources.action_copy
-import bugsy.ui.generated.resources.action_copy_masked
-import bugsy.ui.generated.resources.action_copy_with_secrets
 import bugsy.ui.generated.resources.label_curl
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
@@ -49,74 +47,18 @@ import org.jetbrains.compose.resources.stringResource
 fun CodeBlock(
     text: String,
     onCopy: (() -> Unit)? = null,
-    onCopyWithSecrets: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    showTitle: Boolean = true,
 ) {
-    var copied by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
     Column(modifier) {
-        if (onCopy != null && onCopyWithSecrets != null) {
-            SectionLabel(stringResource(Res.string.label_curl), Modifier.padding(bottom = BugsySpacing.xs))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm),
-                modifier = Modifier.fillMaxWidth().padding(bottom = BugsySpacing.sm),
-            ) {
-                CopyButton(
-                    label = stringResource(Res.string.action_copy_masked),
-                    copiedLabel = stringResource(Res.string.action_copied),
-                    onCopy = onCopy,
-                    accent = BugsyColors.TextDisabled,
-                    modifier = Modifier.weight(1f),
-                )
-                CopyButton(
-                    label = stringResource(Res.string.action_copy_with_secrets),
-                    copiedLabel = stringResource(Res.string.action_copied),
-                    onCopy = onCopyWithSecrets,
-                    accent = BugsyColors.Brand,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        } else if (onCopy != null) {
+        if (onCopy != null) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(bottom = BugsySpacing.sm),
             ) {
-                SectionLabel(stringResource(Res.string.label_curl))
-                val tint = if (copied) BugsyColors.Status2xx else BugsyColors.Brand
-                OutlinedButton(
-                    onClick = {
-                        onCopy()
-                        copied = true
-                        scope.launch {
-                            delay(1_600)
-                            copied = false
-                        }
-                    },
-                    border = BorderStroke(
-                        BugsySpacing.strokeBorder,
-                        if (copied) BugsyColors.Status2xx else BugsyColors.BorderButton,
-                    ),
-                    contentPadding = PaddingValues(
-                        horizontal = BugsySpacing.codeBlockButtonPaddingHorizontal,
-                        vertical = BugsySpacing.codeBlockButtonPaddingVertical,
-                    ),
-                    shape = RoundedCornerShape(BugsySpacing.cornerButtonSmall),
-                ) {
-                    Icon(
-                        if (copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
-                        contentDescription = null,
-                        tint = tint,
-                        modifier = Modifier.size(BugsySpacing.iconSizeSmall),
-                    )
-                    Spacer(Modifier.width(BugsySpacing.codeBlockButtonIconSpacing))
-                    Text(
-                        stringResource(if (copied) Res.string.action_copied else Res.string.action_copy),
-                        style = BugsyTypography.Caption,
-                        color = tint,
-                    )
-                }
+                if (showTitle) SectionLabel(stringResource(Res.string.label_curl)) else Spacer(Modifier)
+                CopyButton(onCopy = onCopy)
             }
         }
         Box(

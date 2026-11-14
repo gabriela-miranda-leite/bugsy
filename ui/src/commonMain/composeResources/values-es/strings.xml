@@ -9,8 +9,10 @@
     <string name="action_clear">Limpiar</string>
     <string name="action_copy">Copiar</string>
     <string name="action_copied">¡Copiado!</string>
-    <string name="action_copy_masked">Copiar enmascarado</string>
-    <string name="action_copy_with_secrets">Copiar con valores reales</string>
+    <string name="action_copy_url">Copiar URL</string>
+    <string name="action_reveal_sensitive">Mostrar datos sensibles</string>
+    <string name="action_mask_sensitive">Ocultar datos sensibles</string>
+    <string name="label_request_body">Cuerpo de la solicitud</string>
 
     <string name="tab_requests">Solicitudes</string>
     <string name="tab_flags">Flags</string>

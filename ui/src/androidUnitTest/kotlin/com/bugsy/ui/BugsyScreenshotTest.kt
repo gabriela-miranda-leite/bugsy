@@ -143,11 +143,18 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun requestDetailScreenRevealed() {
+        snapshotOnSurface {
+            RequestDetailScreen(request = PreviewFixtures.postRequestWithSecrets, onBack = {}, revealed = true)
+        }
+    }
+
+    @Test
     fun debugOverlay() {
         paparazzi.snapshot {
             // O overlay ocupa 80% da altura disponível: o container fixa essa altura (tela de ~800dp).
             Box(Modifier.fillMaxWidth().height(OverlayContainerHeight)) {
-                DebugOverlay(viewModel = DebugViewModel(), onDismiss = {}, modifier = Modifier.align(Alignment.BottomCenter))
+                DebugOverlay(viewModel = DebugViewModel(), onDismiss = {}, animateEntrance = false)
             }
         }
     }

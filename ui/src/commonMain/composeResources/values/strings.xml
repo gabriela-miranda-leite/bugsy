@@ -9,8 +9,10 @@
     <string name="action_clear">Clear</string>
     <string name="action_copy">Copy</string>
     <string name="action_copied">Copied!</string>
-    <string name="action_copy_masked">Copy masked</string>
-    <string name="action_copy_with_secrets">Copy with real values</string>
+    <string name="action_copy_url">Copy URL</string>
+    <string name="action_reveal_sensitive">Show sensitive data</string>
+    <string name="action_mask_sensitive">Hide sensitive data</string>
+    <string name="label_request_body">Request body</string>
 
     <string name="tab_requests">Requests</string>
     <string name="tab_flags">Flags</string>

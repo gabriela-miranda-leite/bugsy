@@ -12,8 +12,8 @@ class SampleApp : Application() {
         Bugsy.initialize(
             BugsyConfig(
                 trigger = Trigger.Notification,
-                // Flags estáticas só para validar o FlagsScreen no app de exemplo — num app real isso viria
-                // do provedor de feature flags de verdade (remote config, etc).
+                // Static flags just to validate the FlagsScreen in the sample app — in a real app this would come
+                // from the actual feature flag provider (remote config, etc).
                 flagsProvider = {
                     listOf(
                         DebugFlag(key = "darkModeEnabled", label = "darkModeEnabled", value = false, isOverridden = false),
@@ -21,8 +21,8 @@ class SampleApp : Application() {
                         DebugFlag(key = "apiEnvironment", label = "apiEnvironment", value = "sandbox", isOverridden = false),
                     )
                 },
-                // Dados estáticos de exemplo pra seção "Account" da aba Device — num app real isso viria
-                // da sessão logada (usuário atual, conta, etc).
+                // Static sample data for the "Account" section of the Device tab — in a real app this would come
+                // from the logged-in session (current user, account, etc).
                 customInfoProvider = {
                     listOf(
                         "user_id" to "u_42",

@@ -63,8 +63,8 @@ import com.bugsy.ui.theme.statusColor
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * @param revealed quando `true` (e a request tem valores reais em memória) a tela, e tudo que é copiado dela,
- * mostra os dados sensíveis sem máscara. O controle é do botão de mostrar/ocultar na barra superior.
+ * @param revealed when `true` (and the request has real values in memory), the screen, and everything copied
+ * from it, shows the sensitive data unmasked. Controlled by the show/hide button in the top bar.
  */
 @Composable
 fun RequestDetailScreen(

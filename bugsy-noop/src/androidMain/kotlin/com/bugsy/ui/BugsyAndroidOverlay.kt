@@ -1,7 +1,7 @@
 package com.bugsy.ui
 
 /**
- * No-op: não compõe nada. É uma função comum (não @Composable) para o artefato não depender do Compose,
- * mas pode ser chamada de dentro de qualquer Composable do app, como a versão de debug.
+ * No-op: composes nothing. It's a plain function (not @Composable) so this artifact doesn't depend on Compose,
+ * but it can still be called from inside any Composable in the app, just like the debug version.
  */
 fun BugsyAndroidOverlay() = Unit

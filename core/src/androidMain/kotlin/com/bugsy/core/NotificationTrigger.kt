@@ -17,7 +17,7 @@ private const val CHANNEL_ID = "bugsy_trigger"
 private const val NOTIFICATION_ID = 0xB06
 private const val ACTION_SHOW = "com.bugsy.core.SHOW_OVERLAY"
 
-// Em Android 13+ o app host precisa conceder POST_NOTIFICATIONS; sem a permissão a notificação simplesmente não aparece.
+// On Android 13+ the host app must grant POST_NOTIFICATIONS; without the permission the notification simply doesn't show.
 actual class NotificationTrigger private constructor(
     private val delegate: Delegate?
 ) {
@@ -60,7 +60,7 @@ actual class NotificationTrigger private constructor(
             runCatching { context.unregisterReceiver(receiver) }
         }
 
-        // A notificação só existe com o app em primeiro plano.
+        // The notification only exists while the app is in the foreground.
         override fun onStart(owner: LifecycleOwner) {
             showNotification()
         }
@@ -97,7 +97,7 @@ actual class NotificationTrigger private constructor(
             val notification = builder
                 .setSmallIcon(android.R.drawable.ic_menu_info_details)
                 .setContentTitle("Bugsy")
-                .setContentText("Toque para abrir o painel de debug")
+                .setContentText("Tap to open the debug panel")
                 .setContentIntent(tap)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)

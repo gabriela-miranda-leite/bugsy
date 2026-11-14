@@ -12,9 +12,9 @@ import com.bugsy.ui.BugsyAndroidOverlay
 import okhttp3.OkHttpClient
 
 /**
- * Paridade de API: este arquivo usa **toda** a API pública do Bugsy e compila nas duas variantes do sample
- * (debug contra `:ui`, release contra `:bugsy-noop`). Se o artefato de debug ganhar ou mudar uma API e o noop não a
- * acompanhar, o `assembleRelease` deixa de compilar aqui. Nunca é executado. Ao criar uma API pública nova, adicione-a.
+ * API parity: this file uses **the entire** public Bugsy API and compiles in both sample variants
+ * (debug against `:ui`, release against `:bugsy-noop`). If the debug artifact gains or changes an API and the noop
+ * doesn't keep up, `assembleRelease` stops compiling here. Never executed. Add any new public API here when you create it.
  */
 private fun apiSurface() {
     val version: String = Bugsy.version
@@ -49,7 +49,7 @@ private fun apiSurface() {
     val client: OkHttpClient = OkHttpClient.Builder().addBugsyInterceptor().build()
 }
 
-/** `BugsyAndroidOverlay()` é @Composable no artefato de debug e uma função comum no noop: ambos compilam aqui. */
+/** `BugsyAndroidOverlay()` is @Composable in the debug artifact and a plain function in the noop: both compile here. */
 @Composable
 private fun overlaySurface() {
     BugsyAndroidOverlay()

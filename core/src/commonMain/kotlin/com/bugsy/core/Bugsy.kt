@@ -14,7 +14,7 @@ object Bugsy {
 
     private var customInfoProvider: () -> List<Pair<String, String>> = { emptyList() }
 
-    /** Lido de novo a cada chamada — ver [BugsyConfig.customInfoProvider]. */
+    /** Read again on every call — see [BugsyConfig.customInfoProvider]. */
     fun customInfo(): List<Pair<String, String>> = customInfoProvider()
 
     private var debugInterceptor: DebugInterceptor? = null
@@ -57,26 +57,26 @@ object Bugsy {
     }
 
     /**
-     * Passa a mascarar o valor de [name] (case-insensitive) nas requests capturadas a partir deste ponto.
-     * Requests já capturadas não são alteradas.
+     * Starts masking the value of [name] (case-insensitive) in requests captured from this point on.
+     * Already-captured requests are not altered.
      */
     fun addSensitiveHeader(name: String) = HeaderRedactor.add(name)
 
     /**
-     * Deixa de mascarar [name], inclusive um dos padrões (`Authorization`, `Cookie`, `X-Api-Key`).
-     * Atenção: remover um header de credenciais expõe o valor real na UI.
+     * Stops masking [name], including one of the defaults (`Authorization`, `Cookie`, `X-Api-Key`).
+     * Warning: removing a credential header exposes the real value in the UI.
      */
     fun removeSensitiveHeader(name: String) = HeaderRedactor.remove(name)
 
     /**
-     * Passa a mascarar o valor do campo [name] (case-insensitive, em qualquer nível do JSON ou como `campo=valor`)
-     * nos bodies capturados a partir deste ponto.
+     * Starts masking the value of field [name] (case-insensitive, at any JSON depth or as `field=value`)
+     * in bodies captured from this point on.
      */
     fun addSensitiveBodyField(name: String) = BodyFieldMasker.add(name)
 
     /**
-     * Deixa de mascarar [name], inclusive um dos padrões (`password`, `cpf`, `token`, `secret`).
-     * Atenção: remover um campo de credencial expõe o valor real na UI.
+     * Stops masking [name], including one of the defaults (`password`, `cpf`, `token`, `secret`).
+     * Warning: removing a credential field exposes the real value in the UI.
      */
     fun removeSensitiveBodyField(name: String) = BodyFieldMasker.remove(name)
 

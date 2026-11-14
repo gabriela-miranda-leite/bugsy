@@ -35,7 +35,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// V_SCROLL precisa de um teto finito — LazyColumn lança exceção com altura infinita.
+// V_SCROLL needs a finite ceiling — LazyColumn throws an exception with infinite height.
 private val MaxSnapshotHeight = 5_000.dp
 private val OverlayContainerHeight = 800.dp
 
@@ -46,10 +46,10 @@ class BugsyScreenshotTest {
 
     @Before
     fun setUpComposeResourcesContext() {
-        // Paparazzi não dispara o ContentProvider que o compose-resources usa pra
-        // inicializar o Context no Android — sem isso, stringResource() quebra.
-        // AndroidContextProvider é `internal` em Kotlin mas público no bytecode, então
-        // setamos o Context via reflection.
+        // Paparazzi doesn't trigger the ContentProvider that compose-resources uses to
+        // initialize the Context on Android — without this, stringResource() breaks.
+        // AndroidContextProvider is `internal` in Kotlin but public in bytecode, so
+        // we set the Context via reflection.
         val providerClass = Class.forName("org.jetbrains.compose.resources.AndroidContextProvider")
         val companion = providerClass.getDeclaredField("Companion").apply { isAccessible = true }.get(null)
         companion.javaClass.getDeclaredMethod("setANDROID_CONTEXT", android.content.Context::class.java)
@@ -158,7 +158,7 @@ class BugsyScreenshotTest {
     @Test
     fun debugOverlay() {
         paparazzi.snapshot {
-            // O overlay ocupa 80% da altura disponível: o container fixa essa altura (tela de ~800dp).
+            // The overlay takes up 80% of the available height: the container fixes that height (~800dp screen).
             Box(Modifier.fillMaxWidth().height(OverlayContainerHeight)) {
                 DebugOverlay(viewModel = DebugViewModel(), onDismiss = {}, animateEntrance = false)
             }
@@ -167,8 +167,8 @@ class BugsyScreenshotTest {
 
     @Test
     fun debugOverlayRequestDetail() {
-        // Reproduz a composição do DebugOverlay (drag handle + header + tabs fixos) com o
-        // RequestDetailScreen no corpo, como fica depois de tocar numa linha da lista.
+        // Reproduces the DebugOverlay composition (drag handle + header + fixed tabs) with
+        // RequestDetailScreen as the body, as it looks after tapping a row in the list.
         paparazzi.snapshot {
             BugsyTheme {
                 Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
@@ -183,8 +183,8 @@ class BugsyScreenshotTest {
 
     @Test
     fun debugOverlayDeviceInfo() {
-        // Reproduz a composição do DebugOverlay (drag handle + header + tabs fixos) com o
-        // DeviceInfoScreen no corpo — isolado, a tela fica parecendo cortada no topo.
+        // Reproduces the DebugOverlay composition (drag handle + header + fixed tabs) with
+        // DeviceInfoScreen as the body — in isolation, the screen looks cut off at the top.
         paparazzi.snapshot {
             BugsyTheme {
                 Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
@@ -199,8 +199,8 @@ class BugsyScreenshotTest {
 
     @Test
     fun debugOverlayFlagsEmpty() {
-        // Reproduz a composição do DebugOverlay (drag handle + header + tabs fixos) com o
-        // FlagsScreen (empty state) no corpo — isolado, a tela fica parecendo cortada no topo.
+        // Reproduces the DebugOverlay composition (drag handle + header + fixed tabs) with
+        // FlagsScreen (empty state) as the body — in isolation, the screen looks cut off at the top.
         paparazzi.snapshot {
             BugsyTheme {
                 Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {

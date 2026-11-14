@@ -7,7 +7,7 @@ internal object HeaderRedactor {
     private const val MASK = "***"
     private val defaultSensitiveHeaders = setOf("authorization", "cookie", "x-api-key")
 
-    // Conjunto imutável trocado atomicamente: os interceptors leem em threads de rede enquanto o app pode alterar de outra.
+    // Immutable set swapped atomically: interceptors read it on network threads while the app may change it from another.
     private val sensitiveHeaders = MutableStateFlow(defaultSensitiveHeaders)
 
     fun add(name: String) {

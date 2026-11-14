@@ -55,8 +55,8 @@ fun filterRequests(requests: List<DebugRequest>, filter: String): List<DebugRequ
 fun RequestListScreen(requests: List<DebugRequest>, onClear: () -> Unit = {}) {
     var filter by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<DebugRequest?>(null) }
-    // A escolha de mostrar/ocultar dados sensíveis vale para todas as requests enquanto o overlay está aberto.
-    // O ponto de partida (e qualquer mudança) vem das Configurações.
+    // The show/hide choice for sensitive data applies to all requests while the overlay is open.
+    // The starting point (and any change to it) comes from Settings.
     val revealDefault by BugsySettings.revealSensitiveByDefault.collectAsState()
     var revealed by remember { mutableStateOf(revealDefault) }
     LaunchedEffect(revealDefault) { revealed = revealDefault }

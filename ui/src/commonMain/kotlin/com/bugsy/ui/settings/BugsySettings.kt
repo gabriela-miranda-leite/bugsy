@@ -4,13 +4,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Preferências de quem usa o overlay. Ficam só em memória, valem enquanto o processo vive e nunca vão para disco
- * (mesma regra dos dados capturados).
+ * Preferences for whoever uses the overlay. They stay in memory only, live as long as the process does, and
+ * never go to disk (same rule as the captured data).
  */
 object BugsySettings {
     private val _revealSensitiveByDefault = MutableStateFlow(false)
 
-    /** Se as requests abrem mostrando os dados sensíveis (`true`) ou mascarados (`false`, o padrão). */
+    /** Whether requests open showing sensitive data (`true`) or masked (`false`, the default). */
     val revealSensitiveByDefault: StateFlow<Boolean> = _revealSensitiveByDefault
 
     fun setRevealSensitiveByDefault(value: Boolean) {

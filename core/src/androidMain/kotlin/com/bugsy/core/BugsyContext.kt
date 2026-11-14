@@ -8,14 +8,14 @@ internal object BugsyContext {
     @Volatile
     var applicationContext: Context? = null
 
-    /** Só para testes: força o resultado de [isHostDebuggable]. */
+    /** Test-only: forces the result of [isHostDebuggable]. */
     @Volatile
     var debuggableOverride: Boolean? = null
 
     /**
-     * Se o **app host** é debuggable. É a barreira que decide se o Bugsy liga, no lugar de `BuildConfig.DEBUG`: num
-     * `.aar` publicado, o `BuildConfig` da lib é o da variante release (`DEBUG = false`) mesmo dentro de um app de
-     * debug. Sem contexto, a resposta é `false` (desligado).
+     * Whether the **host app** is debuggable. This is the gate that decides whether Bugsy turns on, instead of
+     * `BuildConfig.DEBUG`: in a published `.aar`, the library's `BuildConfig` is the release variant's
+     * (`DEBUG = false`) even inside a debug app. With no context, the answer is `false` (off).
      */
     fun isHostDebuggable(): Boolean =
         debuggableOverride

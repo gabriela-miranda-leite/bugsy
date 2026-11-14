@@ -4,9 +4,9 @@ import com.bugsy.core.model.DebugRequest
 import com.bugsy.core.model.RequestSecrets
 
 /**
- * Monta o [DebugRequest] das duas plataformas: tudo que vai para o repositório sai redatado e mascarado.
- * Os valores reais só são guardados (em memória, em [RequestSecrets]) quando há algo mascarado e
- * `BugsyConfig.allowRevealingSecrets` está ligado.
+ * Builds the [DebugRequest] for both platforms: everything that goes into the repository comes out redacted and masked.
+ * The real values are only kept (in memory, in [RequestSecrets]) when something was masked and
+ * `BugsyConfig.allowRevealingSecrets` is turned on.
  */
 internal object RequestCapture {
 

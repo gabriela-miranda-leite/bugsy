@@ -17,12 +17,12 @@ import platform.objc.method_getImplementation
 import platform.objc.sel_registerName
 
 /**
- * Escuta o gesto de "sacudir" do próprio iOS (o evento de movimento do UIKit), que é o que o Simulator envia em
- * Device > Shake (Ctrl+Cmd+Z) e o que o sistema entrega em aparelhos reais. O acelerômetro (CoreMotion) não existe
- * no Simulator, então só ele não basta.
+ * Listens to iOS's own "shake" gesture (the UIKit motion event), which is what the Simulator sends on
+ * Device > Shake (Ctrl+Cmd+Z) and what the system delivers on real devices. The accelerometer (CoreMotion) doesn't
+ * exist on the Simulator, so it alone isn't enough.
  *
- * Para isso um único método é interceptado: `UIWindow.motionEnded(_:with:)`. O comportamento original é sempre
- * preservado (é chamado em seguida), então o app host continua recebendo o gesto normalmente.
+ * To do this, a single method is intercepted: `UIWindow.motionEnded(_:with:)`. The original behavior is always
+ * preserved (it's called right after), so the host app keeps receiving the gesture normally.
  */
 private typealias MotionEnded = CFunction<(COpaquePointer?, COpaquePointer?, Long, COpaquePointer?) -> Unit>
 

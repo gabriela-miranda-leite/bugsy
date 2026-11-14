@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "dev.bugsy.sample"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "dev.bugsy.sample"
@@ -44,7 +44,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.okhttp)
 
-    // Em debug o Bugsy completo; em release só o artefato no-op (mesma API, sem instrumentação).
+    // Full Bugsy in debug; in release, only the no-op artifact (same API, no instrumentation).
     debugImplementation(project(":ui"))
     releaseImplementation(project(":bugsy-noop"))
 }

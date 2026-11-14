@@ -20,7 +20,6 @@ import platform.Foundation.NSURLRequest
 import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.NSUUID
 import platform.Foundation.create
-import platform.Foundation.dataWithBytes
 import platform.Foundation.subdataWithRange
 import platform.Foundation.timeIntervalSince1970
 import platform.Foundation.NSMakeRange
@@ -28,7 +27,7 @@ import platform.Foundation.NSMakeRange
 internal object IosRequestCapture {
     const val MAX_BODY_BYTES = 1L * 1024 * 1024
 
-    /** Redação e mascaramento acontecem aqui, antes de qualquer dado chegar ao DebugRepository. */
+    /** Redaction and masking happen here, before any data reaches the DebugRepository. */
     fun build(
         url: String,
         method: String,
@@ -62,7 +61,7 @@ internal fun NSData.toUtf8String(maxBytes: Long = Long.MAX_VALUE): String? {
     return NSString.create(data = slice, encoding = NSUTF8StringEncoding)?.toString()
 }
 
-/** Lê `httpBody` ou, se a request usa stream, drena o `httpBodyStream`. */
+/** Reads `httpBody`, or, if the request uses a stream, drains the `httpBodyStream`. */
 internal fun NSURLRequest.bodyData(): NSData? {
     HTTPBody?.let { return it }
     val stream = HTTPBodyStream ?: return null

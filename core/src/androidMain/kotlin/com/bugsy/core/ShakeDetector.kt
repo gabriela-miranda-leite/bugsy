@@ -9,8 +9,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 
-// TODO: validar em device real (sample-android ainda não existe) — shake abre overlay,
-// debounce não abre duas vezes, e sensor não vaza em background. Ver DEB-20.
 actual class ShakeDetector private constructor(
     private val delegate: Delegate?
 ) {

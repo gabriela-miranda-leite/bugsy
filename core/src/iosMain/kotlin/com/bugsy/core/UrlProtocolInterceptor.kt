@@ -26,10 +26,10 @@ import platform.Foundation.dataTaskWithRequest
 import kotlin.time.TimeSource
 
 /**
- * Registra globalmente um [NSURLProtocol] que captura as requests de qualquer NSURLSession do processo.
+ * Globally registers an [NSURLProtocol] that captures requests from any NSURLSession in the process.
  *
- * `registerClass` só afeta `URLSession.shared` e sessões criadas com a configuração padrão. Sessões
- * com `NSURLSessionConfiguration` customizada precisam incluir a classe em `protocolClasses`.
+ * `registerClass` only affects `URLSession.shared` and sessions created with the default configuration. Sessions
+ * with a custom `NSURLSessionConfiguration` need to include the class in `protocolClasses`.
  */
 internal class UrlProtocolInterceptor {
     fun attach() {
@@ -97,7 +97,7 @@ internal class BugsyUrlProtocol @OverrideInit constructor(
                 )
             )
         } catch (e: Exception) {
-            // Nunca registrar a exceção nem sua mensagem: ela pode conter trechos de headers ou do body capturado.
+            // Never log the exception or its message: it may contain fragments of captured headers or body.
         }
     }
 
@@ -114,7 +114,7 @@ internal class BugsyUrlProtocol @OverrideInit constructor(
 
 private const val HANDLED_KEY = "com.bugsy.core.handled"
 
-// Sessão interna sem BugsyUrlProtocol em protocolClasses — evita a interceptação recursiva.
+// Internal session without BugsyUrlProtocol in protocolClasses — avoids recursive interception.
 private val internalSession: NSURLSession by lazy {
     val configuration = NSURLSessionConfiguration.ephemeralSessionConfiguration().apply {
         protocolClasses = emptyList<Any>()

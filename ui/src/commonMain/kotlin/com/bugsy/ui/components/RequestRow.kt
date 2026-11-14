@@ -31,8 +31,8 @@ import com.bugsy.ui.theme.formatUrl
 import com.bugsy.ui.theme.statusColor
 
 /**
- * Linha clicável da lista: método, caminho (em destaque) e host embaixo, status e duração à direita, e a seta que
- * indica que abre o detalhe.
+ * Clickable list row: method, path (highlighted) with host below, status and duration on the right, and the
+ * chevron indicating it opens the detail screen.
  */
 @Composable
 fun RequestRow(
@@ -48,7 +48,7 @@ fun RequestRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            // O divisor é desenhado antes do padding: ocupa a largura toda, na borda inferior da linha.
+            // The divider is drawn before the padding: it spans the full width, on the row's bottom edge.
             .drawBehind {
                 val s = BugsySpacing.rowDividerThickness.toPx()
                 drawLine(
@@ -97,7 +97,7 @@ fun RequestRow(
     }
 }
 
-/** "api.dev/v1/users" -> ("api.dev", "/v1/users"); sem caminho, o caminho é "/". */
+/** "api.dev/v1/users" -> ("api.dev", "/v1/users"); with no path, the path is "/". */
 private fun splitHostAndPath(hostAndPath: String): Pair<String, String> {
     val slash = hostAndPath.indexOf('/')
     return if (slash < 0) hostAndPath to "/" else hostAndPath.substring(0, slash) to hostAndPath.substring(slash)

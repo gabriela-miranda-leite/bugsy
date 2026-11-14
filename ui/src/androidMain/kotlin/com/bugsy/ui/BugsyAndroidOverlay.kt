@@ -12,8 +12,8 @@ import com.bugsy.core.Bugsy
 import com.bugsy.ui.screens.DebugOverlay
 
 /**
- * Entry point Android: embede uma vez no topo da árvore Compose do app host
- * (ex: no Composable raiz da Activity). Reage a [Bugsy.show]/[Bugsy.hide].
+ * Android entry point: embed once at the top of the host app's Compose tree
+ * (e.g. in the Activity's root Composable). Reacts to [Bugsy.show]/[Bugsy.hide].
  */
 @Composable
 fun BugsyAndroidOverlay() {
@@ -23,7 +23,7 @@ fun BugsyAndroidOverlay() {
             onDismissRequest = { Bugsy.hide() },
             properties = DialogProperties(usePlatformDefaultWidth = false),
         ) {
-            // O escurecimento do fundo é desenhado pelo próprio DebugOverlay (acompanha o arrasto).
+            // The background dimming is drawn by DebugOverlay itself (follows the drag).
             (LocalView.current.parent as? DialogWindowProvider)?.window?.setDimAmount(0f)
             DebugOverlay(viewModel = remember { DebugViewModel() }, onDismiss = { Bugsy.hide() })
         }

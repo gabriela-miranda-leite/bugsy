@@ -6,7 +6,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 object BugsyTypography {
-    // Chrome do UI — Roboto
+    // UI chrome — Roboto
     val Title: TextStyle
         @Composable get() = TextStyle(fontFamily = robotoFontFamily(), fontSize = 17.sp, fontWeight = FontWeight.Medium, letterSpacing = (-0.3).sp)
     val Body: TextStyle
@@ -18,7 +18,7 @@ object BugsyTypography {
     val Caption: TextStyle
         @Composable get() = TextStyle(fontFamily = robotoFontFamily(), fontSize = 11.sp)
 
-    // Código — URLs, headers, cURL, response body — Roboto Mono
+    // Code — URLs, headers, cURL, response body — Roboto Mono
     val Code: TextStyle
         @Composable get() = TextStyle(fontFamily = robotoMonoFontFamily(), fontSize = 12.sp, lineHeight = 20.sp)
     val CodeSmall: TextStyle

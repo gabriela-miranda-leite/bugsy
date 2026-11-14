@@ -14,8 +14,8 @@ permissions:
   pull-requests: read
 
 jobs:
-  # Android + JVM em Linux: testes, as duas variantes do sample (debug e release) e o gate de release do APK.
-  # ApiSurface.kt usa toda a API pública, então compilar as duas variantes é o teste de paridade core x noop.
+  # Android + JVM on Linux: tests, both sample variants (debug and release), and the release APK gate.
+  # ApiSurface.kt exercises the full public API, so building both variants is the core x noop parity test.
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 45

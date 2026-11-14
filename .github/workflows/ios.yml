@@ -2,6 +2,15 @@ name: iOS
 
 on:
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'assets/**'
+      - 'sample-android/**'
+      - '.github/workflows/android.yml'
+      - '.github/workflows/coverage.yml'
+      - '.github/workflows/snapshots.yml'
+      - '.github/workflows/secrets-scan.yml'
+      - '.github/workflows/release.yml'
   push:
     branches: [main]
 
@@ -28,6 +37,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-
+
       - name: iOS simulator tests
         run: ./gradlew :core:iosSimulatorArm64Test :bugsy-noop:iosSimulatorArm64Test :ui:iosSimulatorArm64Test
 
@@ -40,7 +55,5 @@ jobs:
 
       - name: Release gate (no instrumentation in the iOS release binary)
         run: |
-          ./gradlew :sample-android:assembleRelease
           ./scripts/check-release-clean.sh \
-            sample-android/build/outputs/apk/release/sample-android-release-unsigned.apk \
-            build/ios-release/Build/Products/Release-iphonesimulator/BugsySample.app/BugsySample
+            --ios build/ios-release/Build/Products/Release-iphonesimulator/BugsySample.app/BugsySample

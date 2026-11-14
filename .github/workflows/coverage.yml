@@ -2,6 +2,11 @@ name: Coverage
 
 on:
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'assets/**'
+      - 'sample-ios/**'
+      - '.github/workflows/ios.yml'
   push:
     branches: [main]
 

@@ -5,10 +5,15 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
+import java.io.IOException
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class OkHttpDebugInterceptorTest {
@@ -195,5 +200,88 @@ class OkHttpDebugInterceptorTest {
         BugsyContext.applicationContext = null
 
         assertTrue(!BugsyContext.isHostDebuggable())
+    }
+
+    @Test
+    fun `captures a simple GET request with the correct method, URL and status`() {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("ok"))
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        client.newCall(Request.Builder().url(server.url("/ping")).build()).execute().close()
+
+        val entry = DebugRepository.getAll().single()
+        assertEquals("GET", entry.method)
+        assertTrue(entry.url.endsWith("/ping"))
+        assertEquals(200, entry.statusCode)
+    }
+
+    @Test
+    fun `redacts the Cookie header in the captured request`() {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        client.newCall(
+            Request.Builder().url(server.url("/")).header("Cookie", "session=real-session-id").build()
+        ).execute().close()
+
+        val entry = DebugRepository.getAll().single()
+        assertEquals("***", entry.requestHeaders["Cookie"])
+    }
+
+    @Test
+    fun `a network failure does not crash the interceptor and captures an entry with an error status`() {
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        val request = Request.Builder().url(server.url("/down")).build()
+
+        assertFailsWith<IOException> { client.newCall(request).execute() }
+
+        val entry = DebugRepository.getAll().single()
+        assertEquals("GET", entry.method)
+        assertTrue(entry.url.endsWith("/down"))
+        assertEquals(null, entry.statusCode)
+    }
+
+    @Test
+    fun `10 concurrent requests through the interceptor do not throw ConcurrentModificationException`() {
+        repeat(10) { server.enqueue(MockResponse().setResponseCode(200).setBody("{}")) }
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        val executor = Executors.newFixedThreadPool(10)
+
+        val calls = (0 until 10).map {
+            executor.submit {
+                client.newCall(Request.Builder().url(server.url("/concurrent")).build()).execute().close()
+            }
+        }
+        calls.forEach { it.get(10, TimeUnit.SECONDS) }
+        executor.shutdown()
+        executor.awaitTermination(10, TimeUnit.SECONDS)
+
+        assertEquals(10, DebugRepository.getAll().size)
+    }
+
+    @Test
+    fun `ring buffer with capacity 2 discards the oldest entry on the 3rd real request`() {
+        DebugRepository.configureMaxEntries(2)
+        repeat(3) { server.enqueue(MockResponse().setResponseCode(200).setBody("{}")) }
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        repeat(3) { index ->
+            client.newCall(Request.Builder().url(server.url("/req-$index")).build()).execute().close()
+        }
+
+        val captured = DebugRepository.getAll()
+        assertEquals(2, captured.size)
+        assertTrue(captured.none { it.url.endsWith("/req-0") })
+        assertTrue(captured.any { it.url.endsWith("/req-1") })
+        assertTrue(captured.any { it.url.endsWith("/req-2") })
+        DebugRepository.configureMaxEntries(200)
     }
 }

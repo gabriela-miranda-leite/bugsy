@@ -67,13 +67,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Body with user_id/document validates masking of sensitive fields configured via
-    // Bugsy.addSensitiveBodyField, and exercises each HTTP method the overlay should render correctly.
+    // Headers mix sensitive ones (Authorization, Cookie, X-Api-Key) that Bugsy masks by default
+    // with a plain one (X-Device-Id) that should show up untouched, so both paths are exercised.
     private fun makeRequest(method: String, url: String) {
         thread {
             val builder = Request.Builder()
                 .url(url)
-                .header("Authorization", "Bearer sample-secret")
+                .header("Authorization", "Bearer tok_fake_9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c_not_a_real_secret")
+                .header("Cookie", "session_id=sess_9f8a7b6c5d4e; theme=dark")
+                .header("X-Api-Key", "fake-api-key-00112233445566778899")
+                .header("X-Device-Id", "device-emulator-01")
             if (method == "POST" || method == "PUT") {
                 val body = """{"user_id":"u_42","document":"123.456.789-00","note":"sample $method"}"""
                     .toRequestBody("application/json".toMediaType())

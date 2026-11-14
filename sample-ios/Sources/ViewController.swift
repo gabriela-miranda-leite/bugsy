@@ -82,12 +82,17 @@ final class ViewController: UIViewController {
         makeRequest(method: "DELETE", path: "delete")
     }
 
+    // Headers misturam sensíveis (Authorization, Cookie, X-Api-Key), mascarados por padrão pelo
+    // Bugsy, com um comum (X-Device-Id) que deve aparecer sem alteração, pra exercitar os dois casos.
     // Body com user_id/document valida o mascaramento de campos sensíveis configurado via
     // Bugsy.shared.addSensitiveBodyField, e exercita cada método HTTP que o overlay deve exibir corretamente.
     private func makeRequest(method: String, path: String) {
         var request = URLRequest(url: URL(string: "https://httpbin.org/\(path)")!)
         request.httpMethod = method
-        request.setValue("Bearer sample-secret", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer tok_fake_9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c_not_a_real_secret", forHTTPHeaderField: "Authorization")
+        request.setValue("session_id=sess_9f8a7b6c5d4e; theme=dark", forHTTPHeaderField: "Cookie")
+        request.setValue("fake-api-key-00112233445566778899", forHTTPHeaderField: "X-Api-Key")
+        request.setValue("device-simulator-01", forHTTPHeaderField: "X-Device-Id")
         if method == "POST" || method == "PUT" {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = Data("""

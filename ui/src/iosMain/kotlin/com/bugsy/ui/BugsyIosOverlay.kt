@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import platform.Foundation.NSNotificationCenter
 import platform.UIKit.UIApplication
 import platform.UIKit.UIColor
 import platform.UIKit.UIModalPresentationOverFullScreen
@@ -18,6 +19,15 @@ import platform.UIKit.UIViewController
 
 private var presentedController: UIViewController? = null
 private var overlayJob: Job? = null
+
+/**
+ * Posted right after the overlay finishes dismissing. The overlay uses [UIModalPresentationOverFullScreen]
+ * (non-opaque, so the presenting view controller's view never leaves the hierarchy), and UIKit does not
+ * reliably call viewWillAppear/viewDidAppear on it when such a presentation is dismissed — so host apps
+ * that need to react to the overlay closing (e.g. to re-read an overridden flag) should observe this
+ * notification instead of relying on their own view lifecycle.
+ */
+const val BUGSY_OVERLAY_DID_DISMISS_NOTIFICATION = "BugsyOverlayDidDismiss"
 
 /**
  * iOS entry point: call once during app startup (e.g. AppDelegate/SceneDelegate)
@@ -53,7 +63,9 @@ private fun presentOverlay() {
 }
 
 private fun dismissOverlay() {
-    presentedController?.dismissViewControllerAnimated(false, completion = null)
+    presentedController?.dismissViewControllerAnimated(false) {
+        NSNotificationCenter.defaultCenter.postNotificationName(BUGSY_OVERLAY_DID_DISMISS_NOTIFICATION, `object` = null)
+    }
     presentedController = null
 }
 

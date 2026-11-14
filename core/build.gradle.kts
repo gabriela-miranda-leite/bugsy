@@ -25,7 +25,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
         androidMain.dependencies {
-            implementation(libs.okhttp)
+            api(libs.okhttp)
             implementation(libs.androidx.startup.runtime)
             implementation(libs.androidx.lifecycle.process)
         }

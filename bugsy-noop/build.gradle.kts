@@ -35,6 +35,9 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
         }
+        androidMain.dependencies {
+            compileOnly(libs.okhttp)
+        }
         commonTest.dependencies {
             implementation(kotlin("test"))
         }

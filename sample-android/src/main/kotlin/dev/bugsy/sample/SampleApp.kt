@@ -8,6 +8,6 @@ import com.bugsy.core.Trigger
 class SampleApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        Bugsy.initialize(BugsyConfig(trigger = Trigger.FloatingButton))
+        Bugsy.initialize(BugsyConfig(trigger = Trigger.Notification))
     }
 }

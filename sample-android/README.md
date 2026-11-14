@@ -7,7 +7,7 @@ debugImplementation(project(":ui"))            // Bugsy completo
 releaseImplementation(project(":bugsy-noop"))  // mesma API, sem instrumentação
 ```
 
-O código do app usa só a API pública (`Bugsy.initialize`, `Bugsy.show`, `BugsyAndroidOverlay()`), que existe nos dois artefatos, então o mesmo código compila nas duas variantes. Em **release** o app depende apenas do `:bugsy-noop`: nenhuma classe de captura, repositório ou overlay entra no APK, sem depender de regras R8/ProGuard (por isso não há `consumer-rules.pro`).
+O código do app usa só a API pública (`Bugsy.initialize`, `Bugsy.show`, `BugsyAndroidOverlay()`, `OkHttpClient.Builder.addBugsyInterceptor()`), que existe nos dois artefatos, então o mesmo código compila nas duas variantes. Em **release** o app depende apenas do `:bugsy-noop`: nenhuma classe de captura, repositório ou overlay entra no APK, sem depender de regras R8/ProGuard (por isso não há `consumer-rules.pro`).
 
 ## Verificando o release
 
@@ -22,4 +22,17 @@ grep '^com.bugsy' sample-android/build/outputs/mapping/release/mapping.txt
 ./gradlew :sample-android:dependencies --configuration releaseRuntimeClasspath | grep -i bugsy
 ```
 
-Nota: o Bugsy ainda não expõe uma API pública para plugar o interceptor OkHttp no client do app, então este sample não captura requests em debug.
+## Como abrir o Bugsy no debug
+
+O sample usa `Trigger.Notification`: com o app aberto aparece uma notificação fixa ("Toque para abrir o painel de debug") que abre o overlay; ela some quando o app vai para segundo plano. No Android 13+ o app precisa da permissão `POST_NOTIFICATIONS` (o sample a pede ao abrir). Os outros gatilhos são `Trigger.Shake` (padrão) e `Trigger.FloatingButton`. O botão **Abrir Bugsy** chama `Bugsy.show()` diretamente.
+
+## Capturando requests
+
+Adicione o interceptor ao client do app: `OkHttpClient.Builder().addBugsyInterceptor().build()`. Em release o artefato `bugsy-noop` devolve o builder sem alterações.
+
+## Rodando no emulador
+
+```sh
+~/Library/Android/sdk/emulator/emulator -avd Pixel_9      # deixe esse terminal aberto
+./gradlew :sample-android:installDebug                    # em outro terminal
+```

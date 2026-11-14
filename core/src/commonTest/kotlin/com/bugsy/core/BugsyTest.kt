@@ -52,6 +52,12 @@ class BugsyTest {
     }
 
     @Test
+    fun `initialize with the Notification trigger does not throw and can be destroyed`() {
+        Bugsy.initialize(BugsyConfig(trigger = Trigger.Notification))
+        Bugsy.destroy()
+    }
+
+    @Test
     fun `destroy can be called safely without a prior initialize`() {
         Bugsy.destroy()
     }

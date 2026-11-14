@@ -15,6 +15,7 @@ object Bugsy {
     private var debugInterceptor: DebugInterceptor? = null
     private var shakeDetector: ShakeDetector? = null
     private var floatingButtonController: FloatingButtonController? = null
+    private var notificationTrigger: NotificationTrigger? = null
 
     fun initialize(config: BugsyConfig = BugsyConfig()) {
         destroy()
@@ -30,6 +31,10 @@ object Bugsy {
                 floatingButtonController = FloatingButtonController.create(onTap = ::show)
                     .also { it.start() }
             }
+            Trigger.Notification -> {
+                notificationTrigger = NotificationTrigger.create(onTap = ::show)
+                    .also { it.start() }
+            }
         }
     }
 
@@ -40,6 +45,8 @@ object Bugsy {
         shakeDetector = null
         floatingButtonController?.stop()
         floatingButtonController = null
+        notificationTrigger?.stop()
+        notificationTrigger = null
     }
 
     /**

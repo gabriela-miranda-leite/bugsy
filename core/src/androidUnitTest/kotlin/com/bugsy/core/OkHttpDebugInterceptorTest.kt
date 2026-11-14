@@ -107,4 +107,30 @@ class OkHttpDebugInterceptorTest {
         val captured = DebugRepository.getAll().single().responseBody!!
         assertTrue("leaked-secret" !in captured)
     }
+
+    @Test
+    fun `a client built with addBugsyInterceptor is captured once Bugsy is initialized`() {
+        Bugsy.initialize()
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+        val client = OkHttpClient.Builder().addBugsyInterceptor().build()
+
+        client.newCall(Request.Builder().url(server.url("/ping")).build()).execute().close()
+        Bugsy.destroy()
+
+        val entry = DebugRepository.getAll().single()
+        assertEquals(200, entry.statusCode)
+        assertTrue(entry.url.endsWith("/ping"))
+    }
+
+    @Test
+    fun `a client built with addBugsyInterceptor captures nothing after destroy`() {
+        Bugsy.initialize()
+        Bugsy.destroy()
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+        val client = OkHttpClient.Builder().addBugsyInterceptor().build()
+
+        client.newCall(Request.Builder().url(server.url("/ping")).build()).execute().close()
+
+        assertEquals(0, DebugRepository.getAll().size)
+    }
 }

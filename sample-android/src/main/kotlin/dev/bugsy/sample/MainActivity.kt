@@ -24,8 +24,10 @@ import androidx.compose.ui.unit.dp
 import com.bugsy.core.Bugsy
 import com.bugsy.core.addBugsyInterceptor
 import com.bugsy.ui.BugsyAndroidOverlay
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlin.concurrent.thread
 
 class MainActivity : ComponentActivity() {
@@ -53,7 +55,10 @@ class MainActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Button(onClick = ::makeRequest) { Text("Make request (OkHttp)") }
+                Button(onClick = { makeRequest("GET", "https://httpbin.org/get") }) { Text("GET") }
+                Button(onClick = { makeRequest("POST", "https://httpbin.org/post") }) { Text("POST") }
+                Button(onClick = { makeRequest("PUT", "https://httpbin.org/put") }) { Text("PUT") }
+                Button(onClick = { makeRequest("DELETE", "https://httpbin.org/delete") }) { Text("DELETE") }
                 Button(onClick = { Bugsy.show() }) { Text("Open Bugsy") }
                 Text(status, color = foreground)
                 Text(if (darkModeEnabled) "darkModeEnabled: ON" else "darkModeEnabled: off", color = foreground)
@@ -62,14 +67,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun makeRequest() {
+    // Body with user_id/document validates masking of sensitive fields configured via
+    // Bugsy.addSensitiveBodyField, and exercises each HTTP method the overlay should render correctly.
+    private fun makeRequest(method: String, url: String) {
         thread {
-            val request = Request.Builder()
-                .url("https://httpbin.org/get")
+            val builder = Request.Builder()
+                .url(url)
                 .header("Authorization", "Bearer sample-secret")
-                .build()
-            status = "Sending..."
-            status = runCatching { client.newCall(request).execute().use { "Status ${it.code}" } }
+            if (method == "POST" || method == "PUT") {
+                val body = """{"user_id":"u_42","document":"123.456.789-00","note":"sample $method"}"""
+                    .toRequestBody("application/json".toMediaType())
+                builder.method(method, body)
+            } else {
+                builder.method(method, null)
+            }
+            status = "Sending $method..."
+            status = runCatching { client.newCall(builder.build()).execute().use { "$method -> Status ${it.code}" } }
                 .getOrElse { "Failed: ${it.message}" }
         }
     }

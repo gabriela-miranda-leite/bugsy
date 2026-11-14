@@ -8,9 +8,21 @@ final class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let requestButton = UIButton(type: .system)
-        requestButton.setTitle("Fazer request (URLSession.shared)", for: .normal)
-        requestButton.addTarget(self, action: #selector(makeRequest), for: .touchUpInside)
+        let getButton = UIButton(type: .system)
+        getButton.setTitle("GET", for: .normal)
+        getButton.addTarget(self, action: #selector(makeGetRequest), for: .touchUpInside)
+
+        let postButton = UIButton(type: .system)
+        postButton.setTitle("POST", for: .normal)
+        postButton.addTarget(self, action: #selector(makePostRequest), for: .touchUpInside)
+
+        let putButton = UIButton(type: .system)
+        putButton.setTitle("PUT", for: .normal)
+        putButton.addTarget(self, action: #selector(makePutRequest), for: .touchUpInside)
+
+        let deleteButton = UIButton(type: .system)
+        deleteButton.setTitle("DELETE", for: .normal)
+        deleteButton.addTarget(self, action: #selector(makeDeleteRequest), for: .touchUpInside)
 
         let showButton = UIButton(type: .system)
         showButton.setTitle("Abrir Bugsy", for: .normal)
@@ -22,7 +34,7 @@ final class ViewController: UIViewController {
         flagsLabel.textAlignment = .center
         refreshDarkMode()
 
-        let stack = UIStackView(arrangedSubviews: [requestButton, showButton, statusLabel, flagsLabel])
+        let stack = UIStackView(arrangedSubviews: [getButton, postButton, putButton, deleteButton, showButton, statusLabel, flagsLabel])
         stack.axis = .vertical
         stack.spacing = 16
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -42,7 +54,7 @@ final class ViewController: UIViewController {
         refreshDarkMode()
         // Modo automático para validar a integração sem interação: BUGSY_SAMPLE_AUTORUN=1
         guard ProcessInfo.processInfo.environment["BUGSY_SAMPLE_AUTORUN"] == "1" else { return }
-        makeRequest()
+        makeGetRequest()
         let simulateShake = ProcessInfo.processInfo.environment["BUGSY_SAMPLE_SHAKE"] == "1"
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             if simulateShake {
@@ -54,13 +66,39 @@ final class ViewController: UIViewController {
         }
     }
 
-    @objc private func makeRequest() {
-        var request = URLRequest(url: URL(string: "https://httpbin.org/get")!)
+    @objc private func makeGetRequest() {
+        makeRequest(method: "GET", path: "get")
+    }
+
+    @objc private func makePostRequest() {
+        makeRequest(method: "POST", path: "post")
+    }
+
+    @objc private func makePutRequest() {
+        makeRequest(method: "PUT", path: "put")
+    }
+
+    @objc private func makeDeleteRequest() {
+        makeRequest(method: "DELETE", path: "delete")
+    }
+
+    // Body com user_id/document valida o mascaramento de campos sensíveis configurado via
+    // Bugsy.shared.addSensitiveBodyField, e exercita cada método HTTP que o overlay deve exibir corretamente.
+    private func makeRequest(method: String, path: String) {
+        var request = URLRequest(url: URL(string: "https://httpbin.org/\(path)")!)
+        request.httpMethod = method
         request.setValue("Bearer sample-secret", forHTTPHeaderField: "Authorization")
+        if method == "POST" || method == "PUT" {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = Data("""
+            {"user_id":"u_42","document":"123.456.789-00","note":"sample \(method)"}
+            """.utf8)
+        }
+        statusLabel.text = "Sending \(method)..."
         URLSession.shared.dataTask(with: request) { [weak self] _, response, error in
             DispatchQueue.main.async {
                 let code = (response as? HTTPURLResponse)?.statusCode
-                self?.statusLabel.text = code.map { "Status \($0)" } ?? (error?.localizedDescription ?? "Falhou")
+                self?.statusLabel.text = code.map { "\(method) -> Status \($0)" } ?? (error?.localizedDescription ?? "Falhou")
             }
         }.resume()
     }

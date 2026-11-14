@@ -37,6 +37,10 @@ Com `BUGSY_SAMPLE_AUTORUN=1` no ambiente, o app faz a request e abre o overlay s
 SIMCTL_CHILD_BUGSY_SAMPLE_AUTORUN=1 xcrun simctl launch <UDID> dev.bugsy.sample
 ```
 
+## Testando uma versão de pré-release
+
+Ainda não existe aqui o equivalente ao `-PbugsyFromMavenLocal` do `sample-android`: o projeto sempre linka o framework a partir do build local (debug ou release), nunca de um `.xcframework` publicado/baixado. Pra validar uma pré-release no iOS hoje, é preciso rebuildar o framework a partir do código-fonte na versão/tag desejada (ver "Rodando" acima) — não dá pra apontar direto pra um artefato já publicado.
+
 ## Integração
 
 Um único import (`import Bugsy`) expõe o core e o overlay.

@@ -3,9 +3,18 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: "Version to release (no leading 'v', e.g. 0.2.0-alpha)"
+      bump:
+        description: "Tipo de bump de versão"
         required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      prerelease:
+        description: "Sufixo de pre-release opcional (ex: alpha, beta, rc1). Deixe vazio pra uma versão estável."
+        required: false
         type: string
 
 permissions:
@@ -13,9 +22,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  release:
+  compute-version:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
     steps:
       - name: Restrict who can trigger this release
         if: github.actor != 'gabriela-miranda-leite'
@@ -27,20 +38,57 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate version
+      - name: Compute next version from current VERSION_NAME + bump
+        id: compute
         run: |
-          if [[ ! "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
-            echo "::error::Invalid version: '${{ inputs.version }}'. Use something like 0.2.0 or 0.2.0-alpha." >&2
-            exit 1
-          fi
-          if git rev-parse "v${{ inputs.version }}" >/dev/null 2>&1; then
-            echo "::error::Tag v${{ inputs.version }} already exists." >&2
+          current="$(sed -n 's/^VERSION_NAME=//p' gradle.properties)"
+          core="${current%%-*}"
+          IFS='.' read -r major minor patch <<< "$core"
+          if [[ ! "$major.$minor.$patch" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Não consegui parsear a versão atual '$current' (esperava X.Y.Z[-sufixo])." >&2
             exit 1
           fi
 
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+
+          next="$major.$minor.$patch"
+          if [ -n "${{ inputs.prerelease }}" ]; then
+            if [[ ! "${{ inputs.prerelease }}" =~ ^[a-zA-Z0-9.]+$ ]]; then
+              echo "::error::Sufixo de pre-release inválido: '${{ inputs.prerelease }}'. Use só letras, números e pontos." >&2
+              exit 1
+            fi
+            next="$next-${{ inputs.prerelease }}"
+          fi
+
+          if git rev-parse "v$next" >/dev/null 2>&1; then
+            echo "::error::Tag v$next já existe." >&2
+            exit 1
+          fi
+
+          echo "Versão atual: $current -> nova versão (${{ inputs.bump }}): $next"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+
+  pre-release:
+    needs: compute-version
+    uses: ./.github/workflows/pre-release.yml
+
+  release:
+    needs: [compute-version, pre-release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERSION: ${{ needs.compute-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Bump VERSION_NAME in gradle.properties
-        run: |
-          sed -i "s/^VERSION_NAME=.*/VERSION_NAME=${{ inputs.version }}/" gradle.properties
+        run: sed -i "s/^VERSION_NAME=.*/VERSION_NAME=${VERSION}/" gradle.properties
 
       - name: Commit, open PR and merge (main is protected, no direct push)
         env:
@@ -48,14 +96,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "release/v${{ inputs.version }}"
+          git checkout -b "release/v${VERSION}"
           git add gradle.properties
-          git commit -m "chore: release v${{ inputs.version }}"
-          git push origin "release/v${{ inputs.version }}"
-          gh pr create --base main --head "release/v${{ inputs.version }}" \
-            --title "chore: release v${{ inputs.version }}" \
+          git commit -m "chore: release v${VERSION}"
+          git push origin "release/v${VERSION}"
+          gh pr create --base main --head "release/v${VERSION}" \
+            --title "chore: release v${VERSION}" \
             --body "Release automático via workflow_dispatch."
-          gh pr merge "release/v${{ inputs.version }}" --squash --admin --delete-branch
+          gh pr merge "release/v${VERSION}" --squash --admin --delete-branch
 
       - name: Tag and create GitHub Release with auto-generated changelog
         env:
@@ -64,10 +112,10 @@ jobs:
           git fetch origin main
           git checkout main
           git reset --hard origin/main
-          git tag -a "v${{ inputs.version }}" -m "v${{ inputs.version }}"
-          git push origin "v${{ inputs.version }}"
-          gh release create "v${{ inputs.version }}" \
-            --title "v${{ inputs.version }}" \
+          git tag -a "v${VERSION}" -m "v${VERSION}"
+          git push origin "v${VERSION}"
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
             --generate-notes
 
       - uses: actions/setup-java@v4

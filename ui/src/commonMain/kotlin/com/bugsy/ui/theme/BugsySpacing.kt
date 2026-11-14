@@ -99,4 +99,8 @@ object BugsySpacing {
     val flagValueKeyMinWidth = 144.dp
     val resetAllButtonHeight = 48.dp
     val cornerButtonLarge = 12.dp
+
+    // Modal do overlay: altura fixa em todas as telas, nas duas plataformas
+    const val overlayHeightFraction = 0.8f
+    val sheetCorner = 22.dp
 }

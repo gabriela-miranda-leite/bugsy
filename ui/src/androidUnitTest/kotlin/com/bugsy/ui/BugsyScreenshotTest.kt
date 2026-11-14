@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.junit.Before
@@ -34,6 +36,7 @@ import org.junit.Test
 
 // V_SCROLL precisa de um teto finito — LazyColumn lança exceção com altura infinita.
 private val MaxSnapshotHeight = 5_000.dp
+private val OverlayContainerHeight = 800.dp
 
 class BugsyScreenshotTest {
 
@@ -142,8 +145,9 @@ class BugsyScreenshotTest {
     @Test
     fun debugOverlay() {
         paparazzi.snapshot {
-            Box(Modifier.heightIn(max = MaxSnapshotHeight)) {
-                DebugOverlay(viewModel = DebugViewModel(), onDismiss = {})
+            // O overlay ocupa 80% da altura disponível: o container fixa essa altura (tela de ~800dp).
+            Box(Modifier.fillMaxWidth().height(OverlayContainerHeight)) {
+                DebugOverlay(viewModel = DebugViewModel(), onDismiss = {}, modifier = Modifier.align(Alignment.BottomCenter))
             }
         }
     }

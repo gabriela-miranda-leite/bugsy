@@ -9,6 +9,7 @@
     <string name="action_clear">Limpar</string>
     <string name="action_copy">Copiar</string>
     <string name="action_copied">Copiado!</string>
+    <string name="action_copy_masked">Copiar mascarado</string>
     <string name="action_copy_with_secrets">Copiar com valores reais</string>
 
     <string name="tab_requests">Requests</string>

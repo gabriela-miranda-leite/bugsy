@@ -2,6 +2,11 @@ name: Android
 
 on:
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'assets/**'
+      - 'sample-ios/**'
+      - '.github/workflows/ios.yml'
   push:
     branches: [main]
 
@@ -35,4 +40,4 @@ jobs:
         run: ./gradlew :sample-android:assembleDebug :sample-android:assembleRelease
 
       - name: Release gate (no instrumentation in the release APK)
-        run: ./scripts/check-release-clean.sh sample-android/build/outputs/apk/release/sample-android-release-unsigned.apk
+        run: ./scripts/check-release-clean.sh --apk sample-android/build/outputs/apk/release/sample-android-release-unsigned.apk

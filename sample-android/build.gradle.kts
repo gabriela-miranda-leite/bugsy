@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "dev.bugsy.sample"
-    compileSdk = 36
+    compileSdk = 37
+    compileSdkMinor = 0
 
     defaultConfig {
         applicationId = "dev.bugsy.sample"

@@ -17,6 +17,10 @@ App de exemplo em **Swift puro** (sem KMP) que integra o Bugsy via `Bugsy.xcfram
 2. Abra `sample-ios/BugsySample.xcodeproj` no Xcode e rode no simulador.
 3. Toque em **Fazer request (URLSession.shared)** e depois em **Abrir Bugsy** (ou chacoalhe o dispositivo: *Device > Shake* no simulador). A request aparece na aba Requests, com `Authorization` mascarado como `***`.
 
+## Sacudir (Shake)
+
+O gatilho `Shake` funciona em aparelho de verdade (acelerômetro e gesto de sacudir do iOS) e também no Simulator, em **Device > Shake** (Ctrl+Cmd+Z): o Bugsy escuta o evento de movimento do UIKit além do acelerômetro, que não existe no Simulator. O Simulator só entrega o gesto se o app estiver em primeiro plano.
+
 ## Release
 
 Em Release o app linka o `Bugsy.framework` do módulo `:bugsy-noop`: a mesma API (`Bugsy.shared.initialize`, `show`, `startBugsyIosOverlay`...), mas sem interceptor, repositório, overlay nem recursos. Nada é registrado, capturado, armazenado ou logado, e `show()` não abre nada. No simulador, o binário de Release não tem nenhum símbolo `UrlProtocol`, `DebugRepository`, `FlagManager` etc.

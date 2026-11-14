@@ -36,7 +36,15 @@ final class ViewController: UIViewController {
         // Modo automático para validar a integração sem interação: BUGSY_SAMPLE_AUTORUN=1
         guard ProcessInfo.processInfo.environment["BUGSY_SAMPLE_AUTORUN"] == "1" else { return }
         makeRequest()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { Bugsy.shared.show() }
+        let simulateShake = ProcessInfo.processInfo.environment["BUGSY_SAMPLE_SHAKE"] == "1"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            if simulateShake {
+                // Mesmo método que o sistema chama na janela quando o aparelho é sacudido (Device > Shake).
+                self.view.window?.motionEnded(.motionShake, with: nil)
+            } else {
+                Bugsy.shared.show()
+            }
+        }
     }
 
     @objc private func makeRequest() {

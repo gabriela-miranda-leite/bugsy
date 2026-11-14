@@ -152,7 +152,7 @@ fun RequestDetailScreen(
                 item {
                     val body = prettyPrintJson(requestBody)
                     ExpandableSection(stringResource(Res.string.label_request_body), initiallyExpanded = requestBody.length <= 400) {
-                        CodeBlock(body, onCopy = { copy(body) }, showTitle = false)
+                        CodeBlock(body)
                     }
                 }
             }
@@ -166,7 +166,7 @@ fun RequestDetailScreen(
                 item {
                     val body = prettyPrintJson(responseBody)
                     ExpandableSection(stringResource(Res.string.label_response_body), initiallyExpanded = responseBody.length <= 400) {
-                        CodeBlock(body, onCopy = { copy(body) }, showTitle = false)
+                        CodeBlock(body)
                     }
                 }
             }

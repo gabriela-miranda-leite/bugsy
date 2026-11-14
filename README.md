@@ -25,8 +25,11 @@ senhas, CPF) por acidente.
 
 ## Instalação
 
-Publicado no **Maven Central** sob o group `io.github.gabriela-miranda-leite`, em 3 artefatos
-consumidos separadamente por build type:
+Publicado no **Maven Central** sob o group `io.github.gabriela-miranda-leite`.
+
+### Kotlin / Android
+
+3 artefatos consumidos separadamente por build type:
 
 ```kotlin
 dependencies {
@@ -37,6 +40,53 @@ dependencies {
     releaseImplementation("io.github.gabriela-miranda-leite:bugsy-noop:0.1.0-alpha")
 }
 ```
+
+### Swift / iOS
+
+Bugsy também roda em apps **Swift puro** (sem KMP), via `Bugsy.xcframework`:
+
+```sh
+# Debug: Bugsy completo
+./gradlew :ui:linkDebugFrameworkIosSimulatorArm64 :ui:iosSimulatorArm64AggregateResources
+# Release: artefato no-op (mesma API, sem instrumentação)
+./gradlew :bugsy-noop:linkReleaseFrameworkIosSimulatorArm64
+```
+
+A tarefa de recursos (`...AggregateResources`) gera as strings e fontes do overlay e só existe no
+alvo Debug — sem ela o app pode usar recursos desatualizados e crashar ao abrir o overlay. Para
+rodar em device físico, troque `iosSimulatorArm64` por `iosArm64`.
+
+```swift
+// AppDelegate.application(_:didFinishLaunchingWithOptions:)
+Bugsy.shared.initialize(
+    config: BugsyConfig(
+        trigger: .shake,
+        shakeThresholdG: BugsyConfig.companion.DEFAULT_SHAKE_THRESHOLD_G,
+        flagsProvider: { [] },
+        allowRevealingSecrets: true // false esconde o botão "Copiar com valores reais"
+    )
+)
+// ...depois de criar a window:
+BugsyIosOverlayKt.startBugsyIosOverlay()
+```
+
+`Bugsy.initialize` precisa rodar **antes** de qualquer `URLSession` ser criada (ele registra o
+`NSURLProtocol` do Bugsy). Em release, linke o framework de `:bugsy-noop`, não o de `:ui` — ele
+não contém o interceptor. Veja [`sample-ios/README.md`](sample-ios/README.md) para o passo a
+passo completo, incluindo a cópia dos recursos do overlay no Xcode.
+
+### React Native
+
+Bugsy é uma lib nativa (Kotlin/Swift) e **não tem binding JS hoje** — não dá para `import` direto
+num app React Native. Para usar em RN seria necessário escrever um módulo nativo (Turbo
+Module/Native Module) encapsulando as chamadas `Bugsy.*` do lado Android e iOS. Esse wrapper
+ainda não existe; é trabalho futuro.
+
+### Flutter
+
+Mesma situação do React Native: **não há plugin Flutter hoje**. Para integrar seria necessário um
+Platform Channel (ou Federated Plugin) chamando o Bugsy nativo em cada plataforma. Esse plugin
+ainda não existe; é trabalho futuro.
 
 ## Uso básico
 

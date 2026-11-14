@@ -70,3 +70,8 @@ explicitamente revelados na tela de settings do overlay.
 Em release, `bugsy-noop` substitui `ui`/`core` por um artefato sem nenhum comportamento — o
 gate real, porém, é que o interceptor/`NSURLProtocol` só é ativado se o host for debuggable,
 mesmo quando o artefato completo está no classpath.
+
+## Sobre o desenvolvimento
+
+Este projeto foi desenvolvido com apoio de IA ([Claude Code](https://claude.com/claude-code)),
+com revisão humana de cada PR.

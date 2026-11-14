@@ -1,5 +1,7 @@
 # Fluxo de desenvolvimento e validação
 
+_[Also available in English](development-workflow.md)._
+
 Como uma mudança sai do código até virar uma versão publicada no Maven Central, e como validar em
 cada etapa que está tudo certo.
 

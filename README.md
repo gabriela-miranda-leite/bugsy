@@ -1,16 +1,27 @@
-# Bugsy
+<p align="center">
+  <img src="assets/logo.svg" alt="Bugsy" width="360">
+</p>
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.gabriela-miranda-leite/bugsy-ui)](https://central.sonatype.com/namespace/io.github.gabriela-miranda-leite)
-[![Android](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/android.yml/badge.svg)](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/android.yml)
-[![iOS](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/ios.yml/badge.svg)](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/ios.yml)
-[![codecov](https://codecov.io/gh/gabriela-miranda-leite/bugsy/graph/badge.svg)](https://codecov.io/gh/gabriela-miranda-leite/bugsy)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">
+<a href="https://central.sonatype.com/namespace/io.github.gabriela-miranda-leite"><img alt="Maven Central" src="https://img.shields.io/maven-central/v/io.github.gabriela-miranda-leite/bugsy-ui"></a>
+<a href="https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/android.yml"><img alt="Android" src="https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/android.yml/badge.svg"></a>
+<a href="https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/ios.yml"><img alt="iOS" src="https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/ios.yml/badge.svg"></a>
+<a href="https://codecov.io/gh/gabriela-miranda-leite/bugsy"><img alt="codecov" src="https://codecov.io/gh/gabriela-miranda-leite/bugsy/graph/badge.svg"></a>
+<a href="https://github.com/gabriela-miranda-leite/bugsy/blob/main/scripts/verify-signature.md"><img alt="GPG signed" src="https://img.shields.io/badge/artifacts-GPG%20signed-0A7BBB"></a>
+<a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+</p>
 
 Bugsy é uma biblioteca **Kotlin Multiplatform (Android + iOS)** que funciona como um
 "Flipper/Chucker" de bolso embutido no próprio app: um overlay de debug que captura requests de
 rede, mostra feature flags, informações de device, e permite revelar/mascarar dados sensíveis —
 com uma política de segurança "quando em dúvida, mascara" para nunca vazar segredos (tokens,
 senhas, CPF) por acidente.
+
+## Demonstração
+
+| Android | iOS |
+|---|---|
+| _vídeo/GIF em breve_ | _vídeo/GIF em breve_ |
 
 ## Instalação
 

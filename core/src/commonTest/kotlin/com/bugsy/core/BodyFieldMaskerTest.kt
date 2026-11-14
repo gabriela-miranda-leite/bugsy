@@ -141,4 +141,67 @@ class BodyFieldMaskerTest {
         assertTrue(BodyFieldMasker.maskTracked("""{"password":"***"}""").redacted.not())
         assertNull(BodyFieldMasker.maskTracked(null).value)
     }
+
+    // --- M4: entrada hostil nunca derruba o app nem passa sem máscara (falha fechada) ---
+
+    @Test
+    fun `deeply nested JSON does not crash and does not leak the secret`() {
+        val depth = 20_000
+        val body = "[".repeat(depth) + """{"password":"leak-me"}""" + "]".repeat(depth)
+
+        val masked = BodyFieldMasker.mask(body)!!
+
+        assertFalse("leak-me" in masked)
+    }
+
+    @Test
+    fun `deeply nested objects do not crash and do not leak the secret`() {
+        val depth = 5_000
+        val body = """{"a":""".repeat(depth) + """{"token":"leak-me"}""" + "}".repeat(depth)
+
+        val masked = BodyFieldMasker.mask(body)!!
+
+        assertFalse("leak-me" in masked)
+    }
+
+    @Test
+    fun `an unmaskable body is replaced instead of being let through`() {
+        // Aninhamento acima do limite: cai no mascaramento por texto, que ainda esconde o valor.
+        val body = "[".repeat(200) + """{"secret":"leak-me"}""" + "]".repeat(200)
+
+        val tracked = BodyFieldMasker.maskTracked(body)
+
+        assertTrue(tracked.redacted)
+        assertFalse("leak-me" in tracked.value!!)
+    }
+
+    @Test
+    fun `a large adversarial body is masked in bounded time`() {
+        val body = """{"password":"""" + "\\\"".repeat(300_000) + "a".repeat(300_000)  // string não terminada, com muitos escapes
+
+        val started = kotlin.time.TimeSource.Monotonic.markNow()
+        val masked = BodyFieldMasker.mask(body)!!
+        val elapsedMs = started.elapsedNow().inWholeMilliseconds
+
+        assertTrue(elapsedMs < 5_000, "levou ${elapsedMs}ms")
+        assertFalse(masked.contains("aaaaaaaaaa"))
+    }
+
+    @Test
+    fun `a 1 MB body full of sensitive fields is masked in bounded time`() {
+        val body = """{"x":1, "password":"leak-me", """.repeat(25_000) // ~1 MB, JSON inválido (nunca fecha)
+
+        val started = kotlin.time.TimeSource.Monotonic.markNow()
+        val masked = BodyFieldMasker.mask(body)!!
+        val elapsedMs = started.elapsedNow().inWholeMilliseconds
+
+        assertTrue(elapsedMs < 5_000, "levou ${elapsedMs}ms")
+        assertFalse("leak-me" in masked)
+    }
+
+    @Test
+    fun `form-encoded values are masked without touching similar names`() {
+        assertEquals("a=1&password=***&b=2", BodyFieldMasker.mask("a=1&password=x&b=2"))
+        assertEquals("my-password=x&xtoken=y", BodyFieldMasker.mask("my-password=x&xtoken=y"))
+    }
 }

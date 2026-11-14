@@ -31,7 +31,7 @@ internal class OkHttpDebugInterceptor : Interceptor {
         try {
             DebugRepository.add(buildDebugRequest(request, response, startNs))
         } catch (e: Exception) {
-            println("Bugsy: failed to capture debug request — ${e.message}")
+            // Nunca registrar a exceção nem sua mensagem: ela pode conter trechos de headers ou do body capturado.
         }
 
         return response

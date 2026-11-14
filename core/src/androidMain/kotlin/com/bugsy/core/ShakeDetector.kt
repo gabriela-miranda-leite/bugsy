@@ -24,7 +24,7 @@ actual class ShakeDetector private constructor(
 
     actual companion object {
         actual fun create(thresholdG: Float, onShake: () -> Unit): ShakeDetector {
-            val context = if (BuildConfig.DEBUG) BugsyContext.applicationContext else null
+            val context = if (BugsyContext.isHostDebuggable()) BugsyContext.applicationContext else null
             return ShakeDetector(context?.let { Delegate(it, thresholdG, onShake) })
         }
     }

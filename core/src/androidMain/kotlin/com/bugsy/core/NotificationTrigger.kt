@@ -31,7 +31,7 @@ actual class NotificationTrigger private constructor(
 
     actual companion object {
         actual fun create(onTap: () -> Unit): NotificationTrigger {
-            val context = if (BuildConfig.DEBUG) BugsyContext.applicationContext else null
+            val context = if (BugsyContext.isHostDebuggable()) BugsyContext.applicationContext else null
             return NotificationTrigger(context?.let { Delegate(it, onTap) })
         }
     }

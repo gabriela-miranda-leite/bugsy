@@ -13,7 +13,7 @@ actual class DebugInterceptor private constructor(
 
     actual companion object {
         actual fun create(): DebugInterceptor = DebugInterceptor(
-            if (BuildConfig.DEBUG) SharedOkHttpInterceptor.instance else null
+            if (BugsyContext.isHostDebuggable()) SharedOkHttpInterceptor.instance else null
         )
     }
 }

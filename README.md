@@ -1,5 +1,9 @@
 # Bugsy
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.gabriela-miranda-leite/bugsy-ui)](https://central.sonatype.com/namespace/io.github.gabriela-miranda-leite)
+[![CI](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/ci.yml/badge.svg)](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Bugsy é uma biblioteca **Kotlin Multiplatform (Android + iOS)** que funciona como um
 "Flipper/Chucker" de bolso embutido no próprio app: um overlay de debug que captura requests de
 rede, mostra feature flags, informações de device, e permite revelar/mascarar dados sensíveis —

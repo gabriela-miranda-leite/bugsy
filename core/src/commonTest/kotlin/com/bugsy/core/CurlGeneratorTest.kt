@@ -2,6 +2,7 @@ package com.bugsy.core
 
 import com.bugsy.core.model.DebugRequest
 import kotlin.test.Test
+import kotlin.test.assertNull
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -192,4 +193,66 @@ class CurlGeneratorTest {
         timestamp = 0,
         curlCommand = ""
     )
+
+    private fun maskedRequest(): DebugRequest {
+        val raw = mapOf("Authorization" to "Bearer real-token")
+        val masked = DebugRequest(
+            id = "1", url = "https://api.dev/x", method = "POST",
+            requestHeaders = HeaderRedactor.redact(raw), requestBody = BodyFieldMasker.mask("""{"password":"p4ss"}"""),
+            statusCode = 200, responseHeaders = emptyMap(), responseBody = null,
+            durationMs = 1, timestamp = 1, curlCommand = ""
+        )
+        return masked.copy(curlCommand = CurlGenerator.generate(masked))
+    }
+
+    @Test
+    fun `withSecrets keeps the real values only in the secret curl`() {
+        CaptureSettings.configure(allowCopyingSecrets = true)
+        val result = CurlGenerator.withSecrets(
+            maskedRequest(), rawHeaders = mapOf("Authorization" to "Bearer real-token"), rawBody = """{"password":"p4ss"}"""
+        )
+
+        assertTrue("real-token" !in result.curlCommand && "p4ss" !in result.curlCommand)
+        val secret = result.curlCommandWithSecrets!!.value
+        assertTrue("Authorization: Bearer real-token" in secret)
+        assertTrue("p4ss" in secret)
+    }
+
+    @Test
+    fun `the secret curl never shows up in toString of the request`() {
+        CaptureSettings.configure(allowCopyingSecrets = true)
+        val result = CurlGenerator.withSecrets(
+            maskedRequest(), rawHeaders = mapOf("Authorization" to "Bearer real-token"), rawBody = null
+        )
+
+        assertTrue("real-token" !in result.toString())
+    }
+
+    @Test
+    fun `withSecrets returns the request untouched when copying secrets is disabled`() {
+        CaptureSettings.configure(allowCopyingSecrets = false)
+        try {
+            val masked = maskedRequest()
+            val result = CurlGenerator.withSecrets(masked, mapOf("Authorization" to "Bearer real-token"), null)
+
+            assertNull(result.curlCommandWithSecrets)
+            assertEquals(masked, result)
+        } finally {
+            CaptureSettings.configure(allowCopyingSecrets = true)
+        }
+    }
+
+    @Test
+    fun `withSecrets does not store a secret curl when there is nothing to reveal`() {
+        CaptureSettings.configure(allowCopyingSecrets = true)
+        val plain = DebugRequest(
+            id = "1", url = "https://api.dev/x", method = "GET", requestHeaders = mapOf("Accept" to "application/json"),
+            requestBody = null, statusCode = 200, responseHeaders = emptyMap(), responseBody = null,
+            durationMs = 1, timestamp = 1, curlCommand = ""
+        ).let { it.copy(curlCommand = CurlGenerator.generate(it)) }
+
+        val result = CurlGenerator.withSecrets(plain, mapOf("Accept" to "application/json"), null)
+
+        assertNull(result.curlCommandWithSecrets)
+    }
 }

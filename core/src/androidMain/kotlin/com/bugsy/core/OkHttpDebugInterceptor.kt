@@ -59,7 +59,8 @@ internal class OkHttpDebugInterceptor : Interceptor {
             curlCommand = ""
         )
 
-        return debugRequest.copy(curlCommand = CurlGenerator.generate(debugRequest))
+        val masked = debugRequest.copy(curlCommand = CurlGenerator.generate(debugRequest))
+        return CurlGenerator.withSecrets(masked, rawHeaders = request.headers.toMap(), rawBody = requestBody)
     }
 
     private fun Headers.toMap(): Map<String, String> =

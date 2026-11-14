@@ -52,7 +52,8 @@ internal object IosRequestCapture {
             timestamp = (NSDate().timeIntervalSince1970 * 1000).toLong(),
             curlCommand = "",
         )
-        return request.copy(curlCommand = CurlGenerator.generate(request))
+        val masked = request.copy(curlCommand = CurlGenerator.generate(request))
+        return CurlGenerator.withSecrets(masked, rawHeaders = requestHeaders, rawBody = requestBody)
     }
 }
 

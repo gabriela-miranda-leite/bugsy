@@ -12,5 +12,7 @@ data class DebugRequest(
     val durationMs: Long,
     val timestamp: Long,
     val curlCommand: String,
-    val metadata: Map<String, String> = emptyMap()
+    val metadata: Map<String, String> = emptyMap(),
+    /** cURL com os valores reais, só em memória e só quando difere do [curlCommand]. Ver `BugsyConfig.allowCopyingSecrets`. */
+    val curlCommandWithSecrets: SecretText? = null
 )

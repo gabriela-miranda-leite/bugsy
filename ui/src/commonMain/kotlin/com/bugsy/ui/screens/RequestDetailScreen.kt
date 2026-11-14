@@ -132,6 +132,9 @@ fun RequestDetailScreen(request: DebugRequest, onBack: () -> Unit) {
                 CodeBlock(
                     text = request.curlCommand,
                     onCopy = { clipboard.setText(AnnotatedString(request.curlCommand)) },
+                    onCopyWithSecrets = request.curlCommandWithSecrets?.let { secret ->
+                        { clipboard.setText(AnnotatedString(secret.value)) }
+                    },
                 )
             }
         }

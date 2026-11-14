@@ -26,6 +26,7 @@ class OkHttpDebugInterceptorTest {
     fun tearDown() {
         HeaderRedactor.reset()
         BodyFieldMasker.reset()
+        CaptureSettings.configure(allowCopyingSecrets = true)
         server.shutdown()
     }
 
@@ -132,5 +133,35 @@ class OkHttpDebugInterceptorTest {
         client.newCall(Request.Builder().url(server.url("/ping")).build()).execute().close()
 
         assertEquals(0, DebugRepository.getAll().size)
+    }
+
+    @Test
+    fun `keeps a curl with the real values in memory next to the masked one`() {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        client.newCall(
+            Request.Builder().url(server.url("/login")).header("Authorization", "Bearer real-token")
+                .post("""{"password":"p4ss"}""".toRequestBody()).build()
+        ).execute().close()
+
+        val entry = DebugRepository.getAll().single()
+        assertTrue("real-token" !in entry.curlCommand && "p4ss" !in entry.curlCommand)
+        assertTrue("Bearer real-token" in entry.curlCommandWithSecrets!!.value)
+        assertTrue("p4ss" in entry.curlCommandWithSecrets!!.value)
+        assertTrue("real-token" !in entry.toString())
+    }
+
+    @Test
+    fun `does not keep the real values when copying secrets is disabled`() {
+        CaptureSettings.configure(allowCopyingSecrets = false)
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        client.newCall(Request.Builder().url(server.url("/")).header("Authorization", "Bearer real-token").build()).execute().close()
+
+        assertEquals(null, DebugRepository.getAll().single().curlCommandWithSecrets)
     }
 }

@@ -2,6 +2,7 @@ package com.bugsy.ui
 
 import com.bugsy.core.model.DebugFlag
 import com.bugsy.core.model.DebugRequest
+import com.bugsy.core.model.SecretText
 import com.bugsy.core.model.DeviceInfo
 
 /**
@@ -34,6 +35,12 @@ internal object PreviewFixtures {
         durationMs = 2_340,
         timestamp = 1_700_000_050_000,
         curlCommand = "curl -X POST https://api.bugsy.dev/v1/orders -d '{\"items\":[...]}'",
+    )
+
+    val postRequestWithSecrets = postRequestError.copy(
+        id = "3",
+        curlCommand = "curl -X POST 'https://api.bugsy.dev/v1/orders' \\\n  -H 'Authorization: ***'",
+        curlCommandWithSecrets = SecretText("curl -X POST 'https://api.bugsy.dev/v1/orders' \\\n  -H 'Authorization: Bearer real-token'"),
     )
 
     val requests = listOf(getRequest, postRequestError)

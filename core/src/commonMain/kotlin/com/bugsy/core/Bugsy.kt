@@ -20,6 +20,7 @@ object Bugsy {
     fun initialize(config: BugsyConfig = BugsyConfig()) {
         destroy()
         _flagManager = FlagManager(config.flagsProvider)
+        CaptureSettings.configure(allowCopyingSecrets = config.allowCopyingSecrets)
         debugInterceptor = DebugInterceptor.create().also { it.attach() }
 
         when (config.trigger) {

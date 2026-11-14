@@ -133,6 +133,13 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun requestDetailScreenWithSecrets() {
+        snapshotOnSurface {
+            RequestDetailScreen(request = PreviewFixtures.postRequestWithSecrets, onBack = {})
+        }
+    }
+
+    @Test
     fun debugOverlay() {
         paparazzi.snapshot {
             Box(Modifier.heightIn(max = MaxSnapshotHeight)) {

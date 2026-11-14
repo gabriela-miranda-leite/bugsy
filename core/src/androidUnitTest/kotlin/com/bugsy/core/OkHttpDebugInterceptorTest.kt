@@ -18,6 +18,7 @@ class OkHttpDebugInterceptorTest {
 
     @BeforeTest
     fun setUp() {
+        BugsyContext.debuggableOverride = true
         server.start()
         DebugRepository.clear()
     }
@@ -26,6 +27,7 @@ class OkHttpDebugInterceptorTest {
     fun tearDown() {
         HeaderRedactor.reset()
         BodyFieldMasker.reset()
+        BugsyContext.debuggableOverride = null
         CaptureSettings.configure(allowRevealingSecrets = true)
         server.shutdown()
     }
@@ -167,5 +169,31 @@ class OkHttpDebugInterceptorTest {
         client.newCall(Request.Builder().url(server.url("/")).header("Authorization", "Bearer real-token").build()).execute().close()
 
         assertEquals(null, DebugRepository.getAll().single().secrets)
+    }
+
+    @Test
+    fun `addBugsyInterceptor adds nothing when the host app is not debuggable`() {
+        BugsyContext.debuggableOverride = false
+
+        val client = OkHttpClient.Builder().addBugsyInterceptor().build()
+
+        assertEquals(0, client.interceptors.size)
+    }
+
+    @Test
+    fun `addBugsyInterceptor adds the interceptor when the host app is debuggable`() {
+        BugsyContext.debuggableOverride = true
+
+        val client = OkHttpClient.Builder().addBugsyInterceptor().build()
+
+        assertEquals(1, client.interceptors.size)
+    }
+
+    @Test
+    fun `the host is not debuggable when there is no application context`() {
+        BugsyContext.debuggableOverride = null
+        BugsyContext.applicationContext = null
+
+        assertTrue(!BugsyContext.isHostDebuggable())
     }
 }

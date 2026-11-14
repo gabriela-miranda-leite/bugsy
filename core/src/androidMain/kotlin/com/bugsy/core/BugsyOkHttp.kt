@@ -12,4 +12,4 @@ internal object SharedOkHttpInterceptor {
  * `bugsy-noop` devolve o builder sem alterações.
  */
 fun OkHttpClient.Builder.addBugsyInterceptor(): OkHttpClient.Builder =
-    if (BuildConfig.DEBUG) addInterceptor(SharedOkHttpInterceptor.instance) else this
+    if (BugsyContext.isHostDebuggable()) addInterceptor(SharedOkHttpInterceptor.instance) else this

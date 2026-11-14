@@ -29,7 +29,7 @@ actual class FloatingButtonController private constructor(
 
     actual companion object {
         actual fun create(onTap: () -> Unit): FloatingButtonController {
-            val context = if (BuildConfig.DEBUG) BugsyContext.applicationContext else null
+            val context = if (BugsyContext.isHostDebuggable()) BugsyContext.applicationContext else null
             return FloatingButtonController(context?.let { Delegate(it, onTap) })
         }
     }

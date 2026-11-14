@@ -175,6 +175,77 @@ class CurlGeneratorTest {
         assertTrue(curl.startsWith("curl -X DELETE 'https://api.example.com/users/1'"))
     }
 
+    // --- M4: o comando gerado é tratado pelo shell como argumentos literais, nunca como código ---
+
+    /** Interpreta um comando como um shell POSIX faria (aspas simples, `\\` e continuação de linha), devolvendo as palavras. */
+    private fun shellWords(command: String): List<String> {
+        val words = mutableListOf<String>()
+        val current = StringBuilder()
+        var inWord = false
+        var inQuote = false
+        var i = 0
+        while (i < command.length) {
+            val c = command[i]
+            when {
+                inQuote -> if (c == '\'') inQuote = false else current.append(c)
+                c == '\'' -> { inQuote = true; inWord = true }
+                c == '\\' && i + 1 < command.length -> {
+                    if (command[i + 1] != '\n') { current.append(command[i + 1]); inWord = true }
+                    i++
+                }
+                c.isWhitespace() -> if (inWord) { words += current.toString(); current.clear(); inWord = false }
+                else -> { current.append(c); inWord = true }
+            }
+            i++
+        }
+        if (inWord) words += current.toString()
+        return words
+    }
+
+    @Test
+    fun `a single quote in the URL cannot break out of its argument`() {
+        val url = "https://a.dev/x'; touch /tmp/pwned; echo '"
+
+        val words = shellWords(CurlGenerator.generate(sampleRequest("GET", url, emptyMap(), null)))
+
+        assertEquals(listOf("curl", "-X", "GET", url), words)
+    }
+
+    @Test
+    fun `a malicious header name and value stay inside one argument`() {
+        val request = sampleRequest("GET", "https://a.dev", mapOf("X-A'; rm -rf ~; echo '" to "v'\$(id)`id`"), null)
+
+        val words = shellWords(CurlGenerator.generate(request))
+
+        assertEquals(listOf("curl", "-X", "GET", "https://a.dev", "-H", "X-A'; rm -rf ~; echo ': v'\$(id)`id`"), words)
+    }
+
+    @Test
+    fun `a malicious method is quoted instead of being executed`() {
+        val words = shellWords(CurlGenerator.generate(sampleRequest("GET; rm -rf ~", "https://a.dev", emptyMap(), null)))
+
+        assertEquals(listOf("curl", "-X", "GET; rm -rf ~", "https://a.dev"), words)
+    }
+
+    @Test
+    fun `the body is one literal argument even with quotes and command substitution`() {
+        val body = "{\"a\":\"it's \$(whoami) `id`\"}"
+
+        val words = shellWords(CurlGenerator.generate(sampleRequest("POST", "https://a.dev", emptyMap(), body)))
+
+        assertEquals(listOf("curl", "-X", "POST", "https://a.dev", "-d", body), words)
+    }
+
+    @Test
+    fun `control characters from untrusted traffic are removed`() {
+        val request = sampleRequest("GET", "https://a.dev/\u001B[31mx\r\ny", mapOf("H" to "a\r\nb\u0007c"), "l1\nl2\u001B")
+
+        val curl = CurlGenerator.generate(request)
+
+        assertFalse(curl.contains('\u001B') || curl.contains('\r') || curl.contains('\u0007'))
+        assertEquals(listOf("curl", "-X", "GET", "https://a.dev/[31mxy", "-H", "H: abc", "-d", "l1\nl2"), shellWords(curl))
+    }
+
     private fun sampleRequest(
         method: String,
         url: String,

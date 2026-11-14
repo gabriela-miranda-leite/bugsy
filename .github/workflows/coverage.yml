@@ -1,0 +1,40 @@
+name: Coverage
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # Merged Kover report (core + ui), measured from their Android/JVM unit test runs — Kover doesn't
+  # instrument the iOS targets, so native code isn't part of this number.
+  kover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test coverage (Kover, core + ui)
+        run: ./gradlew :core:testDebugUnitTest :ui:testDebugUnitTest :koverXmlReport
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: build/reports/kover/report.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false

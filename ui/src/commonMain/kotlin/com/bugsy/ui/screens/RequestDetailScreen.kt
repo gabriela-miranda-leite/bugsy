@@ -92,9 +92,9 @@ fun RequestDetailScreen(
                     val s = BugsySpacing.strokeBorder.toPx()
                     drawLine(BugsyColors.BorderHeader, Offset(0f, size.height), Offset(size.width, size.height), s)
                 }
-                .padding(start = BugsySpacing.sm, end = BugsySpacing.lg),
+                .padding(start = BugsySpacing.md, end = BugsySpacing.lg, top = BugsySpacing.xs, bottom = BugsySpacing.xs),
         ) {
-            TextButton(onClick = onBack) {
+            TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = BugsySpacing.md, vertical = BugsySpacing.md)) {
                 Icon(
                     Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = null,
@@ -111,8 +111,8 @@ fun RequestDetailScreen(
         }
 
         LazyColumn(
-            contentPadding = PaddingValues(horizontal = BugsySpacing.lg, vertical = BugsySpacing.md),
-            verticalArrangement = Arrangement.spacedBy(BugsySpacing.lg),
+            contentPadding = PaddingValues(horizontal = BugsySpacing.lg, vertical = BugsySpacing.xl),
+            verticalArrangement = Arrangement.spacedBy(BugsySpacing.xl),
         ) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm)) {
@@ -145,7 +145,7 @@ fun RequestDetailScreen(
 
             if (requestHeaders.isNotEmpty()) {
                 item { SectionHeader(stringResource(Res.string.label_request_headers), onCopy = { copy(requestHeaders.asText()) }) }
-                items(requestHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v) }
+                items(requestHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v, onCopy = { copy("$k: $v") }) }
             }
 
             if (requestBody?.isNotBlank() == true) {
@@ -159,7 +159,7 @@ fun RequestDetailScreen(
 
             if (responseHeaders.isNotEmpty()) {
                 item { SectionHeader(stringResource(Res.string.label_response_headers), onCopy = { copy(responseHeaders.asText()) }) }
-                items(responseHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v) }
+                items(responseHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v, onCopy = { copy("$k: $v") }) }
             }
 
             if (responseBody?.isNotBlank() == true) {
@@ -184,10 +184,7 @@ private fun RevealToggle(showReal: Boolean, onToggle: () -> Unit) {
     OutlinedButton(
         onClick = onToggle,
         border = BorderStroke(BugsySpacing.strokeBorder, if (showReal) BugsyColors.Brand else BugsyColors.BorderButton),
-        contentPadding = PaddingValues(
-            horizontal = BugsySpacing.codeBlockButtonPaddingHorizontal,
-            vertical = BugsySpacing.codeBlockButtonPaddingVertical,
-        ),
+        contentPadding = PaddingValues(horizontal = BugsySpacing.md, vertical = BugsySpacing.sm),
         shape = RoundedCornerShape(BugsySpacing.cornerButtonSmall),
     ) {
         Icon(

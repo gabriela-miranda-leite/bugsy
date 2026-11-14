@@ -76,4 +76,18 @@ class BugsyTest {
 
         assertEquals(listOf("feature_x"), Bugsy.flagManager.flags.value.map { it.key })
     }
+
+    @Test
+    fun `customInfo starts empty without a configured customInfoProvider`() {
+        Bugsy.initialize(BugsyConfig())
+
+        assertTrue(Bugsy.customInfo().isEmpty())
+    }
+
+    @Test
+    fun `initialize exposes custom info from the configured customInfoProvider`() {
+        Bugsy.initialize(BugsyConfig(customInfoProvider = { listOf("user_id" to "u_42") }))
+
+        assertEquals(listOf("user_id" to "u_42"), Bugsy.customInfo())
+    }
 }

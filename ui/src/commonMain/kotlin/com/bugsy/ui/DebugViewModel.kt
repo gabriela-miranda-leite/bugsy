@@ -12,6 +12,8 @@ class DebugViewModel {
 
     val flags: StateFlow<List<DebugFlag>> get() = Bugsy.flagManager.flags
 
+    val customInfo: List<Pair<String, String>> get() = Bugsy.customInfo()
+
     // Placeholder until a per-platform (Android/iOS) DeviceInfo provider exists — see DEB-3.
     val deviceInfo: DeviceInfo = DeviceInfo(
         appVersionName = "—",

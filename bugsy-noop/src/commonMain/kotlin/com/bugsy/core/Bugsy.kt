@@ -12,6 +12,8 @@ object Bugsy {
 
     val isVisible: StateFlow<Boolean> = MutableStateFlow(false)
 
+    val flagManager: FlagManager = FlagManager()
+
     fun initialize(config: BugsyConfig = BugsyConfig()) = Unit
 
     fun destroy() = Unit

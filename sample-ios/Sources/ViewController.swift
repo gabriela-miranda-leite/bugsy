@@ -3,10 +3,10 @@ import Bugsy
 
 final class ViewController: UIViewController {
     private let statusLabel = UILabel()
+    private let flagsLabel = UILabel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
 
         let requestButton = UIButton(type: .system)
         requestButton.setTitle("Fazer request (URLSession.shared)", for: .normal)
@@ -19,7 +19,10 @@ final class ViewController: UIViewController {
         statusLabel.text = "Nenhuma request ainda"
         statusLabel.textAlignment = .center
 
-        let stack = UIStackView(arrangedSubviews: [requestButton, showButton, statusLabel])
+        flagsLabel.textAlignment = .center
+        refreshDarkMode()
+
+        let stack = UIStackView(arrangedSubviews: [requestButton, showButton, statusLabel, flagsLabel])
         stack.axis = .vertical
         stack.spacing = 16
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -33,6 +36,10 @@ final class ViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        // O Bugsy é apresentado como um controller sobre este (presentViewController), então
+        // voltamos aqui (viewDidAppear) quando o usuário fecha o overlay — é o ponto certo
+        // para reler a flag e provar que o toggle do FlagsScreen mudou o app de verdade.
+        refreshDarkMode()
         // Modo automático para validar a integração sem interação: BUGSY_SAMPLE_AUTORUN=1
         guard ProcessInfo.processInfo.environment["BUGSY_SAMPLE_AUTORUN"] == "1" else { return }
         makeRequest()
@@ -60,5 +67,16 @@ final class ViewController: UIViewController {
 
     @objc private func showBugsy() {
         Bugsy.shared.show()
+    }
+
+    private func refreshDarkMode() {
+        // Prova de ponta a ponta de que o override do FlagsScreen chega até o app: ao ligar
+        // "darkModeEnabled" no Bugsy, a tela vira preta sem precisar fechar e reabrir o app.
+        let isOn = (Bugsy.shared.flagManager.value(key: "darkModeEnabled") as? KotlinBoolean)?.boolValue ?? false
+        view.backgroundColor = isOn ? .black : .white
+        let foreground: UIColor = isOn ? .white : .black
+        statusLabel.textColor = foreground
+        flagsLabel.textColor = foreground
+        flagsLabel.text = isOn ? "darkModeEnabled: ON" : "darkModeEnabled: off"
     }
 }

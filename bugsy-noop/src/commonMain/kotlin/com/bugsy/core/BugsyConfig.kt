@@ -6,7 +6,8 @@ data class BugsyConfig(
     val trigger: Trigger = Trigger.Shake,
     val shakeThresholdG: Float = DEFAULT_SHAKE_THRESHOLD_G,
     val flagsProvider: () -> List<DebugFlag> = { emptyList() },
-    val allowRevealingSecrets: Boolean = true
+    val allowRevealingSecrets: Boolean = true,
+    val customInfoProvider: () -> List<Pair<String, String>> = { emptyList() },
 ) {
     companion object {
         const val DEFAULT_SHAKE_THRESHOLD_G = 2.5f

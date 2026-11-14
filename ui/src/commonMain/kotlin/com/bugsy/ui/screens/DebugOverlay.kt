@@ -58,6 +58,7 @@ fun DebugOverlay(
     animateEntrance: Boolean = true,
 ) {
     var selectedTab by remember { mutableStateOf(BugsyTab.Requests) }
+    var showSettings by remember { mutableStateOf(false) }
     val requests by viewModel.requests.collectAsState()
     val flags by viewModel.flags.collectAsState()
 
@@ -128,25 +129,31 @@ fun DebugOverlay(
                 ) {
                     DragHandle()
                     BugsySheetHeader(
-                        requestCount = requests.size,
-                        onClear = viewModel::clearRequests,
+                        onSettings = { showSettings = !showSettings },
                         onDismiss = dismiss,
+                        settingsActive = showSettings,
                     )
                     BugsyTabBar(
                         selected = selectedTab,
-                        requestCount = requests.size,
-                        onSelect = { selectedTab = it },
+                        onSelect = {
+                            selectedTab = it
+                            showSettings = false
+                        },
                     )
                 }
                 Box(Modifier.weight(1f).fillMaxWidth()) {
+                    if (showSettings) {
+                        SettingsScreen()
+                        return@Box
+                    }
                     when (selectedTab) {
-                        BugsyTab.Requests -> RequestListScreen(requests = requests)
+                        BugsyTab.Requests -> RequestListScreen(requests = requests, onClear = viewModel::clearRequests)
                         BugsyTab.Flags -> FlagsScreen(
                             flags = flags,
                             onOverride = viewModel::overrideFlag,
                             onResetAll = viewModel::resetAllFlags,
                         )
-                        BugsyTab.Device -> DeviceInfoScreen(info = viewModel.deviceInfo)
+                        BugsyTab.Device -> DeviceInfoScreen(info = viewModel.deviceInfo, customInfo = viewModel.customInfo)
                     }
                 }
             }

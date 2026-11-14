@@ -40,7 +40,6 @@ enum class BugsyTab(val labelRes: StringResource) {
 @Composable
 fun BugsyTabBar(
     selected: BugsyTab,
-    requestCount: Int,
     onSelect: (BugsyTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -79,21 +78,6 @@ fun BugsyTabBar(
                             },
                             color = if (active) BugsyColors.TextPrimary else BugsyColors.TextDisabled,
                         )
-                        if (tab == BugsyTab.Requests && requestCount > 0) {
-                            Box(
-                                Modifier.background(BugsyColors.Brand, CircleShape)
-                                    .padding(
-                                        horizontal = BugsySpacing.countBadgePaddingHorizontal,
-                                        vertical = BugsySpacing.countBadgePaddingVertical,
-                                    ),
-                            ) {
-                                Text(
-                                    requestCount.toString(),
-                                    style = BugsyTypography.Caption.copy(fontWeight = FontWeight.Medium),
-                                    color = Color.White,
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -107,7 +91,7 @@ fun BugsyTabBar(
 private fun BugsyTabBarPreview() {
     BugsyTheme {
         Box(Modifier.background(BugsyColors.Surface)) {
-            BugsyTabBar(selected = BugsyTab.Requests, requestCount = 3, onSelect = {})
+            BugsyTabBar(selected = BugsyTab.Requests, onSelect = {})
         }
     }
 }

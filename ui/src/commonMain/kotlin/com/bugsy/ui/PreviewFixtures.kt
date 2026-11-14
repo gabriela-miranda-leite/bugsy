@@ -67,6 +67,12 @@ internal object PreviewFixtures {
         composeVersion = "1.7.0",
     )
 
+    val customInfo = listOf(
+        "user_id" to "u_42",
+        "email" to "ada@bugsy.dev",
+        "document" to "123.456.789-00",
+    )
+
     val flags = listOf(
         DebugFlag(key = "featureNewCheckout", label = "featureNewCheckout", value = true, isOverridden = true),
         DebugFlag(key = "featureRecommendations", label = "featureRecommendations", value = false, isOverridden = false),

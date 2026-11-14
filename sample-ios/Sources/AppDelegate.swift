@@ -14,8 +14,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             config: BugsyConfig(
                 trigger: .shake,
                 shakeThresholdG: BugsyConfig.companion.DEFAULT_SHAKE_THRESHOLD_G,
-                flagsProvider: { [] },
-                allowRevealingSecrets: true
+                // Flags estáticas só para validar o FlagsScreen no app de exemplo — num app real isso viria
+                // do provedor de feature flags de verdade (remote config, etc).
+                flagsProvider: {
+                    [
+                        DebugFlag(key: "darkModeEnabled", label: "darkModeEnabled", value: false, isOverridden: false),
+                        DebugFlag(key: "featureNewCheckout", label: "featureNewCheckout", value: true, isOverridden: false),
+                        DebugFlag(key: "apiEnvironment", label: "apiEnvironment", value: "sandbox", isOverridden: false),
+                    ]
+                },
+                allowRevealingSecrets: true,
+                // Dados estáticos de exemplo pra seção "Account" da aba Device — num app real isso viria
+                // da sessão logada (usuário atual, conta, etc).
+                customInfoProvider: {
+                    [
+                        KotlinPair(first: "user_id", second: "u_42"),
+                        KotlinPair(first: "email", second: "dev@bugsy.dev"),
+                        KotlinPair(first: "document", second: "123.456.789-00"),
+                    ]
+                }
             )
         )
 

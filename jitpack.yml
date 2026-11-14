@@ -1,0 +1,8 @@
+jdk:
+  - openjdk17
+
+# O JitPack builda em container Linux: só os artefatos Android (:ui, :bugsy-noop) são
+# publicáveis aqui. Os targets iOS exigem macOS/Xcode e continuam fora do JitPack —
+# a integração iOS é documentada no README como build local via Gradle.
+install:
+  - ./gradlew :ui:publishAndroidReleasePublicationToMavenLocal :bugsy-noop:publishAndroidReleasePublicationToMavenLocal

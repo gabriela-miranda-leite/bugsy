@@ -6,10 +6,21 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.paparazzi)
+    id("maven-publish")
+}
+
+group = project.property("GROUP") as String
+version = project.property("VERSION_NAME") as String
+
+// Fixo para não depender do `group` do projeto (que o publish muda de "bugsy" para "com.bugsy") —
+// o pacote da classe Res gerada é referenciado em todo o commonMain e não pode mudar entre builds.
+compose.resources {
+    packageOfResClass = "bugsy.ui.generated.resources"
 }
 
 kotlin {
     androidTarget {
+        publishLibraryVariants("release")
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
         }

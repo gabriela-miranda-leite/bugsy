@@ -11,7 +11,7 @@ cada etapa que está tudo certo.
 flowchart LR
     A["Branch a partir de main"] --> B["Validar localmente"]
     B --> C["Abrir PR"]
-    C --> D["5 checks automáticos\n(android · ios · snapshots · coverage · secrets-scan)"]
+    C --> D["6 checks automáticos\n(android · ios · snapshots · coverage · secrets-scan · security)"]
     D --> E["Review (CODEOWNERS):\n1 aprovação de gabriela-miranda-leite"]
     E --> F["Squash-merge em main"]
     F -.->|"sob demanda"| G["Disparar Release\n(bump + sufixo opcional)"]
@@ -57,7 +57,7 @@ xcodebuild -project sample-ios/BugsySample.xcodeproj -scheme BugsySample -sdk ip
 
 ## 2. Abrir o PR — o que a CI confere automaticamente
 
-Cinco workflows rodam em todo PR e em todo push em `main`:
+Seis workflows rodam em todo PR e em todo push em `main`:
 
 | Workflow | O que confere |
 |---|---|
@@ -66,10 +66,19 @@ Cinco workflows rodam em todo PR e em todo push em `main`:
 | `snapshots.yml` | Snapshots visuais do Paparazzi — não bloqueia merge (`continue-on-error`), mas sobe as diferenças como artifact se falhar. |
 | `coverage.yml` | Cobertura combinada de `core`+`ui` via Kover, publicada no Codecov. |
 | `secrets-scan.yml` | `gitleaks`, pra pegar segredo commitado por engano. |
+| `security.yml` | CodeQL (padrões de código inseguro, SAST) + dependency review nas dependências alteradas do PR. Cobre parte do OWASP Top 10 que o `secrets-scan.yml` não cobre (A06 — Vulnerable and Outdated Components, entre outros). |
 
 O repositório está no plano free do GitHub, então **nenhum desses é um required check** — eles não
 bloqueiam o merge tecnicamente. O que de fato decide é a review humana (próxima seção). Por isso,
-antes de aprovar ou pedir aprovação, vale olhar se os 5 checks passaram mesmo sem bloqueio forçado.
+antes de aprovar ou pedir aprovação, vale olhar se os 6 checks passaram mesmo sem bloqueio forçado.
+
+O `dependabot.yml` complementa isso de forma proativa: abre PR de bump semanalmente quando uma
+dependência (Gradle ou GitHub Actions) fica vulnerável ou desatualizada, mesmo sem ninguém tocar
+no código.
+
+Pra uma revisão mais profunda e contextual (não só padrões automáticos), rode a skill
+`/security-review` do Claude Code antes de um release — ela lê o diff/branch de verdade contra o
+OWASP Top 10, em vez de só casar padrões estáticos.
 
 ## 3. Review e merge
 
@@ -105,7 +114,9 @@ Pra validar a lib empacotada (não só o código-fonte) num projeto seu, sem toc
 
 Isso publica os três artefatos no seu `~/.m2/repository`. No projeto de teste, adicione
 `mavenLocal()` aos repositórios e `implementation("io.github.gabriela-miranda-leite:bugsy-ui:0.0.0-local")`
-(ou `bugsy-noop` pra variante release).
+(ou `bugsy-noop` pra variante release). Os apps `sample-android` e `sample-ios` já cobrem esse fluxo
+de ponta a ponta — veja [`sample-android/README.md`](../sample-android/README.md#testando-uma-versão-de-pré-release)
+e [`sample-ios/README.md`](../sample-ios/README.md#testando-uma-versão-de-pré-release).
 
 Além disso, rodar o workflow **Pre-release** manualmente (sem disparar um release) gera essa mesma
 versão rc dentro do CI e a disponibiliza como artifact da execução, com instruções de uso no resumo

@@ -1,0 +1,68 @@
+name: Security
+
+# Cobre pontos do OWASP Top 10 que o secrets-scan.yml (A02 — exposição de segredos) não cobre:
+# - CodeQL: padrões de código inseguro (injeção, criptografia fraca, etc) via SAST.
+# - Dependency review: dependências novas/alteradas num PR com vulnerabilidades conhecidas
+#   (A06 — Vulnerable and Outdated Components). O dependabot.yml cuida da parte proativa
+#   (abrir PR de bump quando uma dependência existente fica vulnerável ou desatualizada).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # CodeQL cobre padrões de código que não mudam a cada PR; uma vez por semana é suficiente
+    # pra pegar novas regras/advisories sem gastar minutos de CI em todo push.
+    - cron: '0 6 * * 1'
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+
+      # Build manual (em vez de autobuild): o projeto é multi-módulo e o autobuild do CodeQL
+      # nem sempre resolve corretamente o grafo de dependências do Gradle.
+      - name: Build (core, ui, bugsy-noop, sample-android)
+        run: ./gradlew :core:compileDebugKotlin :ui:compileDebugKotlin :bugsy-noop:compileDebugKotlin :sample-android:compileDebugKotlin
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java-kotlin"
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always

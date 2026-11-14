@@ -39,7 +39,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
 
@@ -48,7 +48,7 @@ jobs:
       - name: Build (core, ui, bugsy-noop, sample-android)
         run: ./gradlew :core:compileDebugKotlin :ui:compileDebugKotlin :bugsy-noop:compileDebugKotlin :sample-android:compileDebugKotlin
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
         with:
           category: "/language:java-kotlin"
 

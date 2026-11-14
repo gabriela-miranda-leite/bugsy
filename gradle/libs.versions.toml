@@ -13,6 +13,7 @@ paparazzi = "2.0.0-alpha05.1"
 androidx-startup = "1.1.1"
 androidx-lifecycle = "2.8.4"
 mavenPublish = "0.37.0"
+kover = "0.9.11"
 
 [libraries]
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
@@ -36,3 +37,4 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
 paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.paparazzi)
     alias(libs.plugins.mavenPublish)
+    alias(libs.plugins.kover)
     id("signing")
 }
 

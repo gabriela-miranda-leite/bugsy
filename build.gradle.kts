@@ -1,3 +1,12 @@
+// Gradle's embedded Kotlin pins org.jetbrains:annotations strictly to 13.0 on the buildscript
+// classpath, but AGP 9.5.1's own transitive deps (ddmlib, layoutlib-api, repository) need 23.0.0.
+// Force the newer, backward-compatible version to resolve the conflict.
+buildscript {
+    configurations.classpath {
+        resolutionStrategy.force("org.jetbrains:annotations:23.0.0")
+    }
+}
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.androidLibrary) apply false

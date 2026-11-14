@@ -1,17 +1,51 @@
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.KotlinMultiplatform
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.buildkonfig)
-    id("maven-publish")
+    alias(libs.plugins.mavenPublish)
+    id("signing")
 }
 
-group = project.property("GROUP") as String
-version = project.property("VERSION_NAME") as String
+mavenPublishing {
+    coordinates(artifactId = "bugsy-core")
+    publishToMavenCentral()
+    signAllPublications()
+    configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty(), androidVariantsToPublish = listOf("release")))
+    pom {
+        name.set("Bugsy Core")
+        description.set("Bugsy's models, OkHttp/URLProtocol interceptor and redaction logic.")
+        url.set("https://github.com/gabriela-miranda-leite/bugsy")
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://github.com/gabriela-miranda-leite/bugsy/blob/main/LICENSE")
+            }
+        }
+        developers {
+            developer {
+                id.set("gabriela-miranda-leite")
+                name.set("Gabriela Miranda")
+                url.set("https://github.com/gabriela-miranda-leite")
+            }
+        }
+        scm {
+            url.set("https://github.com/gabriela-miranda-leite/bugsy")
+            connection.set("scm:git:https://github.com/gabriela-miranda-leite/bugsy.git")
+            developerConnection.set("scm:git:ssh://git@github.com/gabriela-miranda-leite/bugsy.git")
+        }
+    }
+}
+
+signing {
+    useGpgCmd()
+}
 
 kotlin {
     androidTarget {
-        publishLibraryVariants("release")
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
         }
@@ -50,7 +84,7 @@ buildkonfig {
 
 android {
     namespace = "com.bugsy.core"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24

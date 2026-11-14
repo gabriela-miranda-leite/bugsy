@@ -32,7 +32,7 @@ import org.jetbrains.compose.resources.stringResource
 
 private const val FEEDBACK_MS = 1_600L
 
-/** Botão "Copiar" com feedback ("Copiado!") por 1,6 s. */
+/** "Copy" button with feedback ("Copied!") for 1.6 s. */
 @Composable
 fun CopyButton(
     onCopy: () -> Unit,
@@ -76,7 +76,7 @@ fun CopyButton(
     }
 }
 
-/** Versão só com ícone, para linhas apertadas (ex.: ao lado da URL). */
+/** Icon-only version, for tight rows (e.g. next to the URL). */
 @Composable
 fun CopyIconButton(onCopy: () -> Unit, contentDescription: String, modifier: Modifier = Modifier) {
     var copied by remember { mutableStateOf(false) }

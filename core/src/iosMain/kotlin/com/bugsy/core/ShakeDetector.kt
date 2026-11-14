@@ -10,8 +10,6 @@ import platform.Foundation.timeIntervalSince1970
 import platform.UIKit.UIApplicationDidBecomeActiveNotification
 import platform.UIKit.UIApplicationDidEnterBackgroundNotification
 
-// TODO: validar em device/simulador real (sample-ios ainda não existe) — shake abre overlay,
-// debounce não abre duas vezes, e CMMotionManager não vaza em background. Ver DEB-20.
 actual class ShakeDetector private constructor(
     private val delegate: Delegate
 ) {

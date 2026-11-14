@@ -2,14 +2,14 @@ package com.bugsy.core
 
 import okhttp3.OkHttpClient
 
-// Instância única: é a mesma que o Bugsy.initialize() liga/desliga e que os clients do app usam.
+// Single instance: it's the same one Bugsy.initialize() attaches/detaches and that the app's clients use.
 internal object SharedOkHttpInterceptor {
     val instance = OkHttpDebugInterceptor()
 }
 
 /**
- * Adiciona o interceptor do Bugsy ao client do app. Só tem efeito em debug; em release o artefato
- * `bugsy-noop` devolve o builder sem alterações.
+ * Adds Bugsy's interceptor to the app's client. Only has an effect in debug; in release the
+ * `bugsy-noop` artifact returns the builder unchanged.
  */
 fun OkHttpClient.Builder.addBugsyInterceptor(): OkHttpClient.Builder =
     if (BugsyContext.isHostDebuggable()) addInterceptor(SharedOkHttpInterceptor.instance) else this

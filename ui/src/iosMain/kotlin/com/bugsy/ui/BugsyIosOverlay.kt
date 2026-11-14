@@ -20,9 +20,9 @@ private var presentedController: UIViewController? = null
 private var overlayJob: Job? = null
 
 /**
- * Entry point iOS: chame uma vez na inicialização do app (ex: AppDelegate/SceneDelegate)
- * para que [Bugsy.show]/[Bugsy.hide] apresentem/dispensem o overlay sobre o root view
- * controller atual via [ComposeUIViewController].
+ * iOS entry point: call once during app startup (e.g. AppDelegate/SceneDelegate)
+ * so that [Bugsy.show]/[Bugsy.hide] present/dismiss the overlay over the current root view
+ * controller via [ComposeUIViewController].
  */
 fun startBugsyIosOverlay() {
     if (overlayJob != null) return
@@ -36,14 +36,14 @@ private fun presentOverlay() {
     if (presentedController != null) return
     val root = currentRootViewController() ?: return
 
-    // O overlay é só de debug: não deve derrubar o app host por falta de CADisableMinimumFrameDurationOnPhone no Info.plist.
+    // The overlay is debug-only: it must not crash the host app for missing CADisableMinimumFrameDurationOnPhone in Info.plist.
     val controller = ComposeUIViewController(
         configure = {
             enforceStrictPlistSanityCheck = false
             opaque = false
         },
     ) {
-        // O escurecimento do fundo e as animações são do próprio DebugOverlay.
+        // The background dimming and animations are DebugOverlay's own.
         DebugOverlay(viewModel = remember { DebugViewModel() }, onDismiss = { Bugsy.hide() })
     }
     controller.modalPresentationStyle = UIModalPresentationOverFullScreen

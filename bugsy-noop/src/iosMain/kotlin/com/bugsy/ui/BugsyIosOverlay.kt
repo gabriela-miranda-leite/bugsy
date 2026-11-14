@@ -1,4 +1,4 @@
 package com.bugsy.ui
 
-/** No-op: não observa nem apresenta nenhum overlay. */
+/** No-op: doesn't observe or present any overlay. */
 fun startBugsyIosOverlay() = Unit

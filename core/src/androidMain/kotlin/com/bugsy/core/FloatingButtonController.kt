@@ -14,8 +14,6 @@ import android.view.View
 import android.view.WindowManager
 import kotlin.math.hypot
 
-// TODO: validar em device real (sample-android ainda não existe) — drag/snap no fluxo real
-// e reabertura do overlay após o usuário conceder a permissão de overlay. Ver DEB-21.
 actual class FloatingButtonController private constructor(
     private val delegate: Delegate?
 ) {

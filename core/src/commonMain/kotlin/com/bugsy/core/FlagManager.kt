@@ -52,9 +52,9 @@ class FlagManager(private val flagsProvider: () -> List<DebugFlag>) {
     }
 
     /**
-     * Valor atual de [key] (com override do FlagsScreen aplicado, se houver), ou `null` se nenhuma flag com essa
-     * chave veio do `flagsProvider`. Para um toggle no overlay realmente mudar o comportamento do app, o código que
-     * checa a flag deve ler daqui — não direto da fonte original passada ao `flagsProvider`.
+     * Current value of [key] (with the FlagsScreen override applied, if any), or `null` if no flag with that
+     * key came from `flagsProvider`. For a toggle in the overlay to actually change the app's behavior, the code
+     * that checks the flag must read from here — not directly from the original source passed to `flagsProvider`.
      */
     fun value(key: String): Any? = flags.value.firstOrNull { it.key == key }?.value
 

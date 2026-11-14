@@ -31,18 +31,18 @@ import kotlin.concurrent.thread
 class MainActivity : ComponentActivity() {
 
     private val client = OkHttpClient.Builder().addBugsyInterceptor().build()
-    private var status by mutableStateOf("Nenhuma request ainda")
+    private var status by mutableStateOf("No request yet")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Android 13+: sem esta permissão a notificação do Bugsy não aparece.
+        // Android 13+: without this permission, Bugsy's notification doesn't show up.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
                 .launch(Manifest.permission.POST_NOTIFICATIONS)
         }
         setContent {
-            // Prova de ponta a ponta de que o override do FlagsScreen chega até o app: ao ligar
-            // "darkModeEnabled" no Bugsy, a tela vira preta sem precisar fechar e reabrir o app.
+            // End-to-end proof that the FlagsScreen override reaches the app: turning
+            // "darkModeEnabled" on in Bugsy flips the screen to black without closing and reopening the app.
             val flags by Bugsy.flagManager.flags.collectAsState()
             val darkModeEnabled = flags.firstOrNull { it.key == "darkModeEnabled" }?.value == true
             val background = if (darkModeEnabled) Color.Black else Color.White
@@ -53,8 +53,8 @@ class MainActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Button(onClick = ::makeRequest) { Text("Fazer request (OkHttp)") }
-                Button(onClick = { Bugsy.show() }) { Text("Abrir Bugsy") }
+                Button(onClick = ::makeRequest) { Text("Make request (OkHttp)") }
+                Button(onClick = { Bugsy.show() }) { Text("Open Bugsy") }
                 Text(status, color = foreground)
                 Text(if (darkModeEnabled) "darkModeEnabled: ON" else "darkModeEnabled: off", color = foreground)
             }
@@ -68,9 +68,9 @@ class MainActivity : ComponentActivity() {
                 .url("https://httpbin.org/get")
                 .header("Authorization", "Bearer sample-secret")
                 .build()
-            status = "Enviando..."
+            status = "Sending..."
             status = runCatching { client.newCall(request).execute().use { "Status ${it.code}" } }
-                .getOrElse { "Falhou: ${it.message}" }
+                .getOrElse { "Failed: ${it.message}" }
         }
     }
 }

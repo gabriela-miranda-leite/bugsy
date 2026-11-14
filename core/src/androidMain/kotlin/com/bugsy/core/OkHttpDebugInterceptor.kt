@@ -30,12 +30,12 @@ internal class OkHttpDebugInterceptor : Interceptor {
         val response = try {
             chain.proceed(request)
         } catch (e: IOException) {
-            // A chamada real falhou (timeout, host inacessível...): registra uma entry de erro e relança,
-            // pra quem chamou o client continuar recebendo a IOException normal do OkHttp.
+            // The real call failed (timeout, unreachable host...): record an error entry and rethrow,
+            // so the client's caller still gets OkHttp's normal IOException.
             try {
                 DebugRepository.add(buildErrorDebugRequest(request, startNs))
             } catch (addError: Exception) {
-                // Nunca registrar a exceção nem sua mensagem: ela pode conter trechos de headers ou do body capturado.
+                // Never log the exception or its message: it could contain pieces of captured headers or body.
             }
             throw e
         }
@@ -43,7 +43,7 @@ internal class OkHttpDebugInterceptor : Interceptor {
         try {
             DebugRepository.add(buildDebugRequest(request, response, startNs))
         } catch (e: Exception) {
-            // Nunca registrar a exceção nem sua mensagem: ela pode conter trechos de headers ou do body capturado.
+            // Never log the exception or its message: it could contain pieces of captured headers or body.
         }
 
         return response

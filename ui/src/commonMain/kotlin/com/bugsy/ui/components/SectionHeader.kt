@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
-/** Rótulo de seção com um botão "Copiar" à direita. */
+/** Section label with a "Copy" button on the right. */
 @Composable
 fun SectionHeader(title: String, onCopy: () -> Unit, modifier: Modifier = Modifier) {
     Row(

@@ -6,7 +6,7 @@ import com.bugsy.core.model.RequestSecrets
 import com.bugsy.core.model.DeviceInfo
 
 /**
- * Dados de exemplo usados apenas em @Preview composables — nunca chegam a um app host.
+ * Sample data used only in @Preview composables — never reaches an app host.
  */
 internal object PreviewFixtures {
     val getRequest = DebugRequest(

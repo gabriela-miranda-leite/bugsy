@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 
 private const val FLASH_MS = 1_200L
 
-/** Feedback de "copiado" de uma linha: [copied] fica `true` por um instante depois de [flash]. */
+/** "Copied" feedback for a row: [copied] is `true` for a moment after [flash]. */
 @Stable
 class CopyFlash internal constructor(private val scope: CoroutineScope) {
     var copied by mutableStateOf(false)
@@ -42,7 +42,7 @@ fun rememberCopyFlash(): CopyFlash {
     return remember { CopyFlash(scope) }
 }
 
-/** Ícone discreto no fim de uma linha copiável; vira um "check" verde logo depois de copiar. */
+/** Subtle icon at the end of a copyable row; turns into a green "check" right after copying. */
 @Composable
 fun CopyAffordance(copied: Boolean, modifier: Modifier = Modifier) {
     Icon(

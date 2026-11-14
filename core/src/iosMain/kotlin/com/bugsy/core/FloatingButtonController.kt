@@ -24,8 +24,6 @@ import platform.darwin.NSObject
 private const val BUTTON_SIZE = 56.0
 private const val SNAP_ANIMATION_DURATION_S = 0.2
 
-// TODO: validar em device/simulador real (sample-ios ainda não existe) — drag/snap e
-// garantir que a UIWindow some corretamente ao destruir o Bugsy. Ver DEB-21.
 actual class FloatingButtonController private constructor(
     private val delegate: Delegate
 ) {

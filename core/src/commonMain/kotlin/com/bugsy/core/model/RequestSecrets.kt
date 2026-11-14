@@ -1,8 +1,8 @@
 package com.bugsy.core.model
 
 /**
- * Os valores reais (sem máscara) de uma request, para o desenvolvedor ou QA alternar a exibição na UI e copiar.
- * Só existe em memória e nunca aparece em `toString()` (logs, depuradores, `println` de um [DebugRequest]).
+ * The real (unmasked) values of a request, so a developer or QA can toggle their display in the UI and copy them.
+ * Only exists in memory and never shows up in `toString()` (logs, debuggers, `println` of a [DebugRequest]).
  */
 class RequestSecrets(
     val requestHeaders: Map<String, String>,

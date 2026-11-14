@@ -175,9 +175,9 @@ class CurlGeneratorTest {
         assertTrue(curl.startsWith("curl -X DELETE 'https://api.example.com/users/1'"))
     }
 
-    // --- M4: o comando gerado é tratado pelo shell como argumentos literais, nunca como código ---
+    // --- M4: the generated command is treated by the shell as literal arguments, never as code ---
 
-    /** Interpreta um comando como um shell POSIX faria (aspas simples, `\\` e continuação de linha), devolvendo as palavras. */
+    /** Parses a command the way a POSIX shell would (single quotes, `\\` and line continuation), returning the words. */
     private fun shellWords(command: String): List<String> {
         val words = mutableListOf<String>()
         val current = StringBuilder()

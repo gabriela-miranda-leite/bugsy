@@ -15,7 +15,7 @@ actual class DebugInterceptor private constructor(
     }
 
     actual companion object {
-        // Equivalente iOS do BuildConfig.DEBUG: em binários release o interceptor nunca é criado.
+        // iOS equivalent of BuildConfig.DEBUG: in release binaries the interceptor is never created.
         @OptIn(ExperimentalNativeApi::class)
         actual fun create(): DebugInterceptor = DebugInterceptor(
             if (Platform.isDebugBinary) UrlProtocolInterceptor() else null

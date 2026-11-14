@@ -37,7 +37,7 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 
-/** Preferências de quem usa o overlay: dados sensíveis por padrão e a versão do Bugsy. */
+/** Preferences for whoever uses the overlay: sensitive data by default and the Bugsy version. */
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     val revealDefault by BugsySettings.revealSensitiveByDefault.collectAsState()

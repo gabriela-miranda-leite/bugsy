@@ -4,8 +4,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * API idêntica à do artefato de debug, mas sem nenhum comportamento: nada é capturado, armazenado,
- * registrado nem logado, e o overlay nunca abre.
+ * API identical to the debug artifact's, but with no behavior at all: nothing is captured, stored,
+ * recorded or logged, and the overlay never opens.
  */
 object Bugsy {
     val version: String = "noop"

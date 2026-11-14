@@ -100,18 +100,18 @@ object BugsySpacing {
     val resetAllButtonHeight = 48.dp
     val cornerButtonLarge = 12.dp
 
-    // Modal do overlay: altura fixa em todas as telas, nas duas plataformas
+    // Overlay modal: fixed height on all screens, on both platforms
     const val overlayHeightFraction = 0.8f
     val sheetCorner = 22.dp
 
     val copyIconButtonSize = 36.dp
 
-    // Linhas clicáveis (listas e pares chave/valor)
+    // Clickable rows (lists and key/value pairs)
     val rowDividerThickness = 1.dp
     val clickableRowVertical = 12.dp
     val requestRowVertical = 14.dp
     val requestRowChevronSize = 18.dp
     val copyAffordanceSize = 16.dp
-    // Altura padrão de controles da barra de busca (campo de busca e botão da lixeira): sempre iguais.
+    // Standard control height for the search bar (search field and trash button): always equal.
     val controlHeight = 44.dp
 }

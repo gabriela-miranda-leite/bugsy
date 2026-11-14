@@ -1,8 +1,8 @@
 package com.bugsy.core
 
 /**
- * Trigger "notificação fixa": enquanto o app está aberto, uma notificação persistente abre o overlay ao toque.
- * Só o Android tem esse conceito; no iOS este trigger se comporta como [Trigger.Shake].
+ * "Sticky notification" trigger: while the app is open, a persistent notification opens the overlay on tap.
+ * Only Android has this concept; on iOS this trigger behaves like [Trigger.Shake].
  */
 expect class NotificationTrigger {
     fun start()

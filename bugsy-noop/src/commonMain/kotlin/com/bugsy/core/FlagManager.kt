@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Mesma API do `FlagManager` do artefato de debug, sem comportamento: nunca há flags nem overrides, então o app
- * em release sempre cai nos seus valores padrão.
+ * Same API as the debug artifact's `FlagManager`, with no behavior: there are never any flags or overrides, so the
+ * app in release always falls back to its default values.
  */
 class FlagManager {
     val flags: StateFlow<List<DebugFlag>> = MutableStateFlow(emptyList())

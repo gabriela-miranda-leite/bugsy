@@ -3,9 +3,9 @@ package com.bugsy.core
 import com.bugsy.core.model.DebugRequest
 
 /**
- * Gera o cURL que o desenvolvedor cola num terminal. Como URL, headers e body vêm de tráfego não confiável, **todo**
- * argumento é entre aspas simples e escapado (um `'` não consegue fechar a aspa e injetar comandos) e os caracteres
- * de controle são removidos (ESC, `\r`, etc.: truques de terminal ao colar).
+ * Generates the cURL command the developer pastes into a terminal. Since URL, headers and body come from
+ * untrusted traffic, **every** argument is single-quoted and escaped (a `'` can't close the quote and inject
+ * commands) and control characters are stripped (ESC, `\r`, etc.: terminal paste tricks).
  */
 internal object CurlGenerator {
 
@@ -23,7 +23,7 @@ internal object CurlGenerator {
         return parts.joinToString(" \\\n  ")
     }
 
-    /** Métodos HTTP normais (letras) saem sem aspas; qualquer outra coisa é tratada como texto não confiável. */
+    /** Normal HTTP methods (letters) are emitted unquoted; anything else is treated as untrusted text. */
     private fun method(method: String): String =
         if (method.isNotEmpty() && method.all { it in 'A'..'Z' || it in 'a'..'z' }) method else quote(method)
 

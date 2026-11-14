@@ -1,6 +1,6 @@
 package com.bugsy.core
 
-// O iOS não tem notificação persistente equivalente: este trigger usa o shake.
+// iOS has no equivalent persistent notification: this trigger uses shake instead.
 actual class NotificationTrigger private constructor(
     private val shakeDetector: ShakeDetector
 ) {

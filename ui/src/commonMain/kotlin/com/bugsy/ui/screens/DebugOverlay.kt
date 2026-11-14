@@ -46,9 +46,9 @@ private const val EXIT_MS = 200
 private const val DISMISS_DRAG_FRACTION = 0.25f
 
 /**
- * Modal de altura fixa (80% da área disponível) ancorado embaixo, sobre um fundo escurecido. Abre deslizando
- * de baixo e fecha arrastando para baixo (pelo handle, cabeçalho ou abas), tocando no fundo ou no X.
- * [onDismiss] é chamado quando a animação de saída termina.
+ * Fixed-height modal (80% of the available area) anchored to the bottom, over a dimmed background. Opens by
+ * sliding up from the bottom and closes by dragging down (via the handle, header or tabs), tapping the
+ * background, or the X. [onDismiss] is called when the exit animation finishes.
  */
 @Composable
 fun DebugOverlay(
@@ -70,8 +70,8 @@ fun DebugOverlay(
         var sheetHeightPx by remember { mutableStateOf(0) }
         var entered by remember { mutableStateOf(!animateEntrance) }
 
-        // Entrada: mede o modal, posiciona-o abaixo da tela e desliza até a posição final.
-        // Roda uma única vez: não pode reiniciar quando o tamanho muda um pixel (ex.: chegada dos insets).
+        // Entrance: measure the modal, position it below the screen, and slide it to its final position.
+        // Runs exactly once: it must not restart when the size changes by a pixel (e.g. insets arriving).
         LaunchedEffect(Unit) {
             if (!entered) {
                 val height = snapshotFlow { sheetHeightPx }.first { it > 0 }
@@ -97,7 +97,7 @@ fun DebugOverlay(
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { dismiss() },
             contentAlignment = Alignment.BottomCenter,
         ) {
-            // Altura fixa (80% do espaço disponível) em todas as telas; o conteúdo rola dentro dela.
+            // Fixed height (80% of the available space) on all screens; the content scrolls within it.
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -106,11 +106,11 @@ fun DebugOverlay(
                     .graphicsLayer { translationY = translation }
                     .clip(RoundedCornerShape(topStart = BugsySpacing.sheetCorner, topEnd = BugsySpacing.sheetCorner))
                     .background(BugsyColors.Surface)
-                    // Engole os toques para não dispensar o modal ao tocar numa área vazia dele.
+                    // Swallows taps so the modal isn't dismissed when tapping an empty area inside it.
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
                     .navigationBarsPadding(),
             ) {
-                // Arrastar para baixo (handle, cabeçalho ou abas) fecha o modal; soltar antes do limiar o devolve.
+                // Dragging down (handle, header or tabs) closes the modal; releasing before the threshold snaps it back.
                 Column(
                     Modifier.pointerInput(Unit) {
                         detectVerticalDragGestures(

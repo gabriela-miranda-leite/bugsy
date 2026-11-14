@@ -9,12 +9,12 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * Mascara campos sensíveis do body antes do armazenamento. Política: na dúvida, mascara.
+ * Masks sensitive body fields before storage. Policy: when in doubt, mask.
  *
- * - JSON válido: percorre a árvore e troca o valor (de qualquer tipo) dos campos sensíveis por `***`,
- *   em qualquer nível. Strings que contêm JSON também são tratadas.
- * - Qualquer outro texto (form-encoded, JSON truncado ou inválido): aplica padrões de texto
- *   `"campo": valor` e `campo=valor`. Texto sem nenhum campo sensível volta inalterado.
+ * - Valid JSON: walks the tree and replaces the value (of any type) of sensitive fields with `***`,
+ *   at any depth. Strings that contain JSON are handled too.
+ * - Any other text (form-encoded, truncated or invalid JSON): applies text patterns
+ *   `"field": value` and `field=value`. Text with no sensitive field comes back unchanged.
  */
 internal object BodyFieldMasker {
     private const val MASK = "***"
@@ -22,7 +22,7 @@ internal object BodyFieldMasker {
     internal const val UNMASKABLE_PLACEHOLDER = "[body hidden: it could not be masked safely]"
     private val defaultSensitiveFields = setOf("password", "cpf", "token", "secret")
 
-    // Conjunto imutável trocado atomicamente: os interceptors leem em threads de rede enquanto o app pode alterar de outra.
+    // Immutable set swapped atomically: interceptors read it on network threads while the app may change it from another.
     private val sensitiveFields = MutableStateFlow(defaultSensitiveFields)
 
     fun add(name: String) {
@@ -39,13 +39,13 @@ internal object BodyFieldMasker {
 
     fun mask(body: String?): String? = maskTracked(body).value
 
-    /** Como [mask], mas informa se algum valor sensível foi realmente substituído. */
+    /** Like [mask], but also reports whether any sensitive value was actually replaced. */
     fun maskTracked(body: String?): MaskedText {
         if (body == null) return MaskedText(null, redacted = false)
         val fields = sensitiveFields.value
         if (fields.isEmpty() || body.isBlank()) return MaskedText(body, redacted = false)
 
-        // Falha fechada: se algo der errado (ex.: JSON hostil aninhado que estoura a pilha), o body nunca passa sem máscara.
+        // Fail closed: if anything goes wrong (e.g. hostile nested JSON that overflows the stack), the body never passes unmasked.
         return try {
             maskUnsafe(body, fields)
         } catch (e: Throwable) {
@@ -55,8 +55,8 @@ internal object BodyFieldMasker {
 
     private fun maskUnsafe(body: String, fields: Set<String>): MaskedText {
 
-        // O parser de JSON é recursivo e, em Kotlin/Native, estourar a pilha é SIGSEGV (não dá para capturar), então a
-        // profundidade é medida ANTES, de forma iterativa; acima do limite o body vai direto para o mascaramento por texto.
+        // The JSON parser is recursive and, on Kotlin/Native, a stack overflow is a SIGSEGV (it can't be caught), so
+        // depth is measured FIRST, iteratively; above the limit the body goes straight to text-based masking.
         val parsed = if (exceedsNestingLimit(body)) {
             null
         } else {
@@ -66,7 +66,7 @@ internal object BodyFieldMasker {
                 null
             }
         }
-        // O parser aceita texto solto (ex: `pin=1234`) como literal; só objetos e arrays são tratados como JSON.
+        // The parser accepts loose text (e.g. `pin=1234`) as a literal; only objects and arrays are treated as JSON.
         if (parsed is JsonObject || parsed is JsonArray) {
             val tracker = Tracker()
             return MaskedText(maskElement(parsed, fields, tracker, depth = 0).toString(), tracker.redacted)
@@ -83,7 +83,7 @@ internal object BodyFieldMasker {
 
     private class TooDeepException : RuntimeException()
 
-    /** `true` se `[`/`{` aninham mais que [MAX_DEPTH] níveis (fora de strings). Iterativo: nunca estoura a pilha. */
+    /** `true` if `[`/`{` nest deeper than [MAX_DEPTH] levels (outside strings). Iterative: never overflows the stack. */
     private fun exceedsNestingLimit(body: String): Boolean {
         var depth = 0
         var inString = false
@@ -106,7 +106,7 @@ internal object BodyFieldMasker {
         return false
     }
 
-    /** Máscara por padrões de texto (iterativa, sem recursão); se nem ela der certo, o body inteiro é descartado. */
+    /** Text-pattern masking (iterative, no recursion); if even this fails, the whole body is discarded. */
     private fun failClosed(body: String, fields: Set<String>): MaskedText =
         try {
             MaskedText(maskText(body, fields), redacted = true)
@@ -144,9 +144,9 @@ internal object BodyFieldMasker {
     }
 
     /**
-     * Mascara texto que não é JSON válido (form-encoded, JSON truncado ou fundo demais): `"campo": valor` e
-     * `campo=valor`. Varredura **iterativa**, sem regex: o motor de regex do Kotlin/Native é recursivo e um body de
-     * 1 MB derruba o processo (SIGSEGV), o que não pode acontecer no app host.
+     * Masks text that isn't valid JSON (form-encoded, truncated or too-deep JSON): `"field": value` and
+     * `field=value`. **Iterative** scan, no regex: Kotlin/Native's regex engine is recursive and a 1 MB body
+     * crashes the process (SIGSEGV), which must never happen in the host app.
      */
     private fun maskText(body: String, fields: Set<String>): String {
         val spans = mutableListOf<Span>()
@@ -159,7 +159,7 @@ internal object BodyFieldMasker {
         val out = StringBuilder(body.length)
         var cursor = 0
         for (span in spans.sortedBy { it.start }) {
-            if (span.start < cursor) continue // sobreposição: o trecho anterior já cobre este
+            if (span.start < cursor) continue // overlap: the previous span already covers this one
             out.append(body, cursor, span.start).append(span.replacement)
             cursor = span.end
         }
@@ -169,7 +169,7 @@ internal object BodyFieldMasker {
 
     private class Span(val start: Int, val end: Int, val replacement: String)
 
-    /** `"campo"` + `:` + valor (string entre aspas, mesmo sem fechar, ou token solto) vira `"campo":"***"`. */
+    /** `"field"` + `:` + value (quoted string, even unclosed, or a loose token) becomes `"field":"***"`. */
     private fun collectJsonLikeSpans(body: String, field: String, spans: MutableList<Span>) {
         val needle = "\"$field\""
         var from = 0
@@ -203,7 +203,7 @@ internal object BodyFieldMasker {
         }
     }
 
-    /** `campo=valor` (valor até `&` ou espaço) vira `campo=***`; o caractere antes não pode fazer parte de um nome. */
+    /** `field=value` (value up to `&` or whitespace) becomes `field=***`; the preceding character can't be part of an identifier. */
     private fun collectFormEncodedSpans(body: String, field: String, spans: MutableList<Span>) {
         val needle = "$field="
         var from = 0

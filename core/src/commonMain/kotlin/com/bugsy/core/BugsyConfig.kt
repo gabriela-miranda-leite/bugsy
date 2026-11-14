@@ -7,14 +7,14 @@ data class BugsyConfig(
     val shakeThresholdG: Float = DEFAULT_SHAKE_THRESHOLD_G,
     val flagsProvider: () -> List<DebugFlag> = { emptyList() },
     /**
-     * Permite alternar na UI entre os dados mascarados e os valores reais (tokens, senhas) e copiá-los. Os valores só
-     * ficam em memória, nunca em disco. Com `false`, tudo existe apenas mascarado.
+     * Lets the UI toggle between masked data and the real values (tokens, passwords) and copy them. The values
+     * only live in memory, never on disk. With `false`, everything exists masked only.
      */
     val allowRevealingSecrets: Boolean = true,
     /**
-     * Dados que o app consumidor quer ver na aba Device (ex.: `"user_id" to "u_42"`, `"email" to "dev@app.com"`),
-     * mostrados numa seção "Account" junto com as de device/runtime. Lidos de novo toda vez que a aba é aberta —
-     * não ficam em cache nem persistem entre sessões.
+     * Data the consuming app wants shown on the Device tab (e.g. `"user_id" to "u_42"`, `"email" to "dev@app.com"`),
+     * displayed in an "Account" section alongside the device/runtime ones. Read again every time the tab is
+     * opened — never cached or persisted between sessions.
      */
     val customInfoProvider: () -> List<Pair<String, String>> = { emptyList() },
 ) {

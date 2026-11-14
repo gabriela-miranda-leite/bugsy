@@ -7,6 +7,14 @@ plugins {
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.buildkonfig) apply false
     alias(libs.plugins.mavenPublish) apply false
+    alias(libs.plugins.kover)
+}
+
+// Merged coverage report (core + ui) measured from their Android/JVM unit test runs — Kover doesn't
+// instrument the iOS targets, so native code isn't part of this number.
+dependencies {
+    kover(project(":core"))
+    kover(project(":ui"))
 }
 
 // group/version must be set on the subprojects BEFORE the publish plugin is applied

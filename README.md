@@ -1,7 +1,8 @@
 # Bugsy
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.gabriela-miranda-leite/bugsy-ui)](https://central.sonatype.com/namespace/io.github.gabriela-miranda-leite)
-[![CI](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/android.yml/badge.svg)](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/android.yml)
+[![Android](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/android.yml/badge.svg)](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/android.yml)
+[![iOS](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/ios.yml/badge.svg)](https://github.com/gabriela-miranda-leite/bugsy/actions/workflows/ios.yml)
 [![codecov](https://codecov.io/gh/gabriela-miranda-leite/bugsy/graph/badge.svg)](https://codecov.io/gh/gabriela-miranda-leite/bugsy)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 

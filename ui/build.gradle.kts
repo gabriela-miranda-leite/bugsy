@@ -117,6 +117,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+}
+
+androidComponents {
+    beforeVariants {
+        (it as? com.android.build.api.variant.HasUnitTestBuilder)?.enableUnitTest = true
+    }
 }
 
 dependencies {

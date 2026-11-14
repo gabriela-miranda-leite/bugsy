@@ -11,6 +11,10 @@
 <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
 </p>
 
+<p align="center">
+🇧🇷 Português · <a href="README.en.md">🇺🇸 English</a>
+</p>
+
 Bugsy é uma biblioteca **Kotlin Multiplatform (Android + iOS)** que funciona como um
 "Flipper/Chucker" de bolso embutido no próprio app: um overlay de debug que captura requests de
 rede, mostra feature flags, informações de device, e permite revelar/mascarar dados sensíveis —

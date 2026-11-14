@@ -10,12 +10,19 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Restrict who can trigger this release
+        if: github.actor != 'gabriela-miranda-leite'
+        run: |
+          echo "::error::Apenas gabriela-miranda-leite pode disparar um release." >&2
+          exit 1
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -35,20 +42,30 @@ jobs:
         run: |
           sed -i "s/^VERSION_NAME=.*/VERSION_NAME=${{ inputs.version }}/" gradle.properties
 
-      - name: Commit and tag
+      - name: Commit, open PR and merge (main is protected, no direct push)
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "release/v${{ inputs.version }}"
           git add gradle.properties
           git commit -m "chore: release v${{ inputs.version }}"
-          git tag -a "v${{ inputs.version }}" -m "v${{ inputs.version }}"
-          git push origin HEAD:main
-          git push origin "v${{ inputs.version }}"
+          git push origin "release/v${{ inputs.version }}"
+          gh pr create --base main --head "release/v${{ inputs.version }}" \
+            --title "chore: release v${{ inputs.version }}" \
+            --body "Release automático via workflow_dispatch."
+          gh pr merge "release/v${{ inputs.version }}" --squash --admin --delete-branch
 
-      - name: Create GitHub Release with auto-generated changelog
+      - name: Tag and create GitHub Release with auto-generated changelog
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          git tag -a "v${{ inputs.version }}" -m "v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}"
           gh release create "v${{ inputs.version }}" \
             --title "v${{ inputs.version }}" \
             --generate-notes

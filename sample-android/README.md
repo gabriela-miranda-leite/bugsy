@@ -1,5 +1,7 @@
 # Bugsy — sample-android
 
+🇧🇷 Português · [🇺🇸 English](README.en.md)
+
 App de exemplo Android que mostra a integração com dois artefatos:
 
 ```kotlin

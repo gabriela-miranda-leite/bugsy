@@ -1,5 +1,7 @@
 # Bugsy — sample-ios
 
+🇧🇷 Português · [🇺🇸 English](README.en.md)
+
 App de exemplo em **Swift puro** (sem KMP) que integra o Bugsy via `Bugsy.xcframework`.
 
 ## Rodando

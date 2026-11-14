@@ -137,4 +137,5 @@ mesmo quando o artefato completo está no classpath.
 ## Sobre o desenvolvimento
 
 Este projeto foi desenvolvido com apoio de IA ([Claude Code](https://claude.com/claude-code)),
-com revisão humana de cada PR.
+com revisão humana de cada PR. O fluxo de desenvolvimento, validação local e release está
+documentado em [`docs/fluxo-de-desenvolvimento.md`](docs/fluxo-de-desenvolvimento.md).

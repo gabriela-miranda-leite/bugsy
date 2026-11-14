@@ -1,0 +1,127 @@
+name: Pre-release
+
+# Publica bugsy-core/ui/noop com uma versão rc descartável, instala os samples
+# Android e iOS a partir dela num emulador/simulador de verdade e confere que
+# abrem sem crashar, antes de qualquer coisa ser publicada no Maven Central.
+# A versão rc também é disponibilizada como artifact do workflow, pra quem
+# quiser testar numa máquina/projeto local antes do release de verdade.
+# Chamado pelo Release (workflow_call) como gate, e pode ser disparado manualmente
+# pra testar o estado atual da main sem iniciar um release.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-android-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Gerar versão rc descartável
+        id: rc
+        run: |
+          core="$(sed -n 's/^VERSION_NAME=//p' gradle.properties | cut -d- -f1)"
+          version="${core}-rc.${{ github.run_id }}"
+          echo "versão rc: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar bugsy-core/ui/noop no mavenLocal com a versão rc
+        run: |
+          ./gradlew :core:publishToMavenLocal :ui:publishToMavenLocal :bugsy-noop:publishToMavenLocal \
+            -PVERSION_NAME="${{ steps.rc.outputs.version }}" -PbugsySkipSigning=true --no-configuration-cache
+
+      - name: Disponibilizar a versão rc pra download
+        id: m2
+        run: echo "path=$HOME/.m2/repository/io/github/gabriela-miranda-leite" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bugsy-prerelease-${{ steps.rc.outputs.version }}
+          path: ${{ steps.m2.outputs.path }}
+          retention-days: 7
+
+      - name: Resumo com instruções de uso
+        run: |
+          {
+            echo "### Versão de pré-release: \`${{ steps.rc.outputs.version }}\`"
+            echo ""
+            echo "1. Baixe o artefato **bugsy-prerelease-${{ steps.rc.outputs.version }}** desta execução (aba Summary > Artifacts)."
+            echo "2. Descompacte dentro de \`~/.m2/repository/io/github/gabriela-miranda-leite\` na sua máquina (criando a pasta se não existir)."
+            echo "3. No projeto de teste, adicione \`mavenLocal()\` nos repositórios e:"
+            echo '   ```kotlin'
+            echo "   implementation(\"io.github.gabriela-miranda-leite:bugsy-ui:${{ steps.rc.outputs.version }}\")"
+            echo '   ```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build do sample a partir da versão rc publicada (não via project())
+        run: ./gradlew :sample-android:assembleDebug -PbugsyFromMavenLocal="${{ steps.rc.outputs.version }}"
+
+      - name: Enable KVM group perms (emulador precisa de aceleração de hardware)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install, abrir e checar o sample no emulador
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: ./scripts/smoke-test-android.sh sample-android/build/outputs/apk/debug/sample-android-debug.apk
+
+  verify-ios-install:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-
+
+      - name: Resolver simulador iPhone disponível na imagem do runner
+        id: sim
+        run: |
+          line="$(xcrun simctl list devices available | grep -E '^\s*iPhone' | tail -1)"
+          name="$(echo "$line" | sed -E 's/^\s*(iPhone[^(]*)\(.*/\1/' | sed -E 's/[[:space:]]+$//')"
+          udid="$(echo "$line" | grep -oE '[0-9A-F-]{36}')"
+          echo "nome do simulador: $name ($udid)"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Build iOS frameworks e sample para simulador
+        run: |
+          ./gradlew :ui:linkDebugFrameworkIosSimulatorArm64 :ui:iosSimulatorArm64AggregateResources
+          xcodebuild -project sample-ios/BugsySample.xcodeproj -scheme BugsySample -sdk iphonesimulator \
+            -configuration Debug -destination 'platform=iOS Simulator,name=${{ steps.sim.outputs.name }}' \
+            -derivedDataPath build/ios-prerelease build CODE_SIGNING_ALLOWED=NO ARCHS=arm64
+
+      - name: Bootar o simulador
+        run: |
+          xcrun simctl boot "${{ steps.sim.outputs.udid }}"
+          xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+
+      - name: Install, abrir e checar o sample no simulador
+        run: ./scripts/smoke-test-ios.sh "build/ios-prerelease/Build/Products/Debug-iphonesimulator/BugsySample.app"

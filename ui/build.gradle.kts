@@ -22,7 +22,9 @@ compose.resources {
 mavenPublishing {
     coordinates(artifactId = "bugsy-ui")
     publishToMavenCentral()
-    signAllPublications()
+    if (!project.hasProperty("bugsySkipSigning")) {
+        signAllPublications()
+    }
     configure(KotlinMultiplatform(javadocJar = JavadocJar.Empty(), androidVariantsToPublish = listOf("release")))
     pom {
         name.set("Bugsy UI")
@@ -50,10 +52,12 @@ mavenPublishing {
 }
 
 signing {
-    if (System.getenv("CI") != null) {
-        useInMemoryPgpKeys(System.getenv("SIGNING_KEY"), System.getenv("SIGNING_PASSWORD"))
-    } else {
-        useGpgCmd()
+    if (!project.hasProperty("bugsySkipSigning")) {
+        if (System.getenv("CI") != null) {
+            useInMemoryPgpKeys(System.getenv("SIGNING_KEY"), System.getenv("SIGNING_PASSWORD"))
+        } else {
+            useGpgCmd()
+        }
     }
 }
 

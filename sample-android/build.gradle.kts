@@ -45,6 +45,16 @@ dependencies {
     implementation(libs.okhttp)
 
     // Full Bugsy in debug; in release, only the no-op artifact (same API, no instrumentation).
-    debugImplementation(project(":ui"))
-    releaseImplementation(project(":bugsy-noop"))
+    // Pass -PbugsyFromMavenLocal=<version> to consume the real published artifacts from
+    // mavenLocal instead of the source modules — used by the pre-release gate to test what
+    // will actually ship, not just that the source compiles.
+    val mavenLocalVersion = findProperty("bugsyFromMavenLocal") as String?
+    if (mavenLocalVersion != null) {
+        val group = rootProject.property("GROUP") as String
+        debugImplementation("$group:bugsy-ui:$mavenLocalVersion")
+        releaseImplementation("$group:bugsy-noop:$mavenLocalVersion")
+    } else {
+        debugImplementation(project(":ui"))
+        releaseImplementation(project(":bugsy-noop"))
+    }
 }

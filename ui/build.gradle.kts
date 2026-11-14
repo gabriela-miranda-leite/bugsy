@@ -68,3 +68,11 @@ android {
 dependencies {
     debugImplementation(compose.uiTooling)
 }
+
+tasks.withType<Test>().configureEach {
+    // compose-resources resolve o idioma via android.os.LocaleList.getDefault(), que o android-all
+    // fixa a partir do locale do JVM na inicialização — sem isso, cada runner herda o locale do
+    // host (pt-BR no Mac de desenvolvimento, en no CI) e os snapshots de texto variam entre eles.
+    systemProperty("user.language", "pt")
+    systemProperty("user.country", "BR")
+}

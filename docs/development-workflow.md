@@ -11,7 +11,7 @@ step that everything is correct.
 flowchart LR
     A["Branch off main"] --> B["Validate locally"]
     B --> C["Open PR"]
-    C --> D["5 automatic checks\n(android · ios · snapshots · coverage · secrets-scan)"]
+    C --> D["6 automatic checks\n(android · ios · snapshots · coverage · secrets-scan · security)"]
     D --> E["Review (CODEOWNERS):\n1 approval from gabriela-miranda-leite"]
     E --> F["Squash-merge into main"]
     F -.->|"on demand"| G["Trigger Release\n(bump + optional suffix)"]
@@ -57,7 +57,7 @@ xcodebuild -project sample-ios/BugsySample.xcodeproj -scheme BugsySample -sdk ip
 
 ## 2. Open the PR — what CI checks automatically
 
-Five workflows run on every PR and on every push to `main`:
+Six workflows run on every PR and on every push to `main`:
 
 | Workflow | What it checks |
 |---|---|
@@ -66,10 +66,18 @@ Five workflows run on every PR and on every push to `main`:
 | `snapshots.yml` | Paparazzi visual snapshots — doesn't block merge (`continue-on-error`), but uploads the diffs as an artifact on failure. |
 | `coverage.yml` | Combined `core`+`ui` coverage via Kover, published to Codecov. |
 | `secrets-scan.yml` | `gitleaks`, to catch an accidentally committed secret. |
+| `security.yml` | CodeQL (insecure code patterns, SAST) + dependency review on the PR's changed dependencies. Covers part of the OWASP Top 10 that `secrets-scan.yml` doesn't (A06 — Vulnerable and Outdated Components, among others). |
 
 The repository is on GitHub's free plan, so **none of these are required checks** — they don't
 technically block the merge. What actually decides is the human review (next section). Because of
-that, it's worth checking that all 5 passed even without a forced gate, before approving.
+that, it's worth checking that all 6 passed even without a forced gate, before approving.
+
+`dependabot.yml` complements this proactively: it opens a weekly bump PR whenever a dependency
+(Gradle or GitHub Actions) becomes vulnerable or outdated, even without anyone touching the code.
+
+For a deeper, more contextual review (not just automated pattern matching), run Claude Code's
+`/security-review` skill before a release — it reads the actual diff/branch against the OWASP Top
+10, instead of only matching static patterns.
 
 ## 3. Review and merge
 
@@ -106,7 +114,9 @@ touching Maven Central:
 
 This publishes the three artifacts to your `~/.m2/repository`. In your test project, add
 `mavenLocal()` to the repositories and `implementation("io.github.gabriela-miranda-leite:bugsy-ui:0.0.0-local")`
-(or `bugsy-noop` for the release variant).
+(or `bugsy-noop` for the release variant). The `sample-android` and `sample-ios` apps already cover
+this flow end to end — see [`sample-android/README.en.md`](../sample-android/README.en.md#testing-a-pre-release-version)
+and [`sample-ios/README.en.md`](../sample-ios/README.en.md#testing-a-pre-release-version).
 
 You can also trigger the **Pre-release** workflow manually (without starting a release) to generate
 that same rc version inside CI and make it available as a workflow artifact, with usage

@@ -1,5 +1,7 @@
 # Bugsy — sample-android
 
+🇧🇷 Português · [🇺🇸 English](README.en.md)
+
 App de exemplo Android que mostra a integração com dois artefatos:
 
 ```kotlin
@@ -25,6 +27,19 @@ grep '^com.bugsy' sample-android/build/outputs/mapping/release/mapping.txt
 ## Como abrir o Bugsy no debug
 
 O sample usa `Trigger.Notification`: com o app aberto aparece uma notificação fixa ("Toque para abrir o painel de debug") que abre o overlay; ela some quando o app vai para segundo plano. No Android 13+ o app precisa da permissão `POST_NOTIFICATIONS` (o sample a pede ao abrir). Os outros gatilhos são `Trigger.Shake` (padrão) e `Trigger.FloatingButton`. O botão **Abrir Bugsy** chama `Bugsy.show()` diretamente.
+
+## Testando uma versão de pré-release
+
+Em vez de depender dos módulos locais (`project(":ui")` / `project(":bugsy-noop")`), o sample pode consumir artefatos já publicados no `mavenLocal` — útil pra validar o `.aar` de verdade (com R8/shrink no release) antes de um release oficial. É o mesmo mecanismo usado pelo workflow `pre-release.yml`.
+
+```sh
+./gradlew :core:publishToMavenLocal :ui:publishToMavenLocal :bugsy-noop:publishToMavenLocal \
+  -PVERSION_NAME="0.x.x-rc.1" -PbugsySkipSigning=true
+
+./gradlew :sample-android:assembleDebug -PbugsyFromMavenLocal="0.x.x-rc.1"
+```
+
+Sem a flag `-PbugsyFromMavenLocal`, o build volta a usar os módulos locais via `project()`.
 
 ## Capturando requests
 

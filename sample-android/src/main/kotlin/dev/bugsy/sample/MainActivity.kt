@@ -24,8 +24,10 @@ import androidx.compose.ui.unit.dp
 import com.bugsy.core.Bugsy
 import com.bugsy.core.addBugsyInterceptor
 import com.bugsy.ui.BugsyAndroidOverlay
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlin.concurrent.thread
 
 class MainActivity : ComponentActivity() {
@@ -53,7 +55,10 @@ class MainActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Button(onClick = ::makeRequest) { Text("Make request (OkHttp)") }
+                Button(onClick = { makeRequest("GET", "https://httpbin.org/get") }) { Text("GET") }
+                Button(onClick = { makeRequest("POST", "https://httpbin.org/post") }) { Text("POST") }
+                Button(onClick = { makeRequest("PUT", "https://httpbin.org/put") }) { Text("PUT") }
+                Button(onClick = { makeRequest("DELETE", "https://httpbin.org/delete") }) { Text("DELETE") }
                 Button(onClick = { Bugsy.show() }) { Text("Open Bugsy") }
                 Text(status, color = foreground)
                 Text(if (darkModeEnabled) "darkModeEnabled: ON" else "darkModeEnabled: off", color = foreground)
@@ -62,14 +67,25 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun makeRequest() {
+    // Headers mix sensitive ones (Authorization, Cookie, X-Api-Key) that Bugsy masks by default
+    // with a plain one (X-Device-Id) that should show up untouched, so both paths are exercised.
+    private fun makeRequest(method: String, url: String) {
         thread {
-            val request = Request.Builder()
-                .url("https://httpbin.org/get")
-                .header("Authorization", "Bearer sample-secret")
-                .build()
-            status = "Sending..."
-            status = runCatching { client.newCall(request).execute().use { "Status ${it.code}" } }
+            val builder = Request.Builder()
+                .url(url)
+                .header("Authorization", "Bearer tok_fake_9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c_not_a_real_secret")
+                .header("Cookie", "session_id=sess_9f8a7b6c5d4e; theme=dark")
+                .header("X-Api-Key", "fake-api-key-00112233445566778899")
+                .header("X-Device-Id", "device-emulator-01")
+            if (method == "POST" || method == "PUT") {
+                val body = """{"user_id":"u_42","document":"123.456.789-00","note":"sample $method"}"""
+                    .toRequestBody("application/json".toMediaType())
+                builder.method(method, body)
+            } else {
+                builder.method(method, null)
+            }
+            status = "Sending $method..."
+            status = runCatching { client.newCall(builder.build()).execute().use { "$method -> Status ${it.code}" } }
                 .getOrElse { "Failed: ${it.message}" }
         }
     }

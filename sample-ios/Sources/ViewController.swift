@@ -34,9 +34,9 @@ final class ViewController: UIViewController {
         flagsLabel.textAlignment = .center
         refreshDarkMode()
 
-        // viewDidAppear não é confiável aqui: o overlay usa apresentação não-opaca
-        // (UIModalPresentationOverFullScreen), e nesse caso o UIKit não garante
-        // viewWillAppear/viewDidAppear nesta tela quando o overlay é fechado.
+        // viewDidAppear isn't reliable here: the overlay uses a non-opaque presentation
+        // (UIModalPresentationOverFullScreen), and UIKit doesn't guarantee
+        // viewWillAppear/viewDidAppear on this screen when the overlay is dismissed.
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(refreshDarkMode),

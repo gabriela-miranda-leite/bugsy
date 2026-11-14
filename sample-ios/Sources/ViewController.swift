@@ -34,6 +34,16 @@ final class ViewController: UIViewController {
         flagsLabel.textAlignment = .center
         refreshDarkMode()
 
+        // viewDidAppear isn't reliable here: the overlay uses a non-opaque presentation
+        // (UIModalPresentationOverFullScreen), and UIKit doesn't guarantee
+        // viewWillAppear/viewDidAppear on this screen when the overlay is dismissed.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshDarkMode),
+            name: NSNotification.Name(BugsyIosOverlayKt.BUGSY_OVERLAY_DID_DISMISS_NOTIFICATION),
+            object: nil
+        )
+
         let stack = UIStackView(arrangedSubviews: [getButton, postButton, putButton, deleteButton, showButton, statusLabel, flagsLabel])
         stack.axis = .vertical
         stack.spacing = 16
@@ -48,9 +58,6 @@ final class ViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // O Bugsy é apresentado como um controller sobre este (presentViewController), então
-        // voltamos aqui (viewDidAppear) quando o usuário fecha o overlay — é o ponto certo
-        // para reler a flag e provar que o toggle do FlagsScreen mudou o app de verdade.
         refreshDarkMode()
         // Modo automático para validar a integração sem interação: BUGSY_SAMPLE_AUTORUN=1
         guard ProcessInfo.processInfo.environment["BUGSY_SAMPLE_AUTORUN"] == "1" else { return }
@@ -112,7 +119,7 @@ final class ViewController: UIViewController {
         Bugsy.shared.show()
     }
 
-    private func refreshDarkMode() {
+    @objc private func refreshDarkMode() {
         // Prova de ponta a ponta de que o override do FlagsScreen chega até o app: ao ligar
         // "darkModeEnabled" no Bugsy, a tela vira preta sem precisar fechar e reabrir o app.
         let isOn = (Bugsy.shared.flagManager.value(key: "darkModeEnabled") as? KotlinBoolean)?.boolValue ?? false

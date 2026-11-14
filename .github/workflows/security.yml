@@ -30,7 +30,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-java@v4
         with:
@@ -39,7 +39,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
 
@@ -48,7 +48,7 @@ jobs:
       - name: Build (core, ui, bugsy-noop, sample-android)
         run: ./gradlew :core:compileDebugKotlin :ui:compileDebugKotlin :bugsy-noop:compileDebugKotlin :sample-android:compileDebugKotlin
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
         with:
           category: "/language:java-kotlin"
 
@@ -60,9 +60,9 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
           comment-summary-in-pr: always

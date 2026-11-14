@@ -93,7 +93,8 @@ buildkonfig {
 
 android {
     namespace = "com.bugsy.core"
-    compileSdk = 36
+    compileSdk = 37
+    compileSdkMinor = 0
 
     defaultConfig {
         minSdk = 24

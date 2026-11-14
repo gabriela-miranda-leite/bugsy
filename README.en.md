@@ -38,7 +38,7 @@ by accident.
 
 | Android | iOS |
 |---|---|
-| _video/GIF coming soon_ | _video/GIF coming soon_ |
+| <video src="https://github.com/user-attachments/assets/d0d36d73-6a73-4659-8ef9-784bb9906590" controls width="300"></video> | _video/GIF coming soon_ |
 
 ## Installation
 

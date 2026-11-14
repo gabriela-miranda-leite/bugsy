@@ -1,7 +1,10 @@
 name: Pre-release
 
-# Instala os samples Android e iOS num emulador/simulador de verdade e confere
-# que abrem sem crashar, antes de qualquer coisa ser publicada no Maven Central.
+# Publica bugsy-core/ui/noop com uma versão rc descartável, instala os samples
+# Android e iOS a partir dela num emulador/simulador de verdade e confere que
+# abrem sem crashar, antes de qualquer coisa ser publicada no Maven Central.
+# A versão rc também é disponibilizada como artifact do workflow, pra quem
+# quiser testar numa máquina/projeto local antes do release de verdade.
 # Chamado pelo Release (workflow_call) como gate, e pode ser disparado manualmente
 # pra testar o estado atual da main sem iniciar um release.
 on:
@@ -37,6 +40,29 @@ jobs:
         run: |
           ./gradlew :core:publishToMavenLocal :ui:publishToMavenLocal :bugsy-noop:publishToMavenLocal \
             -PVERSION_NAME="${{ steps.rc.outputs.version }}" -PbugsySkipSigning=true --no-configuration-cache
+
+      - name: Disponibilizar a versão rc pra download
+        id: m2
+        run: echo "path=$HOME/.m2/repository/io/github/gabriela-miranda-leite" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bugsy-prerelease-${{ steps.rc.outputs.version }}
+          path: ${{ steps.m2.outputs.path }}
+          retention-days: 7
+
+      - name: Resumo com instruções de uso
+        run: |
+          {
+            echo "### Versão de pré-release: \`${{ steps.rc.outputs.version }}\`"
+            echo ""
+            echo "1. Baixe o artefato **bugsy-prerelease-${{ steps.rc.outputs.version }}** desta execução (aba Summary > Artifacts)."
+            echo "2. Descompacte dentro de \`~/.m2/repository/io/github/gabriela-miranda-leite\` na sua máquina (criando a pasta se não existir)."
+            echo "3. No projeto de teste, adicione \`mavenLocal()\` nos repositórios e:"
+            echo '   ```kotlin'
+            echo "   implementation(\"io.github.gabriela-miranda-leite:bugsy-ui:${{ steps.rc.outputs.version }}\")"
+            echo '   ```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build do sample a partir da versão rc publicada (não via project())
         run: ./gradlew :sample-android:assembleDebug -PbugsyFromMavenLocal="${{ steps.rc.outputs.version }}"

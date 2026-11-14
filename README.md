@@ -21,6 +21,19 @@ rede, mostra feature flags, informações de device, e permite revelar/mascarar 
 com uma política de segurança "quando em dúvida, mascara" para nunca vazar segredos (tokens,
 senhas, CPF) por acidente.
 
+## Índice
+
+- [Demonstração](#demonstração)
+- [Instalação](#instalação)
+  - [Kotlin / Android](#kotlin--android)
+  - [Swift / iOS](#swift--ios)
+  - [React Native](#react-native)
+  - [Flutter](#flutter)
+- [Uso básico](#uso-básico)
+- [Módulos](#módulos)
+- [Segurança](#segurança)
+- [Sobre o desenvolvimento](#sobre-o-desenvolvimento)
+
 ## Demonstração
 
 | Android | iOS |

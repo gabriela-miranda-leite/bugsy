@@ -21,6 +21,19 @@ shows feature flags and device info, and lets you reveal/mask sensitive data —
 "when in doubt, mask it" security policy so secrets (tokens, passwords, national IDs) never leak
 by accident.
 
+## Table of contents
+
+- [Demo](#demo)
+- [Installation](#installation)
+  - [Kotlin / Android](#kotlin--android)
+  - [Swift / iOS](#swift--ios)
+  - [React Native](#react-native)
+  - [Flutter](#flutter)
+- [Basic usage](#basic-usage)
+- [Modules](#modules)
+- [Security](#security)
+- [About development](#about-development)
+
 ## Demo
 
 | Android | iOS |

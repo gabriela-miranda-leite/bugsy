@@ -22,6 +22,11 @@
     <string name="empty_no_requests_title">Nenhuma solicitação</string>
     <string name="empty_no_requests_subtitle">Novas solicitações vão aparecer aqui.</string>
     <string name="empty_no_requests_filtered">Nenhum request para \"%1$s\"</string>
+    <string name="loading_subtitle_default">Isso só vai levar um instante.</string>
+    <string name="loading_requests_title">Carregando requests…</string>
+    <string name="loading_flags_title">Carregando flags…</string>
+    <string name="loading_device_title">Carregando informações do dispositivo…</string>
+    <string name="loading_request_details_title">Carregando detalhes do request…</string>
 
     <string name="label_curl">cURL</string>
     <string name="label_status">Status</string>

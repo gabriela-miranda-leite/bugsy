@@ -34,9 +34,12 @@ import bugsy.ui.generated.resources.device_label_version
 import bugsy.ui.generated.resources.device_section_app
 import bugsy.ui.generated.resources.device_section_device
 import bugsy.ui.generated.resources.device_section_runtime
+import bugsy.ui.generated.resources.loading_device_title
+import bugsy.ui.generated.resources.loading_subtitle_default
 import com.bugsy.core.model.DeviceInfo
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.CopyAffordance
+import com.bugsy.ui.components.LoadingState
 import com.bugsy.ui.components.SectionLabel
 import com.bugsy.ui.components.rememberCopyFlash
 import com.bugsy.ui.theme.BugsyColors
@@ -46,7 +49,15 @@ import com.bugsy.ui.theme.BugsyTypography
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun DeviceInfoScreen(info: DeviceInfo, customInfo: List<Pair<String, String>> = emptyList()) {
+fun DeviceInfoScreen(info: DeviceInfo?, customInfo: List<Pair<String, String>> = emptyList(), isLoading: Boolean = false) {
+    if (isLoading || info == null) {
+        LoadingState(
+            title = stringResource(Res.string.loading_device_title),
+            subtitle = stringResource(Res.string.loading_subtitle_default),
+        )
+        return
+    }
+
     val clipboard = LocalClipboardManager.current
     val rows = listOfNotNull(
         if (customInfo.isEmpty()) null else stringResource(Res.string.device_section_account) to customInfo,
@@ -113,4 +124,10 @@ private fun DeviceRow(label: String, value: String, onCopy: () -> Unit) {
 @Composable
 private fun DeviceInfoScreenPreview() {
     BugsyTheme { DeviceInfoScreen(PreviewFixtures.deviceInfo, customInfo = PreviewFixtures.customInfo) }
+}
+
+@Preview
+@Composable
+private fun DeviceInfoScreenLoadingPreview() {
+    BugsyTheme { DeviceInfoScreen(info = null) }
 }

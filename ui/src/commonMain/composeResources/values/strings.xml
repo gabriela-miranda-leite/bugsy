@@ -22,6 +22,11 @@
     <string name="empty_no_requests_title">No requests</string>
     <string name="empty_no_requests_subtitle">New requests will appear here.</string>
     <string name="empty_no_requests_filtered">No requests for \"%1$s\"</string>
+    <string name="loading_subtitle_default">This will only take a moment.</string>
+    <string name="loading_requests_title">Loading requests…</string>
+    <string name="loading_flags_title">Loading flags…</string>
+    <string name="loading_device_title">Loading device info…</string>
+    <string name="loading_request_details_title">Loading request details…</string>
 
     <string name="label_curl">cURL</string>
     <string name="label_status">Status</string>

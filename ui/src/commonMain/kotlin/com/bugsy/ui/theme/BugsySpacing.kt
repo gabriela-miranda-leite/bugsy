@@ -85,6 +85,10 @@ object BugsySpacing {
     val emptyStatePaddingVertical = 40.dp
     val emptyStateTitleSpacing = 14.dp
 
+    // Loading state
+    val loadingSpinnerSize = 32.dp
+    val loadingSpinnerStroke = 3.dp
+
     // Request detail — back button
     val backButtonIconSpacing = 8.dp
 

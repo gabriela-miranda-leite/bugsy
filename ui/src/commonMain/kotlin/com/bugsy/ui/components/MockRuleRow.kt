@@ -33,6 +33,7 @@ import bugsy.ui.generated.resources.cd_delete_mock_rule
 import bugsy.ui.generated.resources.cd_toggle_mock_rule
 import bugsy.ui.generated.resources.tag_mock_once
 import com.bugsy.core.model.MockRule
+import com.bugsy.core.model.displayName
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
@@ -59,11 +60,20 @@ fun MockRuleRow(
                 Row(horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm), verticalAlignment = Alignment.CenterVertically) {
                     MethodBadge(rule.method ?: "ANY")
                     Text(
-                        rule.urlPattern,
+                        rule.displayName,
                         style = BugsyTypography.Code.copy(color = BugsyColors.TextSecondary, fontWeight = FontWeight.Medium),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
+                    )
+                }
+                if (!rule.name.isNullOrBlank()) {
+                    Text(
+                        rule.urlPattern,
+                        style = BugsyTypography.Caption,
+                        color = BugsyColors.TextDisabled,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm), verticalAlignment = Alignment.CenterVertically) {
@@ -143,6 +153,7 @@ private fun MockRuleRowPreview() {
                 rule = MockRule(
                     id = "2",
                     urlPattern = "/api/login",
+                    name = "Login failure",
                     method = "POST",
                     statusCode = 401,
                     responseBody = """{"error": "unauthorized"}""",

@@ -51,6 +51,7 @@ import bugsy.ui.generated.resources.mock_form_label_body
 import bugsy.ui.generated.resources.mock_form_label_delay
 import bugsy.ui.generated.resources.mock_form_label_headers
 import bugsy.ui.generated.resources.mock_form_label_method
+import bugsy.ui.generated.resources.mock_form_label_name
 import bugsy.ui.generated.resources.mock_form_label_one_shot
 import bugsy.ui.generated.resources.mock_form_label_status
 import bugsy.ui.generated.resources.mock_form_label_url_pattern
@@ -85,6 +86,7 @@ fun MockRuleFormScreen(
     prefillSourceLabel: String? = null,
 ) {
     val isEditingExisting = initial != null && prefillSourceLabel == null
+    var name by remember { mutableStateOf(initial?.name.orEmpty()) }
     var urlPattern by remember { mutableStateOf(initial?.urlPattern.orEmpty()) }
     var method by remember { mutableStateOf(initial?.method) }
     var statusCode by remember { mutableStateOf((initial?.statusCode ?: 200).toString()) }
@@ -116,6 +118,7 @@ fun MockRuleFormScreen(
             MockRule(
                 id = initial?.id ?: "mock-${Random.nextLong()}",
                 urlPattern = urlPattern,
+                name = name.trim().ifBlank { null },
                 method = method,
                 statusCode = statusCode.toIntOrNull() ?: 200,
                 responseHeaders = headersLine.toHeaderMap(),
@@ -162,6 +165,13 @@ fun MockRuleFormScreen(
         ) {
             if (prefillSourceLabel != null) {
                 item { PrefillBanner(prefillSourceLabel) }
+            }
+            item {
+                FormField(
+                    label = stringResource(Res.string.mock_form_label_name),
+                    value = name,
+                    onValueChange = { name = it },
+                )
             }
             item {
                 FormField(

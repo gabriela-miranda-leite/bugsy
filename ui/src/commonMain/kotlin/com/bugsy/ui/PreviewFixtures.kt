@@ -101,6 +101,7 @@ internal object PreviewFixtures {
         MockRule(
             id = "m2",
             urlPattern = "/api/v1/auth/login",
+            name = "Login failure",
             method = "POST",
             statusCode = 401,
             responseBody = """{"error": "unauthorized"}""",

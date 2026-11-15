@@ -84,6 +84,7 @@
 
     <string name="mock_form_title_new">New mock rule</string>
     <string name="mock_form_title_edit">Edit mock rule</string>
+    <string name="mock_form_label_name">Name (optional — defaults to the route)</string>
     <string name="mock_form_label_url_pattern">URL Pattern (regex)</string>
     <string name="mock_form_label_method">Method</string>
     <string name="mock_form_label_status">Status code</string>

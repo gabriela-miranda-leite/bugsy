@@ -48,6 +48,7 @@ import bugsy.ui.generated.resources.tab_mocks
 import bugsy.ui.generated.resources.tag_mock
 import com.bugsy.core.model.MockMatch
 import com.bugsy.core.model.MockRule
+import com.bugsy.core.model.displayName
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.CodeBlock
 import com.bugsy.ui.components.MethodBadge
@@ -115,11 +116,22 @@ fun MockRuleDetailScreen(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm)) {
                     MethodBadge(rule.method ?: "ANY")
                     Text(
-                        rule.urlPattern,
+                        rule.displayName,
                         style = BugsyTypography.Code.copy(color = BugsyColors.TextSecondary),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            if (!rule.name.isNullOrBlank()) {
+                item {
+                    Text(
+                        rule.urlPattern,
+                        style = BugsyTypography.Caption,
+                        color = BugsyColors.TextDisabled,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

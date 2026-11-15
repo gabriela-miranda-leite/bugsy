@@ -42,6 +42,7 @@ import bugsy.ui.generated.resources.toast_mock_used_up_title
 import com.bugsy.core.MockEngine
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.core.model.MockRule
+import com.bugsy.core.model.displayName
 import com.bugsy.ui.DebugViewModel
 import com.bugsy.ui.components.BugsyTab
 import com.bugsy.ui.components.BugsyTabBar
@@ -97,7 +98,7 @@ fun DebugOverlay(
                 BugsyToastData(
                     type = BugsyToastType.Warning,
                     title = getString(Res.string.toast_mock_used_up_title),
-                    subtitle = getString(Res.string.toast_mock_used_up_subtitle, rule.urlPattern, rule.statusCode),
+                    subtitle = getString(Res.string.toast_mock_used_up_subtitle, rule.displayName, rule.statusCode),
                 ),
             )
         }
@@ -116,7 +117,7 @@ fun DebugOverlay(
                     BugsyToastData(
                         type = BugsyToastType.Success,
                         title = getString(Res.string.toast_mock_saved_title),
-                        subtitle = getString(Res.string.toast_mock_saved_subtitle, rule.method ?: "ANY", rule.urlPattern, rule.statusCode),
+                        subtitle = getString(Res.string.toast_mock_saved_subtitle, rule.method ?: "ANY", rule.displayName, rule.statusCode),
                     ),
                 )
             }
@@ -130,7 +131,7 @@ fun DebugOverlay(
                     BugsyToastData(
                         type = BugsyToastType.Destructive,
                         title = getString(Res.string.toast_mock_deleted_title),
-                        subtitle = "${removed.method ?: "ANY"} ${removed.urlPattern}",
+                        subtitle = "${removed.method ?: "ANY"} ${removed.displayName}",
                         action = BugsyToastAction(getString(Res.string.action_undo)) { MockEngine.addRule(removed) },
                         durationMs = 5_000L,
                     ),
@@ -147,7 +148,7 @@ fun DebugOverlay(
                         BugsyToastData(
                             type = BugsyToastType.Info,
                             title = getString(Res.string.toast_mock_disabled_title),
-                            subtitle = rule.urlPattern,
+                            subtitle = rule.displayName,
                         ),
                     )
                 }

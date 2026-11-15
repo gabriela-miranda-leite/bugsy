@@ -3,6 +3,7 @@ package com.bugsy.core.model
 data class MockRule(
     val id: String,
     val urlPattern: String,
+    val name: String? = null,
     val method: String? = null,
     val statusCode: Int = 200,
     val responseHeaders: Map<String, String> = mapOf("Content-Type" to "application/json"),

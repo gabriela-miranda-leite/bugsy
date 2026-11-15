@@ -31,7 +31,10 @@ import com.bugsy.ui.theme.BugsySpacing
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -40,6 +43,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
+import bugsy.ui.generated.resources.action_export_har
 import bugsy.ui.generated.resources.cd_clear_requests
 import com.bugsy.ui.settings.BugsySettings
 import com.bugsy.ui.theme.BugsyTheme
@@ -54,8 +58,19 @@ fun filterRequests(requests: List<DebugRequest>, filter: String): List<DebugRequ
         }
     }
 
+/** Shares [requests] as a HAR file with their real values. */
+typealias HarExporter = (requests: List<DebugRequest>) -> Unit
+
+/**
+ * @param onExportHar when non-null, shows an "Export HAR" button in the top bar. `null` (e.g. on iOS) hides it.
+ */
 @Composable
-fun RequestListScreen(requests: List<DebugRequest>, onClear: () -> Unit = {}, isLoading: Boolean = false) {
+fun RequestListScreen(
+    requests: List<DebugRequest>,
+    onClear: () -> Unit = {},
+    isLoading: Boolean = false,
+    onExportHar: HarExporter? = null,
+) {
     if (isLoading) {
         LoadingState(
             title = stringResource(Res.string.loading_requests_title),
@@ -91,6 +106,23 @@ fun RequestListScreen(requests: List<DebugRequest>, onClear: () -> Unit = {}, is
             modifier = Modifier.padding(horizontal = BugsySpacing.lg, vertical = BugsySpacing.searchBarVerticalMargin),
         ) {
             BugsySearchBar(value = filter, onValueChange = { filter = it }, modifier = Modifier.weight(1f))
+            if (onExportHar != null) {
+                IconButton(
+                    onClick = { onExportHar(requests) },
+                    enabled = requests.isNotEmpty(),
+                    modifier = Modifier
+                        .size(BugsySpacing.controlHeight)
+                        .border(BugsySpacing.strokeBorder, BugsyColors.Border, RoundedCornerShape(BugsySpacing.cornerCard))
+                        .background(BugsyColors.SurfaceCard, RoundedCornerShape(BugsySpacing.cornerCard)),
+                ) {
+                    Icon(
+                        Icons.Outlined.Download,
+                        contentDescription = stringResource(Res.string.action_export_har),
+                        tint = if (requests.isNotEmpty()) BugsyColors.Brand else BugsyColors.TextDisabled,
+                        modifier = Modifier.size(BugsySpacing.iconSizeMedium),
+                    )
+                }
+            }
             IconButton(
                 onClick = onClear,
                 enabled = requests.isNotEmpty(),
@@ -132,6 +164,16 @@ private fun RequestListScreenPreview() {
     BugsyTheme {
         Box(Modifier.background(BugsyColors.Surface)) {
             RequestListScreen(requests = PreviewFixtures.requests)
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun RequestListScreenWithExportPreview() {
+    BugsyTheme {
+        Box(Modifier.background(BugsyColors.Surface)) {
+            RequestListScreen(requests = PreviewFixtures.requests, onExportHar = {})
         }
     }
 }

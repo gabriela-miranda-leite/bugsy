@@ -129,6 +129,13 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun requestListScreenWithExport() {
+        snapshotOnSurface {
+            RequestListScreen(requests = PreviewFixtures.requests, onExportHar = {})
+        }
+    }
+
+    @Test
     fun requestListScreenEmpty() {
         snapshotOnSurface {
             RequestListScreen(requests = emptyList())

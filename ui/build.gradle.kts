@@ -95,6 +95,9 @@ kotlin {
             implementation(libs.compose.material.icons.extended)
             implementation(libs.kotlinx.coroutines.core)
         }
+        androidMain.dependencies {
+            implementation(libs.androidx.core)
+        }
         commonTest.dependencies {
             implementation(kotlin("test"))
         }

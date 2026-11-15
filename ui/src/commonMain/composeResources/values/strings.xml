@@ -63,4 +63,6 @@
     <string name="settings_bugsy_version">Bugsy version</string>
     <string name="cd_settings">Settings</string>
     <string name="cd_clear_requests">Clear requests</string>
+
+    <string name="action_export_har">Export HAR</string>
 </resources>

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -25,7 +26,12 @@ fun BugsyAndroidOverlay() {
         ) {
             // The background dimming is drawn by DebugOverlay itself (follows the drag).
             (LocalView.current.parent as? DialogWindowProvider)?.window?.setDimAmount(0f)
-            DebugOverlay(viewModel = remember { DebugViewModel() }, onDismiss = { Bugsy.hide() })
+            val context = LocalContext.current
+            DebugOverlay(
+                viewModel = remember { DebugViewModel() },
+                onDismiss = { Bugsy.hide() },
+                onExportHar = { requests -> shareHar(context, requests) },
+            )
         }
     }
 }

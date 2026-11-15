@@ -350,10 +350,10 @@ private fun PrefillBanner(label: String) {
 }
 
 /** "Content-Type: application/json" <-> a single-entry header map; only one line is supported in the form. */
-private fun Map<String, String>?.toHeaderLine(): String =
+internal fun Map<String, String>?.toHeaderLine(): String =
     this?.entries?.firstOrNull()?.let { (k, v) -> "$k: $v" } ?: "Content-Type: application/json"
 
-private fun String.toHeaderMap(): Map<String, String> {
+internal fun String.toHeaderMap(): Map<String, String> {
     val (name, value) = split(":", limit = 2).map { it.trim() }.let { parts ->
         if (parts.size == 2) parts[0] to parts[1] else return emptyMap()
     }

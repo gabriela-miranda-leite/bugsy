@@ -271,14 +271,14 @@ fun DebugOverlay(
 private const val OFFSCREEN_PX = 100_000f
 
 /** "https://api.bugsy.dev/v1/users/42?x=1" -> "/v1/users/42" (host and query stripped). */
-private fun String.pathOnly(): String {
+internal fun String.pathOnly(): String {
     val afterScheme = substringAfter("://", missingDelimiterValue = this)
     val withoutHost = afterScheme.substringAfter('/', missingDelimiterValue = "").let { if (it.isEmpty()) "/" else "/$it" }
     return withoutHost.substringBefore('?')
 }
 
 /** Pre-fills a new rule from [this] request: an exact-match pattern for its path, its method, status and body. */
-private fun DebugRequest.toMockRulePrefill(): MockRule = MockRule(
+internal fun DebugRequest.toMockRulePrefill(): MockRule = MockRule(
     id = "mock-${Random.nextLong()}",
     urlPattern = "^${Regex.escape(url.pathOnly())}$",
     method = method,

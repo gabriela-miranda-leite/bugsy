@@ -45,11 +45,13 @@ internal fun pickMockRulesFileIos() {
         documentTypes = listOf("public.json"),
         inMode = UIDocumentPickerMode.UIDocumentPickerModeImport,
     )
-    picker.delegate = MockRulesDocumentPickerDelegate
+    picker.delegate = mockRulesDocumentPickerDelegate
     root.presentViewController(picker, animated = true, completion = null)
 }
 
-private object MockRulesDocumentPickerDelegate : NSObject(), UIDocumentPickerDelegateProtocol {
+// A singleton `object` extending NSObject with ObjC protocol conformance fails to link on Kotlin/Native
+// ("should have been lowered") — kept as an ordinary class with a single top-level instance instead.
+private class MockRulesDocumentPickerDelegate : NSObject(), UIDocumentPickerDelegateProtocol {
     override fun documentPicker(controller: UIDocumentPickerViewController, didPickDocumentsAtURLs: List<*>) {
         val url = didPickDocumentsAtURLs.firstOrNull() as? NSURL ?: return
         val didAccess = url.startAccessingSecurityScopedResource()
@@ -60,3 +62,5 @@ private object MockRulesDocumentPickerDelegate : NSObject(), UIDocumentPickerDel
         }
     }
 }
+
+private val mockRulesDocumentPickerDelegate = MockRulesDocumentPickerDelegate()

@@ -393,7 +393,14 @@ class BugsyScreenshotTest {
                     DragHandle()
                     BugsySheetHeader(onSettings = {}, onDismiss = {})
                     BugsyTabBar(selected = BugsyTab.Mocks, onSelect = {})
-                    MocksScreen(rules = PreviewFixtures.mockRules, onAddRule = {}, onToggleActive = { _, _ -> }, onRemoveRule = {})
+                    MocksScreen(
+                        rules = PreviewFixtures.mockRules,
+                        onAddRule = {},
+                        onToggleActive = { _, _ -> },
+                        onRemoveRule = {},
+                        onExport = {},
+                        onPickImportFile = {},
+                    )
                 }
             }
         }

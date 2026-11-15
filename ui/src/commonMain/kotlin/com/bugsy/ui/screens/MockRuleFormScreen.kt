@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.action_fix
 import bugsy.ui.generated.resources.action_save
 import bugsy.ui.generated.resources.mock_form_error_invalid_pattern
 import bugsy.ui.generated.resources.mock_form_label_body
@@ -56,7 +57,13 @@ import bugsy.ui.generated.resources.mock_form_label_url_pattern
 import bugsy.ui.generated.resources.mock_form_title_edit
 import bugsy.ui.generated.resources.mock_form_title_new
 import bugsy.ui.generated.resources.tab_mocks
+import bugsy.ui.generated.resources.toast_invalid_pattern_subtitle
+import bugsy.ui.generated.resources.toast_invalid_pattern_title
 import com.bugsy.core.model.MockRule
+import com.bugsy.ui.components.BugsyToastAction
+import com.bugsy.ui.components.BugsyToastData
+import com.bugsy.ui.components.BugsyToastHost
+import com.bugsy.ui.components.BugsyToastType
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
@@ -87,10 +94,22 @@ fun MockRuleFormScreen(
     var isOneShot by remember { mutableStateOf(initial?.isOneShot ?: (prefillSourceLabel != null)) }
     var patternError by remember { mutableStateOf(false) }
 
+    val invalidPatternToastTitle = stringResource(Res.string.toast_invalid_pattern_title)
+    val invalidPatternToastSubtitle = stringResource(Res.string.toast_invalid_pattern_subtitle)
+    val fixActionLabel = stringResource(Res.string.action_fix)
+
     fun save() {
         val isValidPattern = urlPattern.isNotBlank() && runCatching { Regex(urlPattern) }.isSuccess
         if (!isValidPattern) {
             patternError = true
+            BugsyToastHost.show(
+                BugsyToastData(
+                    type = BugsyToastType.Error,
+                    title = invalidPatternToastTitle,
+                    subtitle = invalidPatternToastSubtitle,
+                    action = BugsyToastAction(fixActionLabel) {},
+                ),
+            )
             return
         }
         onSave(

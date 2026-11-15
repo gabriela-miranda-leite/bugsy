@@ -9,6 +9,10 @@ import com.bugsy.ui.components.BugsyTab
 import com.bugsy.ui.components.BugsyTabBar
 import com.bugsy.ui.components.CodeBlock
 import com.bugsy.ui.components.DragHandle
+import com.bugsy.ui.components.BugsyToastAction
+import com.bugsy.ui.components.BugsyToastCard
+import com.bugsy.ui.components.BugsyToastData
+import com.bugsy.ui.components.BugsyToastType
 import com.bugsy.ui.components.MetricCard
 import com.bugsy.ui.components.MethodBadge
 import com.bugsy.ui.components.MockRuleRow
@@ -108,6 +112,42 @@ class BugsyScreenshotTest {
             Column {
                 RequestRow(request = PreviewFixtures.postRequestUnauthorized, onClick = {})
                 RequestRow(request = PreviewFixtures.postRequestError, onClick = {})
+            }
+        }
+    }
+
+    @Test
+    fun bugsyToasts() {
+        snapshotOnSurface {
+            Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp), modifier = Modifier.padding(16.dp)) {
+                BugsyToastCard(BugsyToastData(type = BugsyToastType.Success, title = "Mock rule saved", subtitle = "GET /api/v1/feed.* → 200"))
+                BugsyToastCard(
+                    BugsyToastData(
+                        type = BugsyToastType.Destructive,
+                        title = "Mock rule deleted",
+                        subtitle = "POST /api/v1/auth/login",
+                        action = BugsyToastAction("Undo") {},
+                        durationMs = 4_000L,
+                    ),
+                )
+                BugsyToastCard(BugsyToastData(type = BugsyToastType.Info, title = "Mock disabled", subtitle = "/api/v1/payments/.*"))
+                BugsyToastCard(BugsyToastData(type = BugsyToastType.Warning, title = "Mock used up (ONCE)", subtitle = "/api/v1/auth/login · 401"))
+                BugsyToastCard(
+                    BugsyToastData(
+                        type = BugsyToastType.Error,
+                        title = "Invalid regex pattern",
+                        subtitle = "Check the URL match field",
+                        action = BugsyToastAction("Fix") {},
+                    ),
+                )
+                BugsyToastCard(
+                    BugsyToastData(
+                        type = BugsyToastType.Success,
+                        title = "HAR exported",
+                        subtitle = "48 requests",
+                        action = BugsyToastAction("Share") {},
+                    ),
+                )
             }
         }
     }

@@ -2,7 +2,10 @@ package com.bugsy.core
 
 import com.bugsy.core.model.MockMatch
 import com.bugsy.core.model.MockRule
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -27,6 +30,10 @@ object MockEngine {
 
     private val _matchLogs = MutableStateFlow<Map<String, List<MockMatch>>>(emptyMap())
     val matchLogsFlow: StateFlow<Map<String, List<MockMatch>>> = _matchLogs
+
+    private val _oneShotConsumed = MutableSharedFlow<MockRule>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    /** Emits the rule each time a one-shot fires and gets removed — the UI toasts "Mock used up" off of this. */
+    val oneShotConsumedEvents: SharedFlow<MockRule> = _oneShotConsumed
 
     fun addRule(rule: MockRule) {
         runBlocking {
@@ -92,7 +99,12 @@ object MockEngine {
                 while (log.size > MAX_MATCHES_PER_RULE) log.removeAt(log.lastIndex)
                 _matchLogs.value = matchLogs.mapValues { it.value.toList() }
 
-                if (fired.isOneShot) rules.removeAt(index) else rules[index] = fired
+                if (fired.isOneShot) {
+                    rules.removeAt(index)
+                    _oneShotConsumed.tryEmit(fired)
+                } else {
+                    rules[index] = fired
+                }
                 _rules.value = rules.toList()
                 fired
             }

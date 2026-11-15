@@ -31,19 +31,32 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.action_undo
 import bugsy.ui.generated.resources.mock_form_prefilled_from
+import bugsy.ui.generated.resources.toast_mock_deleted_title
+import bugsy.ui.generated.resources.toast_mock_disabled_title
+import bugsy.ui.generated.resources.toast_mock_saved_subtitle
+import bugsy.ui.generated.resources.toast_mock_saved_title
+import bugsy.ui.generated.resources.toast_mock_used_up_subtitle
+import bugsy.ui.generated.resources.toast_mock_used_up_title
 import com.bugsy.core.MockEngine
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.core.model.MockRule
 import com.bugsy.ui.DebugViewModel
 import com.bugsy.ui.components.BugsyTab
 import com.bugsy.ui.components.BugsyTabBar
+import com.bugsy.ui.components.BugsyToastAction
+import com.bugsy.ui.components.BugsyToastData
+import com.bugsy.ui.components.BugsyToastHost
+import com.bugsy.ui.components.BugsyToastOverlay
+import com.bugsy.ui.components.BugsyToastType
 import com.bugsy.ui.components.DragHandle
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import kotlin.random.Random
 
@@ -78,11 +91,68 @@ fun DebugOverlay(
 
     LaunchedEffect(viewModel) { viewModel.refreshFlags() }
 
+    LaunchedEffect(Unit) {
+        MockEngine.oneShotConsumedEvents.collect { rule ->
+            BugsyToastHost.show(
+                BugsyToastData(
+                    type = BugsyToastType.Warning,
+                    title = getString(Res.string.toast_mock_used_up_title),
+                    subtitle = getString(Res.string.toast_mock_used_up_subtitle, rule.urlPattern, rule.statusCode),
+                ),
+            )
+        }
+    }
+
     BugsyTheme {
         val scope = rememberCoroutineScope()
         val offsetY = remember { Animatable(0f) }
         var sheetHeightPx by remember { mutableStateOf(0) }
         var entered by remember { mutableStateOf(!animateEntrance) }
+
+        fun addMockRuleWithToast(rule: MockRule) {
+            MockEngine.addRule(rule)
+            scope.launch {
+                BugsyToastHost.show(
+                    BugsyToastData(
+                        type = BugsyToastType.Success,
+                        title = getString(Res.string.toast_mock_saved_title),
+                        subtitle = getString(Res.string.toast_mock_saved_subtitle, rule.method ?: "ANY", rule.urlPattern, rule.statusCode),
+                    ),
+                )
+            }
+        }
+
+        fun removeMockRuleWithToast(id: String) {
+            val removed = mockRules.firstOrNull { it.id == id } ?: return
+            MockEngine.removeRule(id)
+            scope.launch {
+                BugsyToastHost.show(
+                    BugsyToastData(
+                        type = BugsyToastType.Destructive,
+                        title = getString(Res.string.toast_mock_deleted_title),
+                        subtitle = "${removed.method ?: "ANY"} ${removed.urlPattern}",
+                        action = BugsyToastAction(getString(Res.string.action_undo)) { MockEngine.addRule(removed) },
+                        durationMs = 5_000L,
+                    ),
+                )
+            }
+        }
+
+        fun setMockActiveWithToast(id: String, active: Boolean) {
+            val rule = mockRules.firstOrNull { it.id == id }
+            MockEngine.setActive(id, active)
+            if (!active && rule != null) {
+                scope.launch {
+                    BugsyToastHost.show(
+                        BugsyToastData(
+                            type = BugsyToastType.Info,
+                            title = getString(Res.string.toast_mock_disabled_title),
+                            subtitle = rule.urlPattern,
+                        ),
+                    )
+                }
+            }
+        }
 
         // Entrance: measure the modal, position it below the screen, and slide it to its final position.
         // Runs exactly once: it must not restart when the size changes by a pixel (e.g. insets arriving).
@@ -174,9 +244,9 @@ fun DebugOverlay(
                         )
                         BugsyTab.Mocks -> MocksScreen(
                             rules = mockRules,
-                            onAddRule = MockEngine::addRule,
-                            onToggleActive = MockEngine::setActive,
-                            onRemoveRule = MockEngine::removeRule,
+                            onAddRule = ::addMockRuleWithToast,
+                            onToggleActive = ::setMockActiveWithToast,
+                            onRemoveRule = ::removeMockRuleWithToast,
                             matchesFor = { id -> mockMatchLogs[id].orEmpty() },
                             prefillRule = remember(mockPrefillSource) { mockPrefillSource?.toMockRulePrefill() },
                             prefillSourceLabel = mockPrefillLabel,
@@ -190,6 +260,7 @@ fun DebugOverlay(
                         )
                         BugsyTab.Device -> DeviceInfoScreen(info = viewModel.deviceInfo, customInfo = viewModel.customInfo)
                     }
+                    BugsyToastOverlay()
                 }
             }
         }

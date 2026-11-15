@@ -56,7 +56,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import bugsy.ui.generated.resources.action_export_har
 import bugsy.ui.generated.resources.action_manage
+import bugsy.ui.generated.resources.action_share
 import bugsy.ui.generated.resources.cd_clear_requests
+import bugsy.ui.generated.resources.toast_har_exported_subtitle
+import bugsy.ui.generated.resources.toast_har_exported_title
+import com.bugsy.ui.components.BugsyToastAction
+import com.bugsy.ui.components.BugsyToastData
+import com.bugsy.ui.components.BugsyToastHost
+import com.bugsy.ui.components.BugsyToastType
 import com.bugsy.ui.settings.BugsySettings
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
@@ -147,8 +154,21 @@ fun RequestListScreen(
         ) {
             BugsySearchBar(value = filter, onValueChange = { filter = it }, modifier = Modifier.weight(1f))
             if (onExportHar != null) {
+                val toastTitle = stringResource(Res.string.toast_har_exported_title)
+                val toastSubtitle = stringResource(Res.string.toast_har_exported_subtitle, requests.size)
+                val shareActionLabel = stringResource(Res.string.action_share)
                 IconButton(
-                    onClick = { onExportHar(requests) },
+                    onClick = {
+                        onExportHar(requests)
+                        BugsyToastHost.show(
+                            BugsyToastData(
+                                type = BugsyToastType.Success,
+                                title = toastTitle,
+                                subtitle = toastSubtitle,
+                                action = BugsyToastAction(shareActionLabel) { onExportHar(requests) },
+                            ),
+                        )
+                    },
                     enabled = requests.isNotEmpty(),
                     modifier = Modifier
                         .size(BugsySpacing.controlHeight)

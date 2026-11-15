@@ -2,7 +2,9 @@ package com.bugsy.core
 
 import com.bugsy.core.model.MockMatch
 import com.bugsy.core.model.MockRule
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -14,6 +16,7 @@ object MockEngine {
 
     val rulesFlow: StateFlow<List<MockRule>> = MutableStateFlow(emptyList())
     val matchLogsFlow: StateFlow<Map<String, List<MockMatch>>> = MutableStateFlow(emptyMap())
+    val oneShotConsumedEvents: SharedFlow<MockRule> = MutableSharedFlow()
 
     fun addRule(rule: MockRule) = Unit
 

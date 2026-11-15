@@ -57,6 +57,20 @@ internal object PreviewFixtures {
         durationMs = 2_400,
     )
 
+    val postRequestUnauthorized = DebugRequest(
+        id = "5",
+        url = "https://api.bugsy.dev/v1/auth/login",
+        method = "POST",
+        requestHeaders = mapOf("Content-Type" to "application/json"),
+        requestBody = """{"user":"gabi","password":"***"}""",
+        statusCode = 401,
+        responseHeaders = emptyMap(),
+        responseBody = """{"error":"invalid_credentials"}""",
+        durationMs = 89,
+        timestamp = 1_700_000_040_000,
+        curlCommand = "curl -X POST https://api.bugsy.dev/v1/auth/login -d '{\"user\":\"gabi\",...}'",
+    )
+
     val requests = listOf(getRequest, postRequestError)
 
     val deviceInfo = DeviceInfo(

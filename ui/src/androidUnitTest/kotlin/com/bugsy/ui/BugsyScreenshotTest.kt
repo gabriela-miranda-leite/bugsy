@@ -99,6 +99,16 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun requestRowError() {
+        snapshotOnSurface {
+            Column {
+                RequestRow(request = PreviewFixtures.postRequestUnauthorized, onClick = {})
+                RequestRow(request = PreviewFixtures.postRequestError, onClick = {})
+            }
+        }
+    }
+
+    @Test
     fun bugsyTabBar() {
         snapshotOnSurface {
             BugsyTabBar(selected = BugsyTab.Requests, onSelect = {})

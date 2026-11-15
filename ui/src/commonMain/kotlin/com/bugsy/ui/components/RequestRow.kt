@@ -38,13 +38,17 @@ import com.bugsy.ui.theme.formatDuration
 import com.bugsy.ui.theme.formatUrl
 import com.bugsy.ui.theme.statusColor
 
-private const val SLOW_TINT_ALPHA = 0.06f
+private const val ACCENT_TINT_ALPHA = 0.06f
 private const val SLOW_TAG_ALPHA = 0.16f
 
 /**
  * Clickable list row: method, path (highlighted) with host below, status and duration on the right, and the
- * chevron indicating it opens the detail screen. Requests at or above [DebugRepository.slowRequestThresholdMs]
- * get a tinted background, an accent bar on the left edge, and a "SLOW" tag under the duration.
+ * chevron indicating it opens the detail screen.
+ *
+ * Gets a tinted background and an accent bar on the left edge when the request errored (4xx/5xx, in the
+ * matching status color) or is slow (at or above [DebugRepository.slowRequestThresholdMs], in amber); an error
+ * takes priority over slow for which color is used. A slow request also gets a "SLOW" tag under the duration,
+ * regardless of which accent color won.
  */
 @Composable
 fun RequestRow(
@@ -55,6 +59,12 @@ fun RequestRow(
     val (host, path) = splitHostAndPath(formatUrl(request.url))
     val threshold = DebugRepository.slowRequestThresholdMs
     val isSlow = threshold > 0 && request.durationMs >= threshold
+    val isError = (request.statusCode ?: 0) >= 400
+    val accentColor = when {
+        isError -> statusColor(request.statusCode)
+        isSlow -> BugsyColors.Status3xx
+        else -> null
+    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -62,8 +72,8 @@ fun RequestRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .then(if (isSlow) Modifier.background(BugsyColors.Status3xx.copy(alpha = SLOW_TINT_ALPHA)) else Modifier)
-            // The divider and the slow accent bar are drawn before the padding: they span the full row, on its
+            .then(if (accentColor != null) Modifier.background(accentColor.copy(alpha = ACCENT_TINT_ALPHA)) else Modifier)
+            // The divider and the accent bar are drawn before the padding: they span the full row, on its
             // bottom edge and left edge respectively.
             .drawBehind {
                 val s = BugsySpacing.rowDividerThickness.toPx()
@@ -73,10 +83,10 @@ fun RequestRow(
                     Offset(size.width, size.height - s / 2),
                     s,
                 )
-                if (isSlow) {
+                if (accentColor != null) {
                     val accentWidth = BugsySpacing.requestRowAccentWidth.toPx()
                     drawLine(
-                        BugsyColors.Status3xx,
+                        accentColor,
                         Offset(accentWidth / 2, 0f),
                         Offset(accentWidth / 2, size.height),
                         accentWidth,
@@ -149,7 +159,12 @@ private fun splitHostAndPath(hostAndPath: String): Pair<String, String> {
 private fun RequestRowPreview() {
     BugsyTheme {
         Column(Modifier.background(BugsyColors.Surface)) {
-            (PreviewFixtures.requests + PreviewFixtures.getRequestSlow).forEach { request ->
+            listOf(
+                PreviewFixtures.getRequest,
+                PreviewFixtures.postRequestUnauthorized,
+                PreviewFixtures.getRequestSlow,
+                PreviewFixtures.postRequestError,
+            ).forEach { request ->
                 RequestRow(request = request, onClick = {})
             }
         }

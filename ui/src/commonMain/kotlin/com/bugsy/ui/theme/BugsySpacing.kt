@@ -41,6 +41,8 @@ object BugsySpacing {
 
     // Request row
     val durationColumnMinWidth = 38.dp
+    val requestRowAccentWidth = 3.dp
+    val requestRowTagSpacing = 4.dp
 
     // Key/value row
     val keyValueKeyMinWidthDefault = 130.dp

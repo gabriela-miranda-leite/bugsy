@@ -65,4 +65,7 @@
     <string name="cd_clear_requests">Clear requests</string>
 
     <string name="action_export_har">Export HAR</string>
+
+    <string name="tag_slow_request">SLOW</string>
+    <string name="tooltip_slow_request">%1$s · threshold %2$s</string>
 </resources>

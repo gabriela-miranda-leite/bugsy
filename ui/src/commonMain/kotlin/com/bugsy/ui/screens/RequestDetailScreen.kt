@@ -2,6 +2,7 @@ package com.bugsy.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,12 +27,18 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.action_copy_url
@@ -46,6 +54,8 @@ import bugsy.ui.generated.resources.label_time
 import bugsy.ui.generated.resources.loading_request_details_title
 import bugsy.ui.generated.resources.loading_subtitle_default
 import bugsy.ui.generated.resources.tab_requests
+import bugsy.ui.generated.resources.tooltip_slow_request
+import com.bugsy.core.DebugRepository
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.CodeBlock
@@ -143,11 +153,21 @@ fun RequestDetailScreen(
                         valueColor = statusColor(request.statusCode),
                         modifier = Modifier.weight(1f),
                     )
-                    MetricCard(
-                        stringResource(Res.string.label_duration),
-                        formatDuration(request.durationMs),
-                        modifier = Modifier.weight(1f),
-                    )
+                    val slowThreshold = DebugRepository.slowRequestThresholdMs
+                    val isSlow = slowThreshold > 0 && request.durationMs >= slowThreshold
+                    if (isSlow) {
+                        SlowDurationMetric(
+                            durationMs = request.durationMs,
+                            thresholdMs = slowThreshold,
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        MetricCard(
+                            stringResource(Res.string.label_duration),
+                            formatDuration(request.durationMs),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                     MetricCard(
                         stringResource(Res.string.label_time),
                         request.timestamp.formatHms(),
@@ -216,6 +236,49 @@ private fun RevealToggle(showReal: Boolean, onToggle: () -> Unit) {
     }
 }
 
+/** Duration metric card for a slow request: tapping it shows a tooltip with the duration and the threshold. */
+@Composable
+private fun SlowDurationMetric(durationMs: Long, thresholdMs: Long, modifier: Modifier = Modifier) {
+    var showTooltip by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        MetricCard(
+            label = stringResource(Res.string.label_duration),
+            value = formatDuration(durationMs),
+            valueColor = BugsyColors.Status3xx,
+            modifier = Modifier.fillMaxWidth().clickable { showTooltip = !showTooltip },
+        )
+        if (showTooltip) {
+            SlowTooltip(
+                text = stringResource(Res.string.tooltip_slow_request, formatDuration(durationMs), formatDuration(thresholdMs)),
+                modifier = Modifier.align(Alignment.TopCenter).offset(y = -SlowTooltipOffset),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SlowTooltip(text: String, modifier: Modifier = Modifier) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .background(BugsyColors.Status3xx, RoundedCornerShape(BugsySpacing.cornerButtonSmall))
+                .padding(horizontal = BugsySpacing.sm, vertical = BugsySpacing.xs),
+        ) {
+            Text(text, style = BugsyTypography.Caption, color = BugsyColors.Background, maxLines = 1)
+        }
+        Box(
+            modifier = Modifier
+                .size(SlowTooltipArrowSize)
+                .offset(y = -(SlowTooltipArrowSize / 2))
+                .rotate(45f)
+                .background(BugsyColors.Status3xx),
+        )
+    }
+}
+
+private val SlowTooltipOffset = 8.dp
+private val SlowTooltipArrowSize = 8.dp
+
 private fun Map<String, String>.asText(): String = entries.joinToString("\n") { (name, value) -> "$name: $value" }
 
 private fun Long.formatHms(): String {
@@ -234,6 +297,16 @@ private fun RequestDetailScreenPreview() {
     BugsyTheme {
         Box(Modifier.background(BugsyColors.Surface)) {
             RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {})
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun RequestDetailScreenSlowPreview() {
+    BugsyTheme {
+        Box(Modifier.background(BugsyColors.Surface)) {
+            RequestDetailScreen(request = PreviewFixtures.getRequestSlow, onBack = {})
         }
     }
 }

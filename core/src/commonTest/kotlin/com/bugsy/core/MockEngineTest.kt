@@ -28,6 +28,22 @@ class MockEngineTest {
     }
 
     @Test
+    fun `an anchored exact-match pattern matches against the path and not the full scheme-plus-host url`() {
+        MockEngine.addRule(MockRule(id = "1", urlPattern = "^/put$"))
+
+        // ^...$ anchors a plain path like "/put" exactly: it must never be tested against
+        // "https://httpbin.org/put" as a whole, which doesn't start with "/" and would never match.
+        assertEquals("1", MockEngine.match("PUT", "https://httpbin.org/put", timestamp = 0)?.id)
+    }
+
+    @Test
+    fun `an anchored exact-match pattern ignores the query string`() {
+        MockEngine.addRule(MockRule(id = "1", urlPattern = "^/v1/feed$"))
+
+        assertEquals("1", MockEngine.match("GET", "https://api.bugsy.dev/v1/feed?page=1", timestamp = 0)?.id)
+    }
+
+    @Test
     fun `a null method matches any method`() {
         MockEngine.addRule(MockRule(id = "1", urlPattern = "/v1/feed", method = null))
 

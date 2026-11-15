@@ -38,7 +38,7 @@ class DebugOverlayTest {
         )
 
     @Test
-    fun `toMockRulePrefill anchors an exact-match pattern on the request's path, readably escaped`() {
+    fun `toMockRulePrefill anchors an exact-match pattern on the request's path and escapes it readably`() {
         val prefill = request("https://api.bugsy.dev/v1/auth/login?x=1").toMockRulePrefill()
 
         // Plain character-by-character escaping, not Regex.escape()'s \Q...\E — unreadable, and this is

@@ -115,9 +115,19 @@ object MockEngine {
         if (!isActive) return false
         if (method != null && !method.equals(requestMethod, ignoreCase = true)) return false
         return try {
-            Regex(urlPattern).containsMatchIn(requestUrl)
+            // Patterns are authored against the path (e.g. "/api/v1/catalog", "^/put$"), same as what the UI
+            // shows and pre-fills — not the full URL, which an anchored pattern could never match (it doesn't
+            // start with "/", it starts with the scheme).
+            Regex(urlPattern).containsMatchIn(requestUrl.pathOnly())
         } catch (e: Exception) {
             false
         }
+    }
+
+    /** "https://api.bugsy.dev/v1/users/42?x=1" -> "/v1/users/42" (scheme, host and query stripped). */
+    private fun String.pathOnly(): String {
+        val afterScheme = substringAfter("://", missingDelimiterValue = this)
+        val withoutHost = afterScheme.substringAfter('/', missingDelimiterValue = "").let { if (it.isEmpty()) "/" else "/$it" }
+        return withoutHost.substringBefore('?')
     }
 }

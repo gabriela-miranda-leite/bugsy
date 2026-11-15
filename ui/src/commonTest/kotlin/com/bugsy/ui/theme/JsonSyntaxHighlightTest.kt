@@ -2,6 +2,7 @@ package com.bugsy.ui.theme
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class JsonSyntaxHighlightTest {
 
@@ -26,17 +27,17 @@ class JsonSyntaxHighlightTest {
 
         val keySpan = result.spanStyles.first { result.text.substring(it.start, it.end) == "\"key\"" }
         val valueSpan = result.spanStyles.first { result.text.substring(it.start, it.end) == "\"value\"" }
-        assert(keySpan.item.color != valueSpan.item.color)
+        assertTrue(keySpan.item.color != valueSpan.item.color)
     }
 
     @Test
-    fun `highlightJsonLenient preserves the exact input, including invalid JSON`() {
+    fun `highlightJsonLenient preserves the exact input even when it is invalid JSON`() {
         val input = """{"a": 1, "b": tru"""
         assertEquals(input, highlightJsonLenient(input).text)
     }
 
     @Test
-    fun `highlightJsonLenient colors a key, a string value, a number and a boolean differently`() {
+    fun `highlightJsonLenient colors a key and a string value and a number and a boolean differently`() {
         val result = highlightJsonLenient("""{"id":1,"ok":true,"name":"Ada"}""")
 
         val idKey = result.spanStyles.first { result.text.substring(it.start, it.end) == "\"id\"" }
@@ -54,6 +55,6 @@ class JsonSyntaxHighlightTest {
 
         val nameSpan = result.spanStyles.first { result.text.substring(it.start, it.end) == "\"name\"" }
         val valueSpan = result.spanStyles.first { result.text.substring(it.start, it.end) == "\"value\"" }
-        assert(nameSpan.item.color != valueSpan.item.color)
+        assertTrue(nameSpan.item.color != valueSpan.item.color)
     }
 }

@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.OutlinedButton
@@ -35,7 +34,6 @@ import androidx.compose.ui.text.AnnotatedString
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.action_copy_url
-import bugsy.ui.generated.resources.action_export_har
 import bugsy.ui.generated.resources.action_mask_sensitive
 import bugsy.ui.generated.resources.action_reveal_sensitive
 import bugsy.ui.generated.resources.label_duration
@@ -71,7 +69,6 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * @param revealed when `true` (and the request has real values in memory), the screen, and everything copied
  * from it, shows the sensitive data unmasked. Controlled by the show/hide button in the top bar.
- * @param onExportHar when non-null, shows the "Export HAR" button in the top bar.
  */
 @Composable
 fun RequestDetailScreen(
@@ -80,7 +77,6 @@ fun RequestDetailScreen(
     revealed: Boolean = false,
     onRevealedChange: (Boolean) -> Unit = {},
     isLoading: Boolean = false,
-    onExportHar: (() -> Unit)? = null,
 ) {
     val clipboard = LocalClipboardManager.current
     val secrets = request.secrets
@@ -114,16 +110,6 @@ fun RequestDetailScreen(
                 Text(stringResource(Res.string.tab_requests), style = BugsyTypography.Body, color = BugsyColors.Brand)
             }
             Spacer(Modifier.weight(1f))
-            if (onExportHar != null) {
-                IconButton(onClick = onExportHar) {
-                    Icon(
-                        Icons.Outlined.IosShare,
-                        contentDescription = stringResource(Res.string.action_export_har),
-                        tint = BugsyColors.Brand,
-                        modifier = Modifier.size(BugsySpacing.iconSizeMedium),
-                    )
-                }
-            }
             if (secrets != null) {
                 RevealToggle(showReal = showReal, onToggle = { onRevealedChange(!showReal) })
             }

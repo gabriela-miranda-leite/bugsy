@@ -30,7 +30,7 @@ fun BugsyAndroidOverlay() {
             DebugOverlay(
                 viewModel = remember { DebugViewModel() },
                 onDismiss = { Bugsy.hide() },
-                onExportHar = { requests, revealSecrets -> shareHar(context, requests, revealSecrets) },
+                onExportHar = { requests -> shareHar(context, requests) },
             )
         }
     }

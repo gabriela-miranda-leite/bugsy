@@ -15,13 +15,13 @@ private const val CACHE_DIR = "bugsy"
  * Writes the HAR to the app's cache and opens the native share sheet with it attached. The file lives in the
  * cache (never in external storage) and is shared through a FileProvider, so only the chosen target can read it.
  */
-internal fun shareHar(context: Context, requests: List<DebugRequest>, revealSecrets: Boolean) {
+internal fun shareHar(context: Context, requests: List<DebugRequest>) {
     if (requests.isEmpty()) return
     val dir = File(context.cacheDir, CACHE_DIR).apply { mkdirs() }
     // Old exports may hold real values the user chose to share once: don't let them pile up.
     dir.listFiles { file -> file.extension == "har" }?.forEach { it.delete() }
     val file = File(dir, "bugsy-${System.currentTimeMillis()}.har")
-    file.writeText(HarSerializer.serialize(requests, revealSecrets))
+    file.writeText(HarSerializer.serialize(requests, revealSecrets = true))
 
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.bugsy.fileprovider", file)
     val builder = ShareCompat.IntentBuilder(context)

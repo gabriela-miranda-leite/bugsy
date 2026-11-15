@@ -129,30 +129,9 @@ class BugsyScreenshotTest {
     }
 
     @Test
-    fun requestListScreenSelection() {
+    fun requestListScreenWithExport() {
         snapshotOnSurface {
-            RequestListScreen(
-                requests = PreviewFixtures.requests,
-                onExportHar = { _, _ -> },
-                initialSelection = setOf(PreviewFixtures.requests.first().id),
-            )
-        }
-    }
-
-    @Test
-    fun requestRowSelected() {
-        snapshotOnSurface {
-            Column {
-                RequestRow(request = PreviewFixtures.getRequest, onClick = {}, selectionMode = true, selected = true)
-                RequestRow(request = PreviewFixtures.postRequestError, onClick = {}, selectionMode = true, selected = false)
-            }
-        }
-    }
-
-    @Test
-    fun requestDetailScreenWithExport() {
-        snapshotOnSurface {
-            RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {}, onExportHar = {})
+            RequestListScreen(requests = PreviewFixtures.requests, onExportHar = {})
         }
     }
 

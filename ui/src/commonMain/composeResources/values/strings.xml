@@ -65,10 +65,4 @@
     <string name="cd_clear_requests">Clear requests</string>
 
     <string name="action_export_har">Export HAR</string>
-    <string name="action_export_har_count">Export HAR (%1$d)</string>
-    <string name="action_cancel_selection">Cancel</string>
-    <string name="export_har_dialog_title">Export sensitive data?</string>
-    <string name="export_har_dialog_message">Some requests have real values (tokens, passwords) in memory. Anyone with the file will see them.</string>
-    <string name="export_har_dialog_masked">Export masked</string>
-    <string name="export_har_dialog_real">Export real values</string>
 </resources>

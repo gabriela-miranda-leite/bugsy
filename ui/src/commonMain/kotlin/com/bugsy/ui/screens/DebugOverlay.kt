@@ -78,6 +78,10 @@ fun DebugOverlay(
     modifier: Modifier = Modifier,
     animateEntrance: Boolean = true,
     onExportHar: HarExporter? = null,
+    onExportMockRules: ((json: String) -> Unit)? = null,
+    onPickMockRulesFile: (() -> Unit)? = null,
+    importedMockRulesFileContent: String? = null,
+    onImportedMockRulesFileConsumed: () -> Unit = {},
 ) {
     var selectedTab by remember { mutableStateOf(BugsyTab.Requests) }
     var showSettings by remember { mutableStateOf(false) }
@@ -253,6 +257,14 @@ fun DebugOverlay(
                             prefillSourceLabel = mockPrefillLabel,
                             onPrefillConsumed = { mockPrefillSource = null },
                             onNavigateToRequests = { selectedTab = BugsyTab.Requests },
+                            onExport = onExportMockRules,
+                            onPickImportFile = onPickMockRulesFile,
+                            importedFileContent = importedMockRulesFileContent,
+                            onImportFileConsumed = onImportedMockRulesFileConsumed,
+                            onImportRules = { imported, replace ->
+                                if (replace) MockEngine.clear()
+                                imported.forEach(MockEngine::addRule)
+                            },
                         )
                         BugsyTab.Flags -> FlagsScreen(
                             flags = flags,

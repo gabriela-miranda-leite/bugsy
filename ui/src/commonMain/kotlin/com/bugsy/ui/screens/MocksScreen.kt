@@ -8,31 +8,60 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Upload
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.action_merge
+import bugsy.ui.generated.resources.action_replace
+import bugsy.ui.generated.resources.cd_export_mocks
+import bugsy.ui.generated.resources.cd_import_mocks
 import bugsy.ui.generated.resources.mocks_action_new
 import bugsy.ui.generated.resources.mocks_empty_action
 import bugsy.ui.generated.resources.mocks_empty_link
 import bugsy.ui.generated.resources.mocks_empty_subtitle
 import bugsy.ui.generated.resources.mocks_empty_title
+import bugsy.ui.generated.resources.mocks_import_dialog_message
+import bugsy.ui.generated.resources.mocks_import_dialog_title
+import bugsy.ui.generated.resources.toast_import_invalid_malformed
+import bugsy.ui.generated.resources.toast_import_invalid_missing_field
+import bugsy.ui.generated.resources.toast_import_invalid_title
+import bugsy.ui.generated.resources.toast_import_invalid_version
+import bugsy.ui.generated.resources.toast_mocks_exported_subtitle
+import bugsy.ui.generated.resources.toast_mocks_exported_title
+import bugsy.ui.generated.resources.toast_mocks_imported_subtitle_merge
+import bugsy.ui.generated.resources.toast_mocks_imported_subtitle_replace
+import bugsy.ui.generated.resources.toast_mocks_imported_title
+import com.bugsy.core.MockRuleFileResult
+import com.bugsy.core.MockRuleFileSerializer
 import com.bugsy.core.model.MockMatch
 import com.bugsy.core.model.MockRule
 import com.bugsy.ui.PreviewFixtures
+import com.bugsy.ui.components.BugsyToastAction
+import com.bugsy.ui.components.BugsyToastData
+import com.bugsy.ui.components.BugsyToastHost
+import com.bugsy.ui.components.BugsyToastType
 import com.bugsy.ui.components.EmptyState
 import com.bugsy.ui.components.MockRuleRow
 import com.bugsy.ui.theme.BugsyColors
@@ -48,6 +77,10 @@ import org.jetbrains.compose.resources.stringResource
  * @param prefillRule when set (from "Create mock from this response" on a request), opens the form directly,
  * pre-filled with it; [prefillSourceLabel] is the banner text, and [onPrefillConsumed] clears both fields once
  * the form is dismissed or saved so reopening the tab doesn't reopen the same prefill.
+ * @param onExport when non-null, shows an export icon button; called with the serialized JSON to share.
+ * @param onPickImportFile when non-null, shows an import icon button that triggers the platform's file picker.
+ * @param importedFileContent the picked file's raw text, set by the platform layer once the picker returns;
+ * validated here, then — if valid — offered to the user as a merge/replace choice before [onImportRules] runs.
  */
 @Composable
 fun MocksScreen(
@@ -60,10 +93,56 @@ fun MocksScreen(
     prefillSourceLabel: String? = null,
     onPrefillConsumed: () -> Unit = {},
     onNavigateToRequests: () -> Unit = {},
+    onExport: ((json: String) -> Unit)? = null,
+    onPickImportFile: (() -> Unit)? = null,
+    importedFileContent: String? = null,
+    onImportFileConsumed: () -> Unit = {},
+    onImportRules: (rules: List<MockRule>, replace: Boolean) -> Unit = { _, _ -> },
 ) {
     var viewing by remember { mutableStateOf<MockRule?>(null) }
     var editing by remember { mutableStateOf<MockRule?>(null) }
     var creating by remember { mutableStateOf(false) }
+    var pendingImport by remember { mutableStateOf<List<MockRule>?>(null) }
+
+    val invalidTitle = stringResource(Res.string.toast_import_invalid_title)
+    val invalidMalformed = stringResource(Res.string.toast_import_invalid_malformed)
+    val invalidVersion = stringResource(Res.string.toast_import_invalid_version)
+    val invalidMissingField = stringResource(Res.string.toast_import_invalid_missing_field)
+    val importedTitle = stringResource(Res.string.toast_mocks_imported_title)
+    val importedSubtitleMerge = stringResource(Res.string.toast_mocks_imported_subtitle_merge, pendingImport?.size ?: 0)
+    val importedSubtitleReplace = stringResource(Res.string.toast_mocks_imported_subtitle_replace, pendingImport?.size ?: 0)
+
+    if (importedFileContent != null) {
+        when (val result = MockRuleFileSerializer.deserialize(importedFileContent)) {
+            is MockRuleFileResult.Success -> pendingImport = result.rules
+            is MockRuleFileResult.Invalid -> {
+                val subtitle = when (result.reason) {
+                    MockRuleFileResult.Reason.MALFORMED_JSON -> invalidMalformed
+                    MockRuleFileResult.Reason.UNKNOWN_VERSION -> invalidVersion
+                    MockRuleFileResult.Reason.MISSING_FIELD -> invalidMissingField
+                }
+                BugsyToastHost.show(BugsyToastData(type = BugsyToastType.Error, title = invalidTitle, subtitle = subtitle))
+            }
+        }
+        onImportFileConsumed()
+    }
+
+    pendingImport?.let { parsedRules ->
+        ImportModeDialog(
+            count = parsedRules.size,
+            onMerge = {
+                onImportRules(parsedRules, false)
+                BugsyToastHost.show(BugsyToastData(type = BugsyToastType.Success, title = importedTitle, subtitle = importedSubtitleMerge))
+                pendingImport = null
+            },
+            onReplace = {
+                onImportRules(parsedRules, true)
+                BugsyToastHost.show(BugsyToastData(type = BugsyToastType.Success, title = importedTitle, subtitle = importedSubtitleReplace))
+                pendingImport = null
+            },
+            onDismiss = { pendingImport = null },
+        )
+    }
 
     if (prefillRule != null && !creating) {
         creating = true
@@ -103,12 +182,38 @@ fun MocksScreen(
         return
     }
 
+    val exportedTitle = stringResource(Res.string.toast_mocks_exported_title)
+    val activeCount = rules.count { it.isActive }
+    val exportedSubtitle = stringResource(Res.string.toast_mocks_exported_subtitle, activeCount)
+
     Column(Modifier.fillMaxWidth()) {
-        if (rules.isNotEmpty()) {
-            Row(
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = BugsySpacing.lg, vertical = BugsySpacing.searchBarVerticalMargin),
-            ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = BugsySpacing.lg, vertical = BugsySpacing.searchBarVerticalMargin),
+        ) {
+            if (onPickImportFile != null) {
+                IconActionButton(
+                    icon = Icons.Outlined.Upload,
+                    contentDescription = stringResource(Res.string.cd_import_mocks),
+                    onClick = onPickImportFile,
+                )
+            }
+            if (onExport != null) {
+                IconActionButton(
+                    icon = Icons.Outlined.Download,
+                    contentDescription = stringResource(Res.string.cd_export_mocks),
+                    enabled = activeCount > 0,
+                    onClick = {
+                        onExport(MockRuleFileSerializer.serialize(rules))
+                        BugsyToastHost.show(
+                            BugsyToastData(type = BugsyToastType.Success, title = exportedTitle, subtitle = exportedSubtitle),
+                        )
+                    },
+                )
+            }
+            Box(Modifier.weight(1f))
+            if (rules.isNotEmpty()) {
                 Button(
                     onClick = { creating = true },
                     colors = ButtonDefaults.buttonColors(containerColor = BugsyColors.Brand, contentColor = BugsyColors.Surface),
@@ -121,6 +226,8 @@ fun MocksScreen(
                     )
                 }
             }
+        }
+        if (rules.isNotEmpty()) {
             LazyColumn(Modifier.fillMaxWidth()) {
                 items(rules, key = { it.id }) { rule ->
                     MockRuleRow(
@@ -147,6 +254,50 @@ fun MocksScreen(
     }
 }
 
+@Composable
+private fun IconActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, contentDescription: String, onClick: () -> Unit, enabled: Boolean = true) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .size(BugsySpacing.controlHeight)
+            .background(BugsyColors.SurfaceCard, RoundedCornerShape(BugsySpacing.cornerCard)),
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = if (enabled) BugsyColors.Brand else BugsyColors.TextDisabled,
+            modifier = Modifier.size(BugsySpacing.iconSizeMedium),
+        )
+    }
+}
+
+@Composable
+private fun ImportModeDialog(count: Int, onMerge: () -> Unit, onReplace: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = BugsyColors.SurfaceCard,
+        title = { Text(stringResource(Res.string.mocks_import_dialog_title), style = BugsyTypography.Body, color = BugsyColors.TextPrimary) },
+        text = {
+            Text(
+                stringResource(Res.string.mocks_import_dialog_message, count),
+                style = BugsyTypography.Caption,
+                color = BugsyColors.TextMuted,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onMerge) {
+                Text(stringResource(Res.string.action_merge), color = BugsyColors.Brand)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onReplace) {
+                Text(stringResource(Res.string.action_replace), color = BugsyColors.Status4xx)
+            }
+        },
+    )
+}
+
 @Preview
 @Composable
 private fun MocksScreenEmptyPreview() {
@@ -162,7 +313,14 @@ private fun MocksScreenEmptyPreview() {
 private fun MocksScreenWithDataPreview() {
     BugsyTheme {
         Box(Modifier.background(BugsyColors.Surface)) {
-            MocksScreen(rules = PreviewFixtures.mockRules, onAddRule = {}, onToggleActive = { _, _ -> }, onRemoveRule = {})
+            MocksScreen(
+                rules = PreviewFixtures.mockRules,
+                onAddRule = {},
+                onToggleActive = { _, _ -> },
+                onRemoveRule = {},
+                onExport = {},
+                onPickImportFile = {},
+            )
         }
     }
 }

@@ -176,7 +176,27 @@ class BugsyScreenshotTest {
     @Test
     fun mocksScreenWithData() {
         snapshotOnSurface {
-            MocksScreen(rules = PreviewFixtures.mockRules, onAddRule = {}, onToggleActive = { _, _ -> }, onRemoveRule = {})
+            MocksScreen(
+                rules = PreviewFixtures.mockRules,
+                onAddRule = {},
+                onToggleActive = { _, _ -> },
+                onRemoveRule = {},
+                onExport = {},
+                onPickImportFile = {},
+            )
+        }
+    }
+
+    @Test
+    fun mocksScreenImportDialog() {
+        snapshotOnSurface {
+            MocksScreen(
+                rules = PreviewFixtures.mockRules,
+                onAddRule = {},
+                onToggleActive = { _, _ -> },
+                onRemoveRule = {},
+                importedFileContent = """{"version": 1, "rules": [{"urlPattern": "/v1/feed"}, {"urlPattern": "/v1/orders"}]}""",
+            )
         }
     }
 

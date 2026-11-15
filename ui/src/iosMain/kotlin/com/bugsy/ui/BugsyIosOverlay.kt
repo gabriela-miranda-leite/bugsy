@@ -54,7 +54,14 @@ private fun presentOverlay() {
         },
     ) {
         // The background dimming and animations are DebugOverlay's own.
-        DebugOverlay(viewModel = remember { DebugViewModel() }, onDismiss = { Bugsy.hide() })
+        DebugOverlay(
+            viewModel = remember { DebugViewModel() },
+            onDismiss = { Bugsy.hide() },
+            onExportMockRules = { json -> shareMockRulesIos(json) },
+            onPickMockRulesFile = { pickMockRulesFileIos() },
+            importedMockRulesFileContent = mockRulesImportState.value,
+            onImportedMockRulesFileConsumed = { mockRulesImportState.value = null },
+        )
     }
     controller.modalPresentationStyle = UIModalPresentationOverFullScreen
     controller.view.backgroundColor = UIColor.clearColor

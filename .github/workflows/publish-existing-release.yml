@@ -1,0 +1,46 @@
+name: Publish existing release to Maven Central
+
+# Publica no Maven Central uma tag de release que já existe (ex: quando o
+# publish falhou por credencial inválida mas a tag/GitHub Release já tinham
+# sido criadas). Não cria tag nem release, só builda a partir da tag informada
+# e publica.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag já existente para publicar (ex: v0.2.0-alpha)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Restrict who can trigger this
+        if: github.actor != 'gabriela-miranda-leite'
+        run: |
+          echo "::error::Apenas gabriela-miranda-leite pode disparar isso." >&2
+          exit 1
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Publish to Maven Central
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache

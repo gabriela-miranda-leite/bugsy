@@ -105,18 +105,11 @@ jobs:
             --body "Release automático via workflow_dispatch."
           gh pr merge "release/v${VERSION}" --squash --admin --delete-branch
 
-      - name: Tag and create GitHub Release with auto-generated changelog
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+      - name: Sync local checkout with merged main
         run: |
           git fetch origin main
           git checkout main
           git reset --hard origin/main
-          git tag -a "v${VERSION}" -m "v${VERSION}"
-          git push origin "v${VERSION}"
-          gh release create "v${VERSION}" \
-            --title "v${VERSION}" \
-            --generate-notes
 
       - uses: actions/setup-java@v4
         with:
@@ -132,3 +125,13 @@ jobs:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+
+      - name: Tag and create GitHub Release with auto-generated changelog
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          git tag -a "v${VERSION}" -m "v${VERSION}"
+          git push origin "v${VERSION}"
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --generate-notes

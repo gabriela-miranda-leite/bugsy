@@ -12,6 +12,7 @@ androidx-compose-bom = "2024.10.00"
 paparazzi = "2.0.0-alpha05.1"
 androidx-startup = "1.1.1"
 androidx-lifecycle = "2.8.4"
+androidx-core = "1.13.1"
 mavenPublish = "0.37.0"
 kover = "0.9.11"
 
@@ -22,6 +23,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "compose-material-icons-extended" }
 androidx-startup-runtime = { module = "androidx.startup:startup-runtime", version.ref = "androidx-startup" }
+androidx-core = { module = "androidx.core:core", version.ref = "androidx-core" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidx-lifecycle" }
 
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }

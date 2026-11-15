@@ -31,7 +31,18 @@ import com.bugsy.ui.theme.BugsySpacing
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.outlined.IosShare
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import bugsy.ui.generated.resources.action_cancel_selection
+import bugsy.ui.generated.resources.action_export_har_count
+import com.bugsy.ui.components.HarExportDialog
+import com.bugsy.ui.theme.BugsyTypography
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -54,8 +65,21 @@ fun filterRequests(requests: List<DebugRequest>, filter: String): List<DebugRequ
         }
     }
 
+/** Shares [requests] as a HAR file; the flag says whether to write real values instead of the masked ones. */
+typealias HarExporter = (requests: List<DebugRequest>, revealSecrets: Boolean) -> Unit
+
+/**
+ * @param onExportHar when non-null, long press on a row starts a multi-selection with an "Export HAR (N)" bar, and
+ * the detail screen gets an "Export HAR" button. `null` (e.g. on iOS) hides all of it.
+ */
 @Composable
-fun RequestListScreen(requests: List<DebugRequest>, onClear: () -> Unit = {}, isLoading: Boolean = false) {
+fun RequestListScreen(
+    requests: List<DebugRequest>,
+    onClear: () -> Unit = {},
+    isLoading: Boolean = false,
+    onExportHar: HarExporter? = null,
+    initialSelection: Set<String>? = null,
+) {
     if (isLoading) {
         LoadingState(
             title = stringResource(Res.string.loading_requests_title),
@@ -72,13 +96,25 @@ fun RequestListScreen(requests: List<DebugRequest>, onClear: () -> Unit = {}, is
     var revealed by remember { mutableStateOf(revealDefault) }
     LaunchedEffect(revealDefault) { revealed = revealDefault }
 
+    // Ids of the rows picked for export; `null` means not in selection mode.
+    var selection by remember { mutableStateOf(initialSelection) }
+    var pendingExport by remember { mutableStateOf<List<DebugRequest>?>(null) }
+
+    fun requestExport(toExport: List<DebugRequest>) {
+        val exporter = onExportHar ?: return
+        // Only ask when real values would actually be available to write.
+        if (toExport.any { it.secrets != null }) pendingExport = toExport else exporter(toExport, false)
+    }
+
     selected?.let { req ->
         RequestDetailScreen(
             request = req,
             onBack = { selected = null },
             revealed = revealed,
             onRevealedChange = { revealed = it },
+            onExportHar = onExportHar?.let { { requestExport(listOf(req)) } },
         )
+        pendingExport?.let { ExportDialog(it, onExportHar, onDone = { pendingExport = null }) }
         return
     }
 
@@ -119,9 +155,73 @@ fun RequestListScreen(requests: List<DebugRequest>, onClear: () -> Unit = {}, is
         } else {
             LazyColumn(Modifier.fillMaxWidth()) {
                 items(filtered, key = { it.id }) { req ->
-                    RequestRow(request = req, onClick = { selected = req })
+                    val current = selection
+                    RequestRow(
+                        request = req,
+                        onClick = {
+                            if (current == null) selected = req else selection = current.toggle(req.id)
+                        },
+                        selectionMode = current != null,
+                        selected = current?.contains(req.id) == true,
+                        onLongClick = if (onExportHar != null && current == null) ({ selection = setOf(req.id) }) else null,
+                    )
                 }
             }
+        }
+        selection?.let { ids ->
+            // Ids can disappear while selecting (the list is live, or "clear" ran): only export what still exists.
+            val chosen = requests.filter { it.id in ids }
+            SelectionBar(
+                count = chosen.size,
+                onExport = { requestExport(chosen) },
+                onCancel = { selection = null },
+            )
+        }
+    }
+    pendingExport?.let {
+        ExportDialog(it, onExportHar, onDone = { pendingExport = null; selection = null })
+    }
+}
+
+private fun Set<String>.toggle(id: String): Set<String> = if (id in this) this - id else this + id
+
+@Composable
+private fun ExportDialog(requests: List<DebugRequest>, exporter: HarExporter?, onDone: () -> Unit) {
+    HarExportDialog(
+        onExportMasked = { exporter?.invoke(requests, false); onDone() },
+        onExportReal = { exporter?.invoke(requests, true); onDone() },
+        onDismiss = onDone,
+    )
+}
+
+@Composable
+private fun SelectionBar(count: Int, onExport: () -> Unit, onCancel: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(BugsyColors.SurfaceCard)
+            .padding(horizontal = BugsySpacing.lg, vertical = BugsySpacing.md),
+    ) {
+        TextButton(onClick = onCancel) {
+            Text(stringResource(Res.string.action_cancel_selection), style = BugsyTypography.Body, color = BugsyColors.TextDisabled)
+        }
+        Spacer(Modifier.weight(1f))
+        Button(
+            onClick = onExport,
+            enabled = count > 0,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = BugsyColors.Brand,
+                contentColor = BugsyColors.Surface,
+                disabledContainerColor = BugsyColors.SurfaceElevated,
+                disabledContentColor = BugsyColors.TextDisabled,
+            ),
+            shape = RoundedCornerShape(BugsySpacing.cornerButtonSmall),
+        ) {
+            Icon(Icons.Outlined.IosShare, contentDescription = null, modifier = Modifier.size(BugsySpacing.iconSizeSmall))
+            Spacer(Modifier.width(BugsySpacing.codeBlockButtonIconSpacing))
+            Text(stringResource(Res.string.action_export_har_count, count), style = BugsyTypography.Body)
         }
     }
 }

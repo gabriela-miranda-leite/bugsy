@@ -1,7 +1,8 @@
 package com.bugsy.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,13 +35,18 @@ import com.bugsy.ui.theme.statusColor
 
 /**
  * Clickable list row: method, path (highlighted) with host below, status and duration on the right, and the
- * chevron indicating it opens the detail screen.
+ * chevron indicating it opens the detail screen. In [selectionMode] the chevron becomes a checkbox
+ * ([selected]) and a tap toggles the selection instead of opening the detail. [onLongClick] starts the selection.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RequestRow(
     request: DebugRequest,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val (host, path) = splitHostAndPath(formatUrl(request.url))
 
@@ -47,7 +55,7 @@ fun RequestRow(
         horizontalArrangement = Arrangement.spacedBy(BugsySpacing.md),
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             // The divider is drawn before the padding: it spans the full width, on the row's bottom edge.
             .drawBehind {
                 val s = BugsySpacing.rowDividerThickness.toPx()
@@ -88,12 +96,26 @@ fun RequestRow(
                 color = BugsyColors.TextDisabled,
             )
         }
-        Icon(
-            Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-            contentDescription = null,
-            tint = BugsyColors.TextDisabled,
-            modifier = Modifier.size(BugsySpacing.requestRowChevronSize),
-        )
+        if (selectionMode) {
+            // The whole row is the tap target, so the checkbox itself doesn't handle clicks.
+            Checkbox(
+                checked = selected,
+                onCheckedChange = null,
+                colors = CheckboxDefaults.colors(
+                    checkedColor = BugsyColors.Brand,
+                    uncheckedColor = BugsyColors.TextDisabled,
+                    checkmarkColor = BugsyColors.Surface,
+                ),
+                modifier = Modifier.size(BugsySpacing.requestRowChevronSize),
+            )
+        } else {
+            Icon(
+                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = BugsyColors.TextDisabled,
+                modifier = Modifier.size(BugsySpacing.requestRowChevronSize),
+            )
+        }
     }
 }
 

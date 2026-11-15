@@ -56,6 +56,7 @@ fun DebugOverlay(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     animateEntrance: Boolean = true,
+    onExportHar: HarExporter? = null,
 ) {
     var selectedTab by remember { mutableStateOf(BugsyTab.Requests) }
     var showSettings by remember { mutableStateOf(false) }
@@ -147,7 +148,7 @@ fun DebugOverlay(
                         return@Box
                     }
                     when (selectedTab) {
-                        BugsyTab.Requests -> RequestListScreen(requests = requests, onClear = viewModel::clearRequests)
+                        BugsyTab.Requests -> RequestListScreen(requests = requests, onClear = viewModel::clearRequests, onExportHar = onExportHar)
                         BugsyTab.Flags -> FlagsScreen(
                             flags = flags,
                             onOverride = viewModel::overrideFlag,

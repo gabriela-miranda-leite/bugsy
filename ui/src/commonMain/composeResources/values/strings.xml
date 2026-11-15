@@ -123,4 +123,22 @@
     <string name="action_undo">Undo</string>
     <string name="action_fix">Fix</string>
     <string name="action_share">Share</string>
+
+    <string name="cd_export_mocks">Export mock rules</string>
+    <string name="cd_import_mocks">Import mock rules</string>
+    <string name="action_export">Export</string>
+    <string name="action_import">Import</string>
+    <string name="mocks_import_dialog_title">Import mock rules</string>
+    <string name="mocks_import_dialog_message">%1$d rule(s) found in the file. Add them to your current rules, or replace all current rules with these?</string>
+    <string name="action_merge">Merge</string>
+    <string name="action_replace">Replace</string>
+    <string name="toast_mocks_exported_title">Rules exported</string>
+    <string name="toast_mocks_exported_subtitle">%1$d rule(s)</string>
+    <string name="toast_mocks_imported_title">Rules imported</string>
+    <string name="toast_mocks_imported_subtitle_merge">%1$d rule(s) added</string>
+    <string name="toast_mocks_imported_subtitle_replace">%1$d rule(s), replacing what was there</string>
+    <string name="toast_import_invalid_title">Invalid mock file</string>
+    <string name="toast_import_invalid_malformed">The file isn\'t valid JSON</string>
+    <string name="toast_import_invalid_version">Unsupported file version</string>
+    <string name="toast_import_invalid_missing_field">The file is missing a required field</string>
 </resources>

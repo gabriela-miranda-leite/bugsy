@@ -30,6 +30,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.mock_form_prefilled_from
+import com.bugsy.core.MockEngine
+import com.bugsy.core.model.DebugRequest
+import com.bugsy.core.model.MockRule
 import com.bugsy.ui.DebugViewModel
 import com.bugsy.ui.components.BugsyTab
 import com.bugsy.ui.components.BugsyTabBar
@@ -39,6 +44,8 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+import kotlin.random.Random
 
 private const val SCRIM_ALPHA = 0.4f
 private const val ENTER_MS = 240
@@ -62,6 +69,12 @@ fun DebugOverlay(
     var showSettings by remember { mutableStateOf(false) }
     val requests by viewModel.requests.collectAsState()
     val flags by viewModel.flags.collectAsState()
+    val mockRules by MockEngine.rulesFlow.collectAsState()
+    val mockMatchLogs by MockEngine.matchLogsFlow.collectAsState()
+    var mockPrefillSource by remember { mutableStateOf<DebugRequest?>(null) }
+    val mockPrefillLabel = mockPrefillSource?.let {
+        stringResource(Res.string.mock_form_prefilled_from, it.method, it.url.pathOnly(), it.statusCode?.toString() ?: "—")
+    }
 
     LaunchedEffect(viewModel) { viewModel.refreshFlags() }
 
@@ -148,7 +161,28 @@ fun DebugOverlay(
                         return@Box
                     }
                     when (selectedTab) {
-                        BugsyTab.Requests -> RequestListScreen(requests = requests, onClear = viewModel::clearRequests, onExportHar = onExportHar)
+                        BugsyTab.Requests -> RequestListScreen(
+                            requests = requests,
+                            onClear = viewModel::clearRequests,
+                            onExportHar = onExportHar,
+                            activeMockCount = mockRules.count { it.isActive },
+                            onManageMocks = { selectedTab = BugsyTab.Mocks },
+                            onCreateMock = { request ->
+                                mockPrefillSource = request
+                                selectedTab = BugsyTab.Mocks
+                            },
+                        )
+                        BugsyTab.Mocks -> MocksScreen(
+                            rules = mockRules,
+                            onAddRule = MockEngine::addRule,
+                            onToggleActive = MockEngine::setActive,
+                            onRemoveRule = MockEngine::removeRule,
+                            matchesFor = { id -> mockMatchLogs[id].orEmpty() },
+                            prefillRule = remember(mockPrefillSource) { mockPrefillSource?.toMockRulePrefill() },
+                            prefillSourceLabel = mockPrefillLabel,
+                            onPrefillConsumed = { mockPrefillSource = null },
+                            onNavigateToRequests = { selectedTab = BugsyTab.Requests },
+                        )
                         BugsyTab.Flags -> FlagsScreen(
                             flags = flags,
                             onOverride = viewModel::overrideFlag,
@@ -163,6 +197,24 @@ fun DebugOverlay(
 }
 
 private const val OFFSCREEN_PX = 100_000f
+
+/** "https://api.bugsy.dev/v1/users/42?x=1" -> "/v1/users/42" (host and query stripped). */
+private fun String.pathOnly(): String {
+    val afterScheme = substringAfter("://", missingDelimiterValue = this)
+    val withoutHost = afterScheme.substringAfter('/', missingDelimiterValue = "").let { if (it.isEmpty()) "/" else "/$it" }
+    return withoutHost.substringBefore('?')
+}
+
+/** Pre-fills a new rule from [this] request: an exact-match pattern for its path, its method, status and body. */
+private fun DebugRequest.toMockRulePrefill(): MockRule = MockRule(
+    id = "mock-${Random.nextLong()}",
+    urlPattern = "^${Regex.escape(url.pathOnly())}$",
+    method = method,
+    statusCode = statusCode ?: 200,
+    responseHeaders = responseHeaders.ifEmpty { mapOf("Content-Type" to "application/json") },
+    responseBody = responseBody.orEmpty(),
+    isOneShot = true,
+)
 
 @Preview
 @Composable

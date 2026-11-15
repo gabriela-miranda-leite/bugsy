@@ -1,0 +1,111 @@
+package com.bugsy.core
+
+import com.bugsy.core.model.MockMatch
+import com.bugsy.core.model.MockRule
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * In-memory mock rules the interceptor checks before letting a request hit the network. Rules persist for the
+ * app session only (cleared on process death, never on disk).
+ */
+object MockEngine {
+    /** `false` here; the `:bugsy-noop` module's `MockEngine` reports `true` so the UI can hide the Mocks tab. */
+    val isNoop: Boolean = false
+
+    private const val MAX_MATCHES_PER_RULE = 20
+
+    private val mutex = Mutex()
+    private val rules = mutableListOf<MockRule>()
+    private val matchLogs = mutableMapOf<String, MutableList<MockMatch>>()
+
+    private val _rules = MutableStateFlow<List<MockRule>>(emptyList())
+    val rulesFlow: StateFlow<List<MockRule>> = _rules
+
+    private val _matchLogs = MutableStateFlow<Map<String, List<MockMatch>>>(emptyMap())
+    val matchLogsFlow: StateFlow<Map<String, List<MockMatch>>> = _matchLogs
+
+    fun addRule(rule: MockRule) {
+        runBlocking {
+            mutex.withLock {
+                rules.removeAll { it.id == rule.id }
+                rules.add(rule)
+                _rules.value = rules.toList()
+            }
+        }
+    }
+
+    fun removeRule(id: String) {
+        runBlocking {
+            mutex.withLock {
+                rules.removeAll { it.id == id }
+                _rules.value = rules.toList()
+            }
+        }
+    }
+
+    fun setActive(id: String, active: Boolean) {
+        runBlocking {
+            mutex.withLock {
+                val index = rules.indexOfFirst { it.id == id }
+                if (index >= 0) {
+                    rules[index] = rules[index].copy(isActive = active)
+                    _rules.value = rules.toList()
+                }
+            }
+        }
+    }
+
+    fun clear() {
+        runBlocking {
+            mutex.withLock {
+                rules.clear()
+                matchLogs.clear()
+                _rules.value = emptyList()
+                _matchLogs.value = emptyMap()
+            }
+        }
+    }
+
+    /** The rule's recent matches, most recent first. Empty if it never fired or no longer exists. */
+    fun matchesFor(id: String): List<MockMatch> = matchLogsFlow.value[id].orEmpty()
+
+    /**
+     * The first active rule matching [method] and [url], or `null` if none does (the caller should let the
+     * request through to the real network). Bumps the rule's hit count and match log (logged against
+     * [timestamp], since this module has no portable clock of its own — the caller already has one); a
+     * one-shot rule is removed from [rulesFlow] after this (its final state, including the bump, is still
+     * what's returned).
+     */
+    fun match(method: String, url: String, timestamp: Long): MockRule? {
+        return runBlocking {
+            mutex.withLock {
+                val index = rules.indexOfFirst { it.matches(method, url) }
+                if (index < 0) return@withLock null
+                val fired = rules[index].copy(hitCount = rules[index].hitCount + 1)
+
+                val log = matchLogs.getOrPut(fired.id) { mutableListOf() }
+                log.add(0, MockMatch(url = url, timestamp = timestamp))
+                while (log.size > MAX_MATCHES_PER_RULE) log.removeAt(log.lastIndex)
+                _matchLogs.value = matchLogs.mapValues { it.value.toList() }
+
+                if (fired.isOneShot) rules.removeAt(index) else rules[index] = fired
+                _rules.value = rules.toList()
+                fired
+            }
+        }
+    }
+
+    private fun MockRule.matches(requestMethod: String, requestUrl: String): Boolean {
+        if (!isActive) return false
+        if (method != null && !method.equals(requestMethod, ignoreCase = true)) return false
+        return try {
+            Regex(urlPattern).containsMatchIn(requestUrl)
+        } catch (e: Exception) {
+            false
+        }
+    }
+}

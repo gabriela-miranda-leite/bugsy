@@ -1,5 +1,6 @@
 package com.bugsy.core
 
+import com.bugsy.core.model.MockRule
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -34,6 +35,7 @@ class OkHttpDebugInterceptorTest {
         BodyFieldMasker.reset()
         BugsyContext.debuggableOverride = null
         CaptureSettings.configure(allowRevealingSecrets = true)
+        MockEngine.clear()
         server.shutdown()
     }
 
@@ -283,5 +285,55 @@ class OkHttpDebugInterceptorTest {
         assertTrue(captured.any { it.url.endsWith("/req-1") })
         assertTrue(captured.any { it.url.endsWith("/req-2") })
         DebugRepository.configureMaxEntries(200)
+    }
+
+    @Test
+    fun `a matching mock rule answers without hitting the real server, and is captured as mocked`() {
+        MockEngine.addRule(MockRule(id = "1", urlPattern = "/mocked", statusCode = 401, responseBody = """{"error":"nope"}"""))
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        val response = client.newCall(Request.Builder().url(server.url("/mocked")).build()).execute()
+
+        assertEquals(401, response.code)
+        assertEquals("""{"error":"nope"}""", response.body!!.string())
+        assertEquals(0, server.requestCount)
+
+        val captured = DebugRepository.getAll().single()
+        assertEquals(401, captured.statusCode)
+        assertEquals(MockMetadata.VALUE_TRUE, captured.metadata[MockMetadata.KEY_MOCKED])
+        assertEquals(null, captured.metadata[MockMetadata.KEY_ONE_SHOT])
+    }
+
+    @Test
+    fun `a one-shot mock rule fires once, then falls through to the real network`() {
+        MockEngine.addRule(MockRule(id = "1", urlPattern = "/once", statusCode = 200, responseBody = "{}", isOneShot = true))
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+
+        val first = client.newCall(Request.Builder().url(server.url("/once")).build()).execute()
+        val second = client.newCall(Request.Builder().url(server.url("/once")).build()).execute()
+
+        assertEquals(200, first.code)
+        assertEquals(204, second.code)
+        assertEquals(1, server.requestCount)
+
+        val entries = DebugRepository.getAll()
+        assertEquals(MockMetadata.VALUE_TRUE, entries.single { it.statusCode == 200 }.metadata[MockMetadata.KEY_ONE_SHOT])
+        assertEquals(null, entries.single { it.statusCode == 204 }.metadata[MockMetadata.KEY_MOCKED])
+    }
+
+    @Test
+    fun `a request not matching any mock rule hits the real server as usual`() {
+        MockEngine.addRule(MockRule(id = "1", urlPattern = "/mocked-only"))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+
+        interceptor.attach()
+        val client = OkHttpClient.Builder().addInterceptor(interceptor).build()
+        client.newCall(Request.Builder().url(server.url("/unrelated")).build()).execute().close()
+
+        assertEquals(1, server.requestCount)
     }
 }

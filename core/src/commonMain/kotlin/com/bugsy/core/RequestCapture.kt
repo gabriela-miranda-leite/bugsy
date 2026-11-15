@@ -21,6 +21,7 @@ internal object RequestCapture {
         responseBody: String?,
         durationMs: Long,
         timestamp: Long,
+        metadata: Map<String, String> = emptyMap(),
     ): DebugRequest {
         val maskedRequestHeaders = HeaderRedactor.redact(requestHeaders)
         val maskedResponseHeaders = HeaderRedactor.redact(responseHeaders)
@@ -39,6 +40,7 @@ internal object RequestCapture {
             durationMs = durationMs,
             timestamp = timestamp,
             curlCommand = "",
+            metadata = metadata,
         )
         val masked = request.copy(curlCommand = CurlGenerator.generate(request))
 

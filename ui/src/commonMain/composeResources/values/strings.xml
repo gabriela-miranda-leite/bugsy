@@ -126,6 +126,8 @@
 
     <string name="cd_export_mocks">Export mock rules</string>
     <string name="cd_import_mocks">Import mock rules</string>
+    <string name="action_export">Export</string>
+    <string name="action_import">Import</string>
     <string name="mocks_import_dialog_title">Import mock rules</string>
     <string name="mocks_import_dialog_message">%1$d rule(s) found in the file. Add them to your current rules, or replace all current rules with these?</string>
     <string name="action_merge">Merge</string>

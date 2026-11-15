@@ -1,6 +1,7 @@
 package com.bugsy.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +21,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,11 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.border
 import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.action_export
+import bugsy.ui.generated.resources.action_import
 import bugsy.ui.generated.resources.action_merge
 import bugsy.ui.generated.resources.action_replace
-import bugsy.ui.generated.resources.cd_export_mocks
-import bugsy.ui.generated.resources.cd_import_mocks
 import bugsy.ui.generated.resources.mocks_action_new
 import bugsy.ui.generated.resources.mocks_empty_action
 import bugsy.ui.generated.resources.mocks_empty_link
@@ -195,14 +196,14 @@ fun MocksScreen(
             if (onPickImportFile != null) {
                 IconActionButton(
                     icon = Icons.Outlined.Upload,
-                    contentDescription = stringResource(Res.string.cd_import_mocks),
+                    label = stringResource(Res.string.action_import),
                     onClick = onPickImportFile,
                 )
             }
             if (onExport != null) {
                 IconActionButton(
                     icon = Icons.Outlined.Download,
-                    contentDescription = stringResource(Res.string.cd_export_mocks),
+                    label = stringResource(Res.string.action_export),
                     enabled = activeCount > 0,
                     onClick = {
                         onExport(MockRuleFileSerializer.serialize(rules))
@@ -255,20 +256,25 @@ fun MocksScreen(
 }
 
 @Composable
-private fun IconActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, contentDescription: String, onClick: () -> Unit, enabled: Boolean = true) {
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
+private fun IconActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    val tint = if (enabled) BugsyColors.Brand else BugsyColors.TextDisabled
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(BugsySpacing.xs),
         modifier = Modifier
-            .size(BugsySpacing.controlHeight)
-            .background(BugsyColors.SurfaceCard, RoundedCornerShape(BugsySpacing.cornerCard)),
+            .height(BugsySpacing.controlHeight)
+            .background(BugsyColors.SurfaceCard, RoundedCornerShape(BugsySpacing.cornerCard))
+            .border(BugsySpacing.strokeBorder, BugsyColors.Border, RoundedCornerShape(BugsySpacing.cornerCard))
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = BugsySpacing.md),
     ) {
-        Icon(
-            icon,
-            contentDescription = contentDescription,
-            tint = if (enabled) BugsyColors.Brand else BugsyColors.TextDisabled,
-            modifier = Modifier.size(BugsySpacing.iconSizeMedium),
-        )
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(BugsySpacing.iconSizeMedium))
+        Text(label, style = BugsyTypography.Caption.copy(fontWeight = FontWeight.Medium), color = tint)
     }
 }
 

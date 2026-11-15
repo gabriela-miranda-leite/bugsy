@@ -86,8 +86,10 @@ object BugsyToastHost {
 }
 
 /**
- * Renders [BugsyToastHost]'s current toast, bottom-aligned with a 16dp margin, auto-dismissing after its
+ * Renders [BugsyToastHost]'s current toast, top-aligned with a 16dp margin, auto-dismissing after its
  * duration (a destructive toast with an Undo action also shows a countdown bar driving that same timer).
+ * Top, not bottom: this overlay has no bottom tab bar to sit above, and a bottom toast would cover a
+ * screen's primary action button (e.g. the mock form's "Save").
  */
 @Composable
 fun BugsyToastOverlay(modifier: Modifier = Modifier) {
@@ -95,10 +97,10 @@ fun BugsyToastOverlay(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize()) {
         AnimatedVisibility(
             visible = toast != null,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+            enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 2 }),
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .padding(horizontal = BugsySpacing.lg, vertical = BugsySpacing.lg),
         ) {

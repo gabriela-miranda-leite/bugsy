@@ -90,7 +90,7 @@ class HarSerializerTest {
     }
 
     @Test
-    fun `entry carries timing, status, query string and mime types`() {
+    fun `entry carries timing and status plus query string and mime types`() {
         val entry = entries(HarSerializer.serialize(listOf(request()))).single().jsonObject
 
         assertEquals("2023-11-14T22:13:20.123Z", entry["startedDateTime"]!!.jsonPrimitive.content)
@@ -129,7 +129,7 @@ class HarSerializerTest {
     }
 
     @Test
-    fun `formatIso8601 handles the epoch, leap days and pre-epoch times`() {
+    fun `formatIso8601 handles the epoch and leap days and pre-epoch times`() {
         assertEquals("1970-01-01T00:00:00.000Z", HarSerializer.formatIso8601(0))
         assertEquals("2024-02-29T12:34:56.789Z", HarSerializer.formatIso8601(1_709_210_096_789))
         assertEquals("1969-12-31T23:59:59.999Z", HarSerializer.formatIso8601(-1))

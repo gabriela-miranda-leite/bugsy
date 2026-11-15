@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 class DebugOverlayTest {
 
     @Test
-    fun `pathOnly strips scheme, host and query`() {
+    fun `pathOnly strips scheme and host and query`() {
         assertEquals("/v1/users/42", "https://api.bugsy.dev/v1/users/42?x=1".pathOnly())
     }
 
@@ -18,7 +18,7 @@ class DebugOverlayTest {
     }
 
     @Test
-    fun `pathOnly keeps a url with no scheme as-is, minus any query`() {
+    fun `pathOnly keeps a url with no scheme as-is minus any query`() {
         assertEquals("/v1/feed", "/v1/feed?page=1".pathOnly())
     }
 
@@ -48,7 +48,7 @@ class DebugOverlayTest {
     }
 
     @Test
-    fun `toMockRulePrefill carries over the method, status and body, and defaults isOneShot to true`() {
+    fun `toMockRulePrefill carries over the method and status and body and defaults isOneShot to true`() {
         val prefill = request("https://api.bugsy.dev/v1/auth/login", method = "POST", statusCode = 401, responseBody = """{"error":"nope"}""")
             .toMockRulePrefill()
 

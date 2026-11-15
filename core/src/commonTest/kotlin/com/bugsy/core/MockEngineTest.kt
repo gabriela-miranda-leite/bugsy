@@ -86,7 +86,7 @@ class MockEngineTest {
     }
 
     @Test
-    fun `matching logs the fired url, most recent first`() {
+    fun `matching logs the fired url with the most recent first`() {
         MockEngine.addRule(MockRule(id = "1", urlPattern = "/v1/feed"))
 
         MockEngine.match("GET", "https://api.bugsy.dev/v1/feed?page=1", timestamp = 100)

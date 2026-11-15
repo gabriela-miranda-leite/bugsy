@@ -18,7 +18,7 @@ class MockRuleFormScreenTest {
     }
 
     @Test
-    fun `toHeaderMap parses a single key-colon-value line, trimming whitespace`() {
+    fun `toHeaderMap parses a single key-colon-value line and trims whitespace`() {
         assertEquals(mapOf("Content-Type" to "application/json"), "Content-Type:  application/json ".toHeaderMap())
     }
 

@@ -15,6 +15,7 @@
     <string name="label_request_body">Request body</string>
 
     <string name="tab_requests">Requests</string>
+    <string name="tab_mocks">Mocks</string>
     <string name="tab_flags">Flags</string>
     <string name="tab_device">Device</string>
 
@@ -68,4 +69,58 @@
 
     <string name="tag_slow_request">SLOW</string>
     <string name="tooltip_slow_request">%1$s · threshold %2$s</string>
+
+    <string name="mocks_empty_title">No mock rules yet</string>
+    <string name="mocks_empty_subtitle">Intercept requests before they hit the network. Fake errors, slow responses or new endpoints.</string>
+    <string name="mocks_empty_action">+ New mock rule</string>
+    <string name="mocks_empty_link">or create one from any request →</string>
+    <string name="mocks_action_new">New mock rule</string>
+    <string name="mocks_banner_active">%1$d mocks active · intercepting</string>
+    <string name="action_manage">Manage</string>
+    <string name="tag_mock">[MOCK]</string>
+    <string name="tag_mock_once">once</string>
+    <string name="cd_toggle_mock_rule">Toggle mock rule</string>
+    <string name="cd_delete_mock_rule">Delete mock rule</string>
+
+    <string name="mock_form_title_new">New mock rule</string>
+    <string name="mock_form_title_edit">Edit mock rule</string>
+    <string name="mock_form_label_name">Name (optional — defaults to the route)</string>
+    <string name="mock_form_label_url_pattern">URL Pattern (regex)</string>
+    <string name="mock_form_label_method">Method</string>
+    <string name="mock_form_label_status">Status code</string>
+    <string name="mock_form_label_body">Response body</string>
+    <string name="mock_form_label_delay">Delay (ms)</string>
+    <string name="mock_form_label_one_shot">One-shot — removes itself after firing once</string>
+    <string name="mock_form_error_invalid_pattern">Invalid regular expression</string>
+    <string name="mock_form_error_invalid_status">Enter a valid status code</string>
+    <string name="action_save">Save</string>
+    <string name="action_create_mock_from_response">Create mock from this response</string>
+    <string name="mock_form_label_headers">Headers</string>
+    <string name="mock_form_prefilled_from">Pre-filled from %1$s %2$s · %3$s</string>
+
+    <string name="mocks_section_last_matches">Last matches</string>
+    <string name="mocks_empty_last_matches">No matches yet</string>
+    <string name="mocks_label_hits">Hits</string>
+    <string name="mocks_label_delay">Delay</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+
+    <string name="filter_all">All</string>
+    <string name="filter_errors">Errors</string>
+    <string name="filter_slow">Slow</string>
+    <string name="filter_mocked">Mocked</string>
+
+    <string name="toast_mock_saved_title">Mock rule saved</string>
+    <string name="toast_mock_saved_subtitle">%1$s %2$s → %3$d</string>
+    <string name="toast_mock_deleted_title">Mock rule deleted</string>
+    <string name="toast_mock_disabled_title">Mock disabled</string>
+    <string name="toast_mock_used_up_title">Mock used up (ONCE)</string>
+    <string name="toast_mock_used_up_subtitle">%1$s · %2$d</string>
+    <string name="toast_invalid_pattern_title">Invalid regex pattern</string>
+    <string name="toast_invalid_pattern_subtitle">Check the URL match field</string>
+    <string name="toast_har_exported_title">HAR exported</string>
+    <string name="toast_har_exported_subtitle">%1$d requests</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_fix">Fix</string>
+    <string name="action_share">Share</string>
 </resources>

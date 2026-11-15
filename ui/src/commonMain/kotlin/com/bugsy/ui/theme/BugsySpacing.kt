@@ -86,6 +86,7 @@ object BugsySpacing {
     // Empty state
     val emptyStatePaddingVertical = 40.dp
     val emptyStateTitleSpacing = 14.dp
+    val emptyStateIconSize = 56.dp
 
     // Loading state
     val loadingSpinnerSize = 32.dp
@@ -96,6 +97,15 @@ object BugsySpacing {
 
     // Device info
     val copyAllButtonHeight = 44.dp
+
+    // Mocks
+    val mockActiveDotSize = 8.dp
+    val mockBodyFieldMinHeight = 100.dp
+    val mockCreateButtonHeight = 48.dp
+
+    // Request filter chips (All/Errors/Slow/Mocked)
+    val filterChipMinHeight = 36.dp
+    val filterChipPaddingHorizontal = 14.dp
 
     // Flags
     val flagRowVertical = 14.dp

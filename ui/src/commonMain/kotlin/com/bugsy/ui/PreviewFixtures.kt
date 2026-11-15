@@ -1,7 +1,9 @@
 package com.bugsy.ui
 
+import com.bugsy.core.MockMetadata
 import com.bugsy.core.model.DebugFlag
 import com.bugsy.core.model.DebugRequest
+import com.bugsy.core.model.MockRule
 import com.bugsy.core.model.RequestSecrets
 import com.bugsy.core.model.DeviceInfo
 
@@ -71,7 +73,52 @@ internal object PreviewFixtures {
         curlCommand = "curl -X POST https://api.bugsy.dev/v1/auth/login -d '{\"user\":\"gabi\",...}'",
     )
 
+    val getRequestMocked = DebugRequest(
+        id = "6",
+        url = "https://api.bugsy.dev/v1/feed",
+        method = "GET",
+        requestHeaders = emptyMap(),
+        requestBody = null,
+        statusCode = 200,
+        responseHeaders = mapOf("Content-Type" to "application/json"),
+        responseBody = """{"items": []}""",
+        durationMs = 12,
+        timestamp = 1_700_000_060_000,
+        curlCommand = "curl https://api.bugsy.dev/v1/feed",
+        metadata = mapOf(MockMetadata.KEY_MOCKED to MockMetadata.VALUE_TRUE),
+    )
+
+    val postRequestMockedOnce = postRequestUnauthorized.copy(
+        id = "7",
+        durationMs = 300,
+        metadata = mapOf(MockMetadata.KEY_MOCKED to MockMetadata.VALUE_TRUE, MockMetadata.KEY_ONE_SHOT to MockMetadata.VALUE_TRUE),
+    )
+
     val requests = listOf(getRequest, postRequestError)
+
+    val mockRules = listOf(
+        MockRule(id = "m1", urlPattern = "^/api/feed.*", method = "GET", statusCode = 200, responseBody = """{"items": []}"""),
+        MockRule(
+            id = "m2",
+            urlPattern = "/api/v1/auth/login",
+            name = "Login failure",
+            method = "POST",
+            statusCode = 401,
+            responseBody = """{"error": "unauthorized"}""",
+            delayMs = 300,
+            isOneShot = true,
+        ),
+        MockRule(
+            id = "m3",
+            urlPattern = "/api/v1/payments/.*",
+            method = null,
+            statusCode = 503,
+            responseBody = """{"error": "service_unavailable"}""",
+            delayMs = 2_000,
+            isActive = false,
+        ),
+        MockRule(id = "m4", urlPattern = "/api/v1/users/me", method = "GET", statusCode = 200, responseBody = """{"id": 42}"""),
+    )
 
     val deviceInfo = DeviceInfo(
         appVersionName = "2.1.4",

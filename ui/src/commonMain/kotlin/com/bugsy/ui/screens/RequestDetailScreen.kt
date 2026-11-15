@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.action_copy_url
+import bugsy.ui.generated.resources.action_create_mock_from_response
 import bugsy.ui.generated.resources.action_mask_sensitive
 import bugsy.ui.generated.resources.action_reveal_sensitive
 import bugsy.ui.generated.resources.label_duration
@@ -87,6 +91,7 @@ fun RequestDetailScreen(
     revealed: Boolean = false,
     onRevealedChange: (Boolean) -> Unit = {},
     isLoading: Boolean = false,
+    onCreateMock: (() -> Unit)? = null,
 ) {
     val clipboard = LocalClipboardManager.current
     val secrets = request.secrets
@@ -207,6 +212,19 @@ fun RequestDetailScreen(
             item {
                 CodeBlock(text = curl, onCopy = { copy(curl) })
             }
+
+            if (onCreateMock != null) {
+                item {
+                    Button(
+                        onClick = onCreateMock,
+                        colors = ButtonDefaults.buttonColors(containerColor = BugsyColors.Brand, contentColor = BugsyColors.Surface),
+                        shape = RoundedCornerShape(BugsySpacing.cornerButtonLarge),
+                        modifier = Modifier.fillMaxWidth().height(BugsySpacing.mockCreateButtonHeight),
+                    ) {
+                        Text(stringResource(Res.string.action_create_mock_from_response), style = BugsyTypography.Body)
+                    }
+                }
+            }
         }
     }
 }
@@ -307,6 +325,16 @@ private fun RequestDetailScreenSlowPreview() {
     BugsyTheme {
         Box(Modifier.background(BugsyColors.Surface)) {
             RequestDetailScreen(request = PreviewFixtures.getRequestSlow, onBack = {})
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun RequestDetailScreenWithCreateMockPreview() {
+    BugsyTheme {
+        Box(Modifier.background(BugsyColors.Surface)) {
+            RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {}, onCreateMock = {})
         }
     }
 }

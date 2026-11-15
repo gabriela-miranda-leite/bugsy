@@ -23,6 +23,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.tab_device
 import bugsy.ui.generated.resources.tab_flags
+import bugsy.ui.generated.resources.tab_mocks
 import bugsy.ui.generated.resources.tab_requests
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
@@ -33,6 +34,7 @@ import org.jetbrains.compose.resources.stringResource
 
 enum class BugsyTab(val labelRes: StringResource) {
     Requests(Res.string.tab_requests),
+    Mocks(Res.string.tab_mocks),
     Flags(Res.string.tab_flags),
     Device(Res.string.tab_device),
 }
@@ -42,13 +44,14 @@ fun BugsyTabBar(
     selected: BugsyTab,
     onSelect: (BugsyTab) -> Unit,
     modifier: Modifier = Modifier,
+    tabs: List<BugsyTab> = BugsyTab.entries,
 ) {
     Column(modifier) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = BugsySpacing.sheetHorizontal),
             horizontalArrangement = Arrangement.spacedBy(BugsySpacing.tabItemSpacing),
         ) {
-            BugsyTab.entries.forEach { tab ->
+            tabs.forEach { tab ->
                 val active = tab == selected
                 Box(
                     contentAlignment = Alignment.Center,

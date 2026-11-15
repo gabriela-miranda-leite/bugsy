@@ -9,13 +9,21 @@ import com.bugsy.ui.components.BugsyTab
 import com.bugsy.ui.components.BugsyTabBar
 import com.bugsy.ui.components.CodeBlock
 import com.bugsy.ui.components.DragHandle
+import com.bugsy.ui.components.BugsyToastAction
+import com.bugsy.ui.components.BugsyToastCard
+import com.bugsy.ui.components.BugsyToastData
+import com.bugsy.ui.components.BugsyToastType
 import com.bugsy.ui.components.MetricCard
 import com.bugsy.ui.components.MethodBadge
+import com.bugsy.ui.components.MockRuleRow
 import com.bugsy.ui.components.RequestRow
 import com.bugsy.ui.screens.BugsySheetHeader
 import com.bugsy.ui.screens.DebugOverlay
 import com.bugsy.ui.screens.DeviceInfoScreen
 import com.bugsy.ui.screens.FlagsScreen
+import com.bugsy.ui.screens.MockRuleDetailScreen
+import com.bugsy.ui.screens.MockRuleFormScreen
+import com.bugsy.ui.screens.MocksScreen
 import com.bugsy.ui.screens.RequestDetailScreen
 import com.bugsy.ui.screens.RequestListScreen
 import com.bugsy.ui.screens.SettingsScreen
@@ -109,9 +117,99 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun bugsyToasts() {
+        snapshotOnSurface {
+            Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp), modifier = Modifier.padding(16.dp)) {
+                BugsyToastCard(BugsyToastData(type = BugsyToastType.Success, title = "Mock rule saved", subtitle = "GET /api/v1/feed.* → 200"))
+                BugsyToastCard(
+                    BugsyToastData(
+                        type = BugsyToastType.Destructive,
+                        title = "Mock rule deleted",
+                        subtitle = "POST /api/v1/auth/login",
+                        action = BugsyToastAction("Undo") {},
+                        durationMs = 4_000L,
+                    ),
+                )
+                BugsyToastCard(BugsyToastData(type = BugsyToastType.Info, title = "Mock disabled", subtitle = "/api/v1/payments/.*"))
+                BugsyToastCard(BugsyToastData(type = BugsyToastType.Warning, title = "Mock used up (ONCE)", subtitle = "/api/v1/auth/login · 401"))
+                BugsyToastCard(
+                    BugsyToastData(
+                        type = BugsyToastType.Error,
+                        title = "Invalid regex pattern",
+                        subtitle = "Check the URL match field",
+                        action = BugsyToastAction("Fix") {},
+                    ),
+                )
+                BugsyToastCard(
+                    BugsyToastData(
+                        type = BugsyToastType.Success,
+                        title = "HAR exported",
+                        subtitle = "48 requests",
+                        action = BugsyToastAction("Share") {},
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
     fun bugsyTabBar() {
         snapshotOnSurface {
             BugsyTabBar(selected = BugsyTab.Requests, onSelect = {})
+        }
+    }
+
+    @Test
+    fun mockRuleRow() {
+        snapshotOnSurface {
+            Column { PreviewFixtures.mockRules.forEach { MockRuleRow(rule = it, onClick = {}, onToggleActive = {}, onDelete = {}) } }
+        }
+    }
+
+    @Test
+    fun mocksScreenEmpty() {
+        snapshotOnSurface {
+            MocksScreen(rules = emptyList(), onAddRule = {}, onToggleActive = { _, _ -> }, onRemoveRule = {})
+        }
+    }
+
+    @Test
+    fun mocksScreenWithData() {
+        snapshotOnSurface {
+            MocksScreen(rules = PreviewFixtures.mockRules, onAddRule = {}, onToggleActive = { _, _ -> }, onRemoveRule = {})
+        }
+    }
+
+    @Test
+    fun mockRuleDetailScreen() {
+        snapshotOnSurface {
+            MockRuleDetailScreen(
+                rule = PreviewFixtures.mockRules.first(),
+                matches = emptyList(),
+                onBack = {},
+                onToggleActive = {},
+                onEdit = {},
+                onDelete = {},
+            )
+        }
+    }
+
+    @Test
+    fun mockRuleFormScreenNew() {
+        snapshotOnSurface {
+            MockRuleFormScreen(initial = null, onBack = {}, onSave = {})
+        }
+    }
+
+    @Test
+    fun mockRuleFormScreenPrefilled() {
+        snapshotOnSurface {
+            MockRuleFormScreen(
+                initial = PreviewFixtures.mockRules[1],
+                prefillSourceLabel = "Pre-filled from POST /api/v1/auth/login · 401",
+                onBack = {},
+                onSave = {},
+            )
         }
     }
 
@@ -149,6 +247,17 @@ class BugsyScreenshotTest {
     fun requestListScreenWithExport() {
         snapshotOnSurface {
             RequestListScreen(requests = PreviewFixtures.requests, onExportHar = {})
+        }
+    }
+
+    @Test
+    fun requestListScreenWithMocksBanner() {
+        snapshotOnSurface {
+            RequestListScreen(
+                requests = listOf(PreviewFixtures.getRequestMocked, PreviewFixtures.postRequestMockedOnce) + PreviewFixtures.requests,
+                activeMockCount = 3,
+                onCreateMock = {},
+            )
         }
     }
 
@@ -195,6 +304,13 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun requestDetailScreenWithCreateMock() {
+        snapshotOnSurface {
+            RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {}, onCreateMock = {})
+        }
+    }
+
+    @Test
     fun requestDetailScreenLoading() {
         // The back-button header stays, only the body below it shows the loading state.
         snapshotOnSurface {
@@ -228,6 +344,36 @@ class BugsyScreenshotTest {
                     BugsySheetHeader(onSettings = {}, onDismiss = {})
                     BugsyTabBar(selected = BugsyTab.Requests, onSelect = {})
                     RequestDetailScreen(request = PreviewFixtures.postRequestError, onBack = {})
+                }
+            }
+        }
+    }
+
+    @Test
+    fun debugOverlayMocksEmpty() {
+        // Reproduces the DebugOverlay composition (drag handle + header + fixed tabs) with
+        // MocksScreen (empty state) as the body — in isolation, the screen looks cut off at the top.
+        paparazzi.snapshot {
+            BugsyTheme {
+                Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
+                    DragHandle()
+                    BugsySheetHeader(onSettings = {}, onDismiss = {})
+                    BugsyTabBar(selected = BugsyTab.Mocks, onSelect = {})
+                    MocksScreen(rules = emptyList(), onAddRule = {}, onToggleActive = { _, _ -> }, onRemoveRule = {})
+                }
+            }
+        }
+    }
+
+    @Test
+    fun debugOverlayMocksWithData() {
+        paparazzi.snapshot {
+            BugsyTheme {
+                Column(Modifier.fillMaxWidth().heightIn(max = MaxSnapshotHeight).background(BugsyColors.Surface)) {
+                    DragHandle()
+                    BugsySheetHeader(onSettings = {}, onDismiss = {})
+                    BugsyTabBar(selected = BugsyTab.Mocks, onSelect = {})
+                    MocksScreen(rules = PreviewFixtures.mockRules, onAddRule = {}, onToggleActive = { _, _ -> }, onRemoveRule = {})
                 }
             }
         }

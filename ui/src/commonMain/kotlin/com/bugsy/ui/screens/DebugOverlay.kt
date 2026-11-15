@@ -30,15 +30,36 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.action_undo
+import bugsy.ui.generated.resources.mock_form_prefilled_from
+import bugsy.ui.generated.resources.toast_mock_deleted_title
+import bugsy.ui.generated.resources.toast_mock_disabled_title
+import bugsy.ui.generated.resources.toast_mock_saved_subtitle
+import bugsy.ui.generated.resources.toast_mock_saved_title
+import bugsy.ui.generated.resources.toast_mock_used_up_subtitle
+import bugsy.ui.generated.resources.toast_mock_used_up_title
+import com.bugsy.core.MockEngine
+import com.bugsy.core.model.DebugRequest
+import com.bugsy.core.model.MockRule
+import com.bugsy.core.model.displayName
 import com.bugsy.ui.DebugViewModel
 import com.bugsy.ui.components.BugsyTab
 import com.bugsy.ui.components.BugsyTabBar
+import com.bugsy.ui.components.BugsyToastAction
+import com.bugsy.ui.components.BugsyToastData
+import com.bugsy.ui.components.BugsyToastHost
+import com.bugsy.ui.components.BugsyToastOverlay
+import com.bugsy.ui.components.BugsyToastType
 import com.bugsy.ui.components.DragHandle
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import kotlin.random.Random
 
 private const val SCRIM_ALPHA = 0.4f
 private const val ENTER_MS = 240
@@ -62,14 +83,77 @@ fun DebugOverlay(
     var showSettings by remember { mutableStateOf(false) }
     val requests by viewModel.requests.collectAsState()
     val flags by viewModel.flags.collectAsState()
+    val mockRules by MockEngine.rulesFlow.collectAsState()
+    val mockMatchLogs by MockEngine.matchLogsFlow.collectAsState()
+    var mockPrefillSource by remember { mutableStateOf<DebugRequest?>(null) }
+    val mockPrefillLabel = mockPrefillSource?.let {
+        stringResource(Res.string.mock_form_prefilled_from, it.method, it.url.pathOnly(), it.statusCode?.toString() ?: "—")
+    }
 
     LaunchedEffect(viewModel) { viewModel.refreshFlags() }
+
+    LaunchedEffect(Unit) {
+        MockEngine.oneShotConsumedEvents.collect { rule ->
+            BugsyToastHost.show(
+                BugsyToastData(
+                    type = BugsyToastType.Warning,
+                    title = getString(Res.string.toast_mock_used_up_title),
+                    subtitle = getString(Res.string.toast_mock_used_up_subtitle, rule.displayName, rule.statusCode),
+                ),
+            )
+        }
+    }
 
     BugsyTheme {
         val scope = rememberCoroutineScope()
         val offsetY = remember { Animatable(0f) }
         var sheetHeightPx by remember { mutableStateOf(0) }
         var entered by remember { mutableStateOf(!animateEntrance) }
+
+        fun addMockRuleWithToast(rule: MockRule) {
+            MockEngine.addRule(rule)
+            scope.launch {
+                BugsyToastHost.show(
+                    BugsyToastData(
+                        type = BugsyToastType.Success,
+                        title = getString(Res.string.toast_mock_saved_title),
+                        subtitle = getString(Res.string.toast_mock_saved_subtitle, rule.method ?: "ANY", rule.displayName, rule.statusCode),
+                    ),
+                )
+            }
+        }
+
+        fun removeMockRuleWithToast(id: String) {
+            val removed = mockRules.firstOrNull { it.id == id } ?: return
+            MockEngine.removeRule(id)
+            scope.launch {
+                BugsyToastHost.show(
+                    BugsyToastData(
+                        type = BugsyToastType.Destructive,
+                        title = getString(Res.string.toast_mock_deleted_title),
+                        subtitle = "${removed.method ?: "ANY"} ${removed.displayName}",
+                        action = BugsyToastAction(getString(Res.string.action_undo)) { MockEngine.addRule(removed) },
+                        durationMs = 5_000L,
+                    ),
+                )
+            }
+        }
+
+        fun setMockActiveWithToast(id: String, active: Boolean) {
+            val rule = mockRules.firstOrNull { it.id == id }
+            MockEngine.setActive(id, active)
+            if (!active && rule != null) {
+                scope.launch {
+                    BugsyToastHost.show(
+                        BugsyToastData(
+                            type = BugsyToastType.Info,
+                            title = getString(Res.string.toast_mock_disabled_title),
+                            subtitle = rule.displayName,
+                        ),
+                    )
+                }
+            }
+        }
 
         // Entrance: measure the modal, position it below the screen, and slide it to its final position.
         // Runs exactly once: it must not restart when the size changes by a pixel (e.g. insets arriving).
@@ -148,7 +232,28 @@ fun DebugOverlay(
                         return@Box
                     }
                     when (selectedTab) {
-                        BugsyTab.Requests -> RequestListScreen(requests = requests, onClear = viewModel::clearRequests, onExportHar = onExportHar)
+                        BugsyTab.Requests -> RequestListScreen(
+                            requests = requests,
+                            onClear = viewModel::clearRequests,
+                            onExportHar = onExportHar,
+                            activeMockCount = mockRules.count { it.isActive },
+                            onManageMocks = { selectedTab = BugsyTab.Mocks },
+                            onCreateMock = { request ->
+                                mockPrefillSource = request
+                                selectedTab = BugsyTab.Mocks
+                            },
+                        )
+                        BugsyTab.Mocks -> MocksScreen(
+                            rules = mockRules,
+                            onAddRule = ::addMockRuleWithToast,
+                            onToggleActive = ::setMockActiveWithToast,
+                            onRemoveRule = ::removeMockRuleWithToast,
+                            matchesFor = { id -> mockMatchLogs[id].orEmpty() },
+                            prefillRule = remember(mockPrefillSource) { mockPrefillSource?.toMockRulePrefill() },
+                            prefillSourceLabel = mockPrefillLabel,
+                            onPrefillConsumed = { mockPrefillSource = null },
+                            onNavigateToRequests = { selectedTab = BugsyTab.Requests },
+                        )
                         BugsyTab.Flags -> FlagsScreen(
                             flags = flags,
                             onOverride = viewModel::overrideFlag,
@@ -156,6 +261,7 @@ fun DebugOverlay(
                         )
                         BugsyTab.Device -> DeviceInfoScreen(info = viewModel.deviceInfo, customInfo = viewModel.customInfo)
                     }
+                    BugsyToastOverlay()
                 }
             }
         }
@@ -163,6 +269,24 @@ fun DebugOverlay(
 }
 
 private const val OFFSCREEN_PX = 100_000f
+
+/** "https://api.bugsy.dev/v1/users/42?x=1" -> "/v1/users/42" (host and query stripped). */
+internal fun String.pathOnly(): String {
+    val afterScheme = substringAfter("://", missingDelimiterValue = this)
+    val withoutHost = afterScheme.substringAfter('/', missingDelimiterValue = "").let { if (it.isEmpty()) "/" else "/$it" }
+    return withoutHost.substringBefore('?')
+}
+
+/** Pre-fills a new rule from [this] request: an exact-match pattern for its path, its method, status and body. */
+internal fun DebugRequest.toMockRulePrefill(): MockRule = MockRule(
+    id = "mock-${Random.nextLong()}",
+    urlPattern = "^${Regex.escape(url.pathOnly())}$",
+    method = method,
+    statusCode = statusCode ?: 200,
+    responseHeaders = responseHeaders.ifEmpty { mapOf("Content-Type" to "application/json") },
+    responseBody = responseBody.orEmpty(),
+    isOneShot = true,
+)
 
 @Preview
 @Composable

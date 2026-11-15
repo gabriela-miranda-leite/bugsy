@@ -26,8 +26,11 @@ import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
+import bugsy.ui.generated.resources.tag_mock
+import bugsy.ui.generated.resources.tag_mock_once
 import bugsy.ui.generated.resources.tag_slow_request
 import com.bugsy.core.DebugRepository
+import com.bugsy.core.MockMetadata
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.theme.BugsyColors
@@ -60,6 +63,8 @@ fun RequestRow(
     val threshold = DebugRepository.slowRequestThresholdMs
     val isSlow = threshold > 0 && request.durationMs >= threshold
     val isError = (request.statusCode ?: 0) >= 400
+    val isMocked = request.metadata[MockMetadata.KEY_MOCKED] == MockMetadata.VALUE_TRUE
+    val isOneShotMock = request.metadata[MockMetadata.KEY_ONE_SHOT] == MockMetadata.VALUE_TRUE
     val accentColor = when {
         isError -> statusColor(request.statusCode)
         isSlow -> BugsyColors.Status3xx
@@ -110,6 +115,12 @@ fun RequestRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (isMocked) {
+                Row(horizontalArrangement = Arrangement.spacedBy(BugsySpacing.xs)) {
+                    MockTag()
+                    if (isOneShotMock) OnceTag()
+                }
+            }
         }
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(BugsySpacing.xs)) {
             Text(
@@ -148,6 +159,36 @@ private fun SlowTag() {
     }
 }
 
+@Composable
+private fun MockTag() {
+    Box(
+        modifier = Modifier
+            .background(BugsyColors.OverrideBadge.copy(alpha = SLOW_TAG_ALPHA), RoundedCornerShape(BugsySpacing.cornerBadge))
+            .padding(horizontal = BugsySpacing.badgePaddingHorizontal, vertical = BugsySpacing.badgePaddingVertical),
+    ) {
+        Text(
+            text = stringResource(Res.string.tag_mock),
+            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+            color = BugsyColors.OverrideBadge,
+        )
+    }
+}
+
+@Composable
+private fun OnceTag() {
+    Box(
+        modifier = Modifier
+            .background(BugsyColors.Status3xx.copy(alpha = SLOW_TAG_ALPHA), RoundedCornerShape(BugsySpacing.cornerBadge))
+            .padding(horizontal = BugsySpacing.badgePaddingHorizontal, vertical = BugsySpacing.badgePaddingVertical),
+    ) {
+        Text(
+            text = stringResource(Res.string.tag_mock_once),
+            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+            color = BugsyColors.Status3xx,
+        )
+    }
+}
+
 /** "api.dev/v1/users" -> ("api.dev", "/v1/users"); with no path, the path is "/". */
 private fun splitHostAndPath(hostAndPath: String): Pair<String, String> {
     val slash = hostAndPath.indexOf('/')
@@ -164,6 +205,8 @@ private fun RequestRowPreview() {
                 PreviewFixtures.postRequestUnauthorized,
                 PreviewFixtures.getRequestSlow,
                 PreviewFixtures.postRequestError,
+                PreviewFixtures.getRequestMocked,
+                PreviewFixtures.postRequestMockedOnce,
             ).forEach { request ->
                 RequestRow(request = request, onClick = {})
             }

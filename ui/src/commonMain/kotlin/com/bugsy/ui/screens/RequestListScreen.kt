@@ -2,6 +2,7 @@ package com.bugsy.ui.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -235,7 +236,9 @@ private fun MocksActiveBanner(count: Int, onManage: () -> Unit) {
 @Composable
 private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
+            .defaultMinSize(minHeight = BugsySpacing.filterChipMinHeight)
             .border(
                 BugsySpacing.strokeBorder,
                 if (selected) BugsyColors.Brand else BugsyColors.Border,
@@ -243,7 +246,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
             )
             .background(if (selected) BugsyColors.Brand else BugsyColors.SurfaceCard, RoundedCornerShape(BugsySpacing.cornerButtonSmall))
             .clickable(onClick = onClick)
-            .padding(horizontal = BugsySpacing.badgePaddingHorizontal, vertical = BugsySpacing.badgePaddingVertical),
+            .padding(horizontal = BugsySpacing.filterChipPaddingHorizontal),
     ) {
         Text(
             label,

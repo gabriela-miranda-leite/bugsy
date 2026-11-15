@@ -103,6 +103,10 @@ object BugsySpacing {
     val mockBodyFieldMinHeight = 100.dp
     val mockCreateButtonHeight = 48.dp
 
+    // Request filter chips (All/Errors/Slow/Mocked)
+    val filterChipMinHeight = 36.dp
+    val filterChipPaddingHorizontal = 14.dp
+
     // Flags
     val flagRowVertical = 14.dp
     val flagBadgeSpacing = 6.dp

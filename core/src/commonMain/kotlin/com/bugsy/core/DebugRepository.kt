@@ -15,6 +15,10 @@ object DebugRepository {
 
     private var maxEntries: Int = DEFAULT_MAX_ENTRIES
 
+    /** Requests at or above this duration are flagged as slow in the UI. `0` turns the highlight off. */
+    var slowRequestThresholdMs: Long = BugsyConfig.DEFAULT_SLOW_REQUEST_THRESHOLD_MS
+        internal set
+
     private val _requests = MutableStateFlow<List<DebugRequest>>(emptyList())
     val requests: StateFlow<List<DebugRequest>> = _requests
 

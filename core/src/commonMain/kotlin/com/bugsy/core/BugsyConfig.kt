@@ -17,8 +17,11 @@ data class BugsyConfig(
      * opened — never cached or persisted between sessions.
      */
     val customInfoProvider: () -> List<Pair<String, String>> = { emptyList() },
+    /** Requests at or above this duration are highlighted as slow in the UI. `0` turns the highlight off. */
+    val slowRequestThresholdMs: Long = DEFAULT_SLOW_REQUEST_THRESHOLD_MS,
 ) {
     companion object {
         const val DEFAULT_SHAKE_THRESHOLD_G = 2.5f
+        const val DEFAULT_SLOW_REQUEST_THRESHOLD_MS = 2_000L
     }
 }

@@ -92,6 +92,13 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun requestRowSlow() {
+        snapshotOnSurface {
+            RequestRow(request = PreviewFixtures.getRequestSlow, onClick = {})
+        }
+    }
+
+    @Test
     fun bugsyTabBar() {
         snapshotOnSurface {
             BugsyTabBar(selected = BugsyTab.Requests, onSelect = {})
@@ -167,6 +174,13 @@ class BugsyScreenshotTest {
     fun requestDetailScreenRevealed() {
         snapshotOnSurface {
             RequestDetailScreen(request = PreviewFixtures.postRequestWithSecrets, onBack = {}, revealed = true)
+        }
+    }
+
+    @Test
+    fun requestDetailScreenSlow() {
+        snapshotOnSurface {
+            RequestDetailScreen(request = PreviewFixtures.getRequestSlow, onBack = {})
         }
     }
 

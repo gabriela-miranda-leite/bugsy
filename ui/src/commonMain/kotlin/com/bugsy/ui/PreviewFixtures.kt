@@ -32,7 +32,7 @@ internal object PreviewFixtures {
         statusCode = 500,
         responseHeaders = emptyMap(),
         responseBody = """{"error":"internal_error"}""",
-        durationMs = 2_340,
+        durationMs = 340,
         timestamp = 1_700_000_050_000,
         curlCommand = "curl -X POST https://api.bugsy.dev/v1/orders -d '{\"items\":[...]}'",
     )
@@ -49,6 +49,12 @@ internal object PreviewFixtures {
             responseBody = """{"token":"resp-token","ok":true}""",
             curlCommand = "curl -X POST 'https://api.bugsy.dev/v1/orders' \\\n  -H 'Authorization: Bearer real-token'",
         ),
+    )
+
+    val getRequestSlow = getRequest.copy(
+        id = "4",
+        url = "https://api.bugsy.dev/v1/products?page=1&limit=20",
+        durationMs = 2_400,
     )
 
     val requests = listOf(getRequest, postRequestError)

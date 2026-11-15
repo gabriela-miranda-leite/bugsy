@@ -27,6 +27,7 @@ object Bugsy {
         _flagManager = FlagManager(config.flagsProvider)
         customInfoProvider = config.customInfoProvider
         CaptureSettings.configure(allowRevealingSecrets = config.allowRevealingSecrets)
+        DebugRepository.slowRequestThresholdMs = config.slowRequestThresholdMs
         debugInterceptor = DebugInterceptor.create().also { it.attach() }
 
         when (config.trigger) {

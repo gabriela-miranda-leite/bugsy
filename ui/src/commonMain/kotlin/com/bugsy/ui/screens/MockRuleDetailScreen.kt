@@ -59,7 +59,6 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.formatDuration
-import com.bugsy.ui.theme.prettyPrintJson
 import org.jetbrains.compose.resources.stringResource
 
 /** Read-only view of a [MockRule]: metrics, recent matches, response body, and Edit/Delete actions. */
@@ -162,7 +161,7 @@ fun MockRuleDetailScreen(
             }
 
             item { SectionLabel(stringResource(Res.string.label_response_body)) }
-            item { CodeBlock(prettyPrintJson(rule.responseBody)) }
+            item { CodeBlock(rule.responseBody, json = true) }
 
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm), modifier = Modifier.fillMaxWidth()) {

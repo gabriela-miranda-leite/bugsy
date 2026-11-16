@@ -51,6 +51,7 @@ import bugsy.ui.generated.resources.tag_mock
 import com.bugsy.core.model.MockMatch
 import com.bugsy.core.model.MockRule
 import com.bugsy.core.model.displayName
+import com.bugsy.core.model.displayPattern
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.CodeBlock
 import com.bugsy.ui.components.ExpandableSection
@@ -130,7 +131,7 @@ fun MockRuleDetailScreen(
             if (!rule.name.isNullOrBlank()) {
                 item {
                     Text(
-                        rule.urlPattern,
+                        rule.displayPattern,
                         style = BugsyTypography.Caption,
                         color = BugsyColors.TextDisabled,
                         maxLines = 1,

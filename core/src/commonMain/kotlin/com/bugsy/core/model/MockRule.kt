@@ -32,6 +32,10 @@ data class MockRule(
 val MockRule.displayName: String
     get() = name?.takeIf { it.isNotBlank() } ?: urlPattern.toDisplayRoute()
 
+/** [MockRule.urlPattern] cleaned up the same way as the [displayName] fallback, for showing it as a secondary caption alongside a custom [MockRule.name] (e.g. under "Login failure"). */
+val MockRule.displayPattern: String
+    get() = urlPattern.toDisplayRoute()
+
 private fun String.toDisplayRoute(): String {
     val withoutAnchors = removePrefix("^").removeSuffix("$")
     return buildString {

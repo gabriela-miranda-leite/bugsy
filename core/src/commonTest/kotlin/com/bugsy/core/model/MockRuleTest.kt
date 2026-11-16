@@ -34,4 +34,16 @@ class MockRuleTest {
         val rule = MockRule(id = "1", urlPattern = "^/api/v1/.*$")
         assertEquals("/api/v1/.*", rule.displayName)
     }
+
+    @Test
+    fun `displayPattern strips anchors even when the rule has a custom name`() {
+        val rule = MockRule(id = "1", urlPattern = "^/api/v1/auth/login$", name = "Login failure")
+        assertEquals("/api/v1/auth/login", rule.displayPattern)
+    }
+
+    @Test
+    fun `displayPattern unescapes backslash-escaped regex metacharacters`() {
+        val rule = MockRule(id = "1", urlPattern = "^/v1/files/report\\.pdf$", name = "Report download")
+        assertEquals("/v1/files/report.pdf", rule.displayPattern)
+    }
 }

@@ -6,20 +6,22 @@ import kotlin.test.assertEquals
 class MockRuleFormScreenTest {
 
     @Test
-    fun `toHeaderLine defaults to JSON content type when there are no headers`() {
+    fun `toHeaderLines defaults to JSON content type when there are no headers`() {
         val noHeaders: Map<String, String>? = null
-        assertEquals("Content-Type: application/json", noHeaders.toHeaderLine())
-        assertEquals("Content-Type: application/json", emptyMap<String, String>().toHeaderLine())
+        assertEquals("Content-Type: application/json", noHeaders.toHeaderLines())
+        assertEquals("Content-Type: application/json", emptyMap<String, String>().toHeaderLines())
     }
 
     @Test
-    fun `toHeaderLine shows the first header as key colon value`() {
-        assertEquals("X-Api-Key: secret", mapOf("X-Api-Key" to "secret").toHeaderLine())
+    fun `toHeaderLines shows one key colon value per line`() {
+        val headers = linkedMapOf("Content-Type" to "application/json", "X-Api-Key" to "secret")
+        assertEquals("Content-Type: application/json\nX-Api-Key: secret", headers.toHeaderLines())
     }
 
     @Test
-    fun `toHeaderMap parses a single key-colon-value line and trims whitespace`() {
-        assertEquals(mapOf("Content-Type" to "application/json"), "Content-Type:  application/json ".toHeaderMap())
+    fun `toHeaderMap parses every line and trims whitespace`() {
+        val text = "Content-Type:  application/json \nX-Api-Key: secret"
+        assertEquals(mapOf("Content-Type" to "application/json", "X-Api-Key" to "secret"), text.toHeaderMap())
     }
 
     @Test
@@ -28,12 +30,23 @@ class MockRuleFormScreenTest {
     }
 
     @Test
-    fun `toHeaderMap returns an empty map for a line with no colon`() {
-        assertEquals(emptyMap(), "not-a-header".toHeaderMap())
+    fun `toHeaderMap skips a line with no colon`() {
+        assertEquals(mapOf("ok" to "1"), "not-a-header\nok: 1".toHeaderMap())
     }
 
     @Test
-    fun `toHeaderMap returns an empty map when the header name is blank`() {
-        assertEquals(emptyMap(), ": application/json".toHeaderMap())
+    fun `toHeaderMap skips a line with a blank header name`() {
+        assertEquals(mapOf("ok" to "1"), ": application/json\nok: 1".toHeaderMap())
+    }
+
+    @Test
+    fun `toHeaderMap skips blank lines`() {
+        assertEquals(mapOf("ok" to "1"), "\n\nok: 1\n".toHeaderMap())
+    }
+
+    @Test
+    fun `toHeaderLines and toHeaderMap round-trip multiple headers`() {
+        val headers = linkedMapOf("Content-Type" to "application/json", "X-Api-Key" to "secret", "Set-Cookie" to "a=b; c=d")
+        assertEquals(headers, headers.toHeaderLines().toHeaderMap())
     }
 }

@@ -95,7 +95,7 @@ fun MockRuleFormScreen(
     var urlPattern by remember { mutableStateOf(initial?.urlPattern.orEmpty()) }
     var method by remember { mutableStateOf(initial?.method) }
     var statusCode by remember { mutableStateOf((initial?.statusCode ?: 200).toString()) }
-    var headersLine by remember { mutableStateOf(initial?.responseHeaders.toHeaderLine()) }
+    var headersText by remember { mutableStateOf(initial?.responseHeaders.toHeaderLines()) }
     var responseBody by remember { mutableStateOf(prettyPrintJson(initial?.responseBody.orEmpty())) }
     var delayMs by remember { mutableStateOf((initial?.delayMs ?: 0L).toString()) }
     var isOneShot by remember { mutableStateOf(initial?.isOneShot ?: (prefillSourceLabel != null)) }
@@ -126,7 +126,7 @@ fun MockRuleFormScreen(
                 name = name.trim().ifBlank { null },
                 method = method,
                 statusCode = statusCode.toIntOrNull() ?: 200,
-                responseHeaders = headersLine.toHeaderMap(),
+                responseHeaders = headersText.toHeaderMap(),
                 responseBody = responseBody,
                 delayMs = delayMs.toLongOrNull() ?: 0L,
                 isOneShot = isOneShot,
@@ -208,8 +208,10 @@ fun MockRuleFormScreen(
             item {
                 FormField(
                     label = stringResource(Res.string.mock_form_label_headers),
-                    value = headersLine,
-                    onValueChange = { headersLine = it },
+                    value = headersText,
+                    onValueChange = { headersText = it },
+                    singleLine = false,
+                    minHeight = BugsySpacing.mockHeadersFieldMinHeight,
                 )
             }
             item {
@@ -366,16 +368,18 @@ private fun PrefillBanner(label: String) {
     }
 }
 
-/** "Content-Type: application/json" <-> a single-entry header map; only one line is supported in the form. */
-internal fun Map<String, String>?.toHeaderLine(): String =
-    this?.entries?.firstOrNull()?.let { (k, v) -> "$k: $v" } ?: "Content-Type: application/json"
+/** A header map <-> one "Key: Value" per line, e.g. "Content-Type: application/json\nX-Api-Key: secret". */
+internal fun Map<String, String>?.toHeaderLines(): String =
+    this?.takeIf { it.isNotEmpty() }?.entries?.joinToString("\n") { (k, v) -> "$k: $v" } ?: "Content-Type: application/json"
 
-internal fun String.toHeaderMap(): Map<String, String> {
-    val (name, value) = split(":", limit = 2).map { it.trim() }.let { parts ->
-        if (parts.size == 2) parts[0] to parts[1] else return emptyMap()
-    }
-    return if (name.isBlank()) emptyMap() else mapOf(name to value)
-}
+/** Parses [toHeaderLines]' format back to a map; a line with no colon, or a blank name, is skipped. */
+internal fun String.toHeaderMap(): Map<String, String> =
+    lineSequence()
+        .mapNotNull { line ->
+            val parts = line.split(":", limit = 2).map { it.trim() }
+            if (parts.size == 2 && parts[0].isNotBlank()) parts[0] to parts[1] else null
+        }
+        .toMap()
 
 @Preview
 @Composable

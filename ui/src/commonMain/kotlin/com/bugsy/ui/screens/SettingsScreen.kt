@@ -19,12 +19,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.settings_bugsy_version
+import bugsy.ui.generated.resources.settings_desktop_token
+import bugsy.ui.generated.resources.settings_desktop_token_hint
+import bugsy.ui.generated.resources.settings_desktop_token_unavailable
 import bugsy.ui.generated.resources.settings_reveal_default
 import bugsy.ui.generated.resources.settings_reveal_hint
 import bugsy.ui.generated.resources.settings_section_about
+import bugsy.ui.generated.resources.settings_section_desktop
 import bugsy.ui.generated.resources.settings_section_privacy
 import bugsy.ui.generated.resources.settings_title
 import com.bugsy.core.Bugsy
@@ -41,6 +47,8 @@ import com.bugsy.ui.theme.BugsyTypography
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     val revealDefault by BugsySettings.revealSensitiveByDefault.collectAsState()
+    val clipboard = LocalClipboardManager.current
+    val wsToken = Bugsy.wsServerToken
 
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
@@ -78,6 +86,27 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     )
                 }
                 HorizontalDivider(thickness = BugsySpacing.rowDividerThickness, color = BugsyColors.BorderHeader)
+            }
+        }
+
+        item { SectionLabel(stringResource(Res.string.settings_section_desktop)) }
+        item {
+            if (wsToken != null) {
+                Column {
+                    KeyValueRow(
+                        stringResource(Res.string.settings_desktop_token),
+                        wsToken,
+                        onCopy = { clipboard.setText(AnnotatedString(wsToken)) },
+                    )
+                    Text(
+                        stringResource(Res.string.settings_desktop_token_hint),
+                        style = BugsyTypography.Caption,
+                        color = BugsyColors.TextDisabled,
+                        modifier = Modifier.padding(top = BugsySpacing.xs),
+                    )
+                }
+            } else {
+                KeyValueRow(stringResource(Res.string.settings_desktop_token), stringResource(Res.string.settings_desktop_token_unavailable))
             }
         }
 

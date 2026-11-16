@@ -57,6 +57,7 @@ private fun presentOverlay() {
         DebugOverlay(
             viewModel = remember { DebugViewModel() },
             onDismiss = { Bugsy.hide() },
+            onExportHar = { requests -> shareHarIos(requests) },
             onExportMockRules = { json -> shareMockRulesIos(json) },
             onPickMockRulesFile = { pickMockRulesFileIos() },
             importedMockRulesFileContent = mockRulesImportState.value,
@@ -78,3 +79,11 @@ private fun dismissOverlay() {
 
 private fun currentRootViewController(): UIViewController? =
     UIApplication.sharedApplication.keyWindow?.rootViewController
+
+/**
+ * Where share sheets and pickers triggered from inside the overlay (export/import mock rules, export HAR)
+ * should present from. The overlay itself is already presented on top of the root view controller, so
+ * presenting a second modal from the root directly would be a no-op (UIKit silently drops it when the
+ * presenter already has a presented view controller) — this returns the overlay instead whenever it's up.
+ */
+internal fun bugsyPresentingController(): UIViewController? = presentedController ?: currentRootViewController()

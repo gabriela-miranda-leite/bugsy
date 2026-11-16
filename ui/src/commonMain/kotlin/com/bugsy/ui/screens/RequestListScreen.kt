@@ -98,7 +98,7 @@ fun filterRequests(
 typealias HarExporter = (requests: List<DebugRequest>) -> Unit
 
 /**
- * @param onExportHar when non-null, shows an "Export HAR" button in the top bar. `null` (e.g. on iOS) hides it.
+ * @param onExportHar when non-null, shows an "Export HAR" button in the top bar. `null` hides it.
  * @param activeMockCount shows an "N mocks active · intercepting" banner (with a "Manage" link to [onManageMocks])
  * when greater than zero.
  * @param onCreateMock when non-null, shows a "Create mock from this response" button on the detail screen.

@@ -17,7 +17,8 @@
 
 Bugsy is a **Kotlin Multiplatform (Android + iOS)** library that works like a pocket-sized
 "Flipper/Chucker" embedded right into the app: a debug overlay that captures network requests,
-shows feature flags and device info, and lets you reveal/mask sensitive data — with a
+lets you create mock rules to simulate responses (success, error, slow network) without touching
+the backend, shows feature flags and device info, and lets you reveal/mask sensitive data, with a
 "when in doubt, mask it" security policy so secrets (tokens, passwords, national IDs) never leak
 by accident.
 
@@ -30,6 +31,7 @@ by accident.
   - [React Native](#react-native)
   - [Flutter](#flutter)
 - [Basic usage](#basic-usage)
+- [Mocks](#mocks)
 - [Modules](#modules)
 - [Security](#security)
 - [About development](#about-development)
@@ -122,6 +124,15 @@ OkHttpClient.Builder()
 
 On iOS, call `startBugsyIosOverlay()` once at app startup to observe `Bugsy.isVisible`.
 
+## Mocks
+
+The overlay's "Mocks" tab lets you create rules that intercept requests by method and URL
+pattern (regex) and respond with a custom status, headers and body, with no need to touch or
+redeploy the backend. Each rule can have a simulated delay, be toggled off temporarily, or set to
+fire only once ("one shot"). You can also pre-fill a rule from a real captured request ("Create
+mock from this response"), and export/import the whole rule set as a JSON file to share between
+devices or with the team.
+
 ## Modules
 
 ```
@@ -135,8 +146,8 @@ settings.gradle.kts
 - **`core`** — request capture (OkHttp interceptor on Android, `NSURLProtocol` on iOS), header
   redaction and sensitive body field masking, feature flags, and the triggers (shake, floating
   button, notification) that open the overlay.
-- **`ui`** — Compose Multiplatform overlay: request list, request/response detail, flags and
-  device info.
+- **`ui`** — Compose Multiplatform overlay: request list, request/response detail, mock rules
+  (creation, editing, JSON import/export), flags and device info.
 - **`bugsy-noop`** — artifact for release builds: same public API as `core`+`ui`, with no
   instrumentation at all.
 

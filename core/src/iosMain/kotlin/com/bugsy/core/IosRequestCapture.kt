@@ -37,6 +37,7 @@ internal object IosRequestCapture {
         responseHeaders: Map<String, String>,
         responseBody: String?,
         durationMs: Long,
+        metadata: Map<String, String> = emptyMap(),
     ): DebugRequest {
         return RequestCapture.build(
             id = NSUUID().UUIDString,
@@ -49,6 +50,7 @@ internal object IosRequestCapture {
             responseBody = responseBody,
             durationMs = durationMs,
             timestamp = (NSDate().timeIntervalSince1970 * 1000).toLong(),
+            metadata = metadata,
         )
     }
 }

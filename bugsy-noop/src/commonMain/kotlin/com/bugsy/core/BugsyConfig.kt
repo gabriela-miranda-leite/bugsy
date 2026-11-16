@@ -8,8 +8,10 @@ data class BugsyConfig(
     val flagsProvider: () -> List<DebugFlag> = { emptyList() },
     val allowRevealingSecrets: Boolean = true,
     val customInfoProvider: () -> List<Pair<String, String>> = { emptyList() },
+    val slowRequestThresholdMs: Long = DEFAULT_SLOW_REQUEST_THRESHOLD_MS,
 ) {
     companion object {
         const val DEFAULT_SHAKE_THRESHOLD_G = 2.5f
+        const val DEFAULT_SLOW_REQUEST_THRESHOLD_MS = 2_000L
     }
 }

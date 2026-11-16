@@ -17,7 +17,6 @@ import platform.Foundation.dataUsingEncoding
 import platform.Foundation.stringWithContentsOfURL
 import platform.Foundation.writeToURL
 import platform.UIKit.UIActivityViewController
-import platform.UIKit.UIApplication
 import platform.UIKit.UIDocumentPickerDelegateProtocol
 import platform.UIKit.UIDocumentPickerMode
 import platform.UIKit.UIDocumentPickerViewController
@@ -28,25 +27,25 @@ internal val mockRulesImportState = mutableStateOf<String?>(null)
 
 /** Writes [json] to a temp file and presents the native share sheet with it, mirroring the Android flow. */
 internal fun shareMockRulesIos(json: String) {
-    val root = UIApplication.sharedApplication.keyWindow?.rootViewController ?: return
+    val presenter = bugsyPresentingController() ?: return
     val fileName = "bugsy-mocks-${NSUUID().UUIDString()}.json"
     val fileUrl = NSURL.fileURLWithPath(NSTemporaryDirectory() + fileName)
     val data = NSString.create(string = json).dataUsingEncoding(NSUTF8StringEncoding) ?: return
     data.writeToURL(fileUrl, atomically = true)
 
     val activityController = UIActivityViewController(activityItems = listOf(fileUrl), applicationActivities = null)
-    root.presentViewController(activityController, animated = true, completion = null)
+    presenter.presentViewController(activityController, animated = true, completion = null)
 }
 
 /** Presents the native document picker restricted to JSON, reading the picked file into [mockRulesImportState]. */
 internal fun pickMockRulesFileIos() {
-    val root = UIApplication.sharedApplication.keyWindow?.rootViewController ?: return
+    val presenter = bugsyPresentingController() ?: return
     val picker = UIDocumentPickerViewController(
         documentTypes = listOf("public.json"),
         inMode = UIDocumentPickerMode.UIDocumentPickerModeImport,
     )
     picker.delegate = mockRulesDocumentPickerDelegate
-    root.presentViewController(picker, animated = true, completion = null)
+    presenter.presentViewController(picker, animated = true, completion = null)
 }
 
 // A singleton `object` extending NSObject with ObjC protocol conformance fails to link on Kotlin/Native

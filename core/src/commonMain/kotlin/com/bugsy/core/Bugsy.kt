@@ -1,5 +1,7 @@
 package com.bugsy.core
 
+import com.bugsy.core.ws.BugsyWsServerHandle
+import com.bugsy.core.ws.startBugsyWsServer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -21,6 +23,14 @@ object Bugsy {
     private var shakeDetector: ShakeDetector? = null
     private var floatingButtonController: FloatingButtonController? = null
     private var notificationTrigger: NotificationTrigger? = null
+    private var wsServer: BugsyWsServerHandle? = null
+
+    /**
+     * Session token the desktop client (DEB-58) must send to connect to this device's BugsyWsServer, or `null`
+     * where the server isn't running (not yet [initialize]d, or on a platform without a real server — see
+     * [startBugsyWsServer]). Shown in the mobile overlay for the dev to type/scan into the desktop app.
+     */
+    val wsServerToken: String? get() = wsServer?.sessionToken
 
     fun initialize(config: BugsyConfig = BugsyConfig()) {
         destroy()
@@ -29,6 +39,7 @@ object Bugsy {
         CaptureSettings.configure(allowRevealingSecrets = config.allowRevealingSecrets)
         DebugRepository.slowRequestThresholdMs = config.slowRequestThresholdMs
         debugInterceptor = DebugInterceptor.create().also { it.attach() }
+        wsServer = startBugsyWsServer()
 
         when (config.trigger) {
             Trigger.Shake -> {
@@ -47,6 +58,8 @@ object Bugsy {
     }
 
     fun destroy() {
+        wsServer?.stop()
+        wsServer = null
         debugInterceptor?.detach()
         debugInterceptor = null
         shakeDetector?.stop()

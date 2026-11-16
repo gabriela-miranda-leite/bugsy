@@ -1,5 +1,7 @@
 package com.bugsy.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * An interception rule: requests whose method and URL match [urlPattern] get [statusCode]/[responseHeaders]/
  * [responseBody] instead of hitting the network. `null` [method] matches any method ("ANY" in the UI).
@@ -9,6 +11,7 @@ package com.bugsy.core.model
  * @param hitCount how many times this rule has fired, shown in its detail screen; `0` for a never-fired or
  * freshly created rule, reset when the rule is edited and saved again.
  */
+@Serializable
 data class MockRule(
     val id: String,
     val urlPattern: String,

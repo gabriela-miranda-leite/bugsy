@@ -1,7 +1,9 @@
 package com.bugsy.core
 
 import com.bugsy.core.model.DebugFlag
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -10,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 class FlagManager {
     val flags: StateFlow<List<DebugFlag>> = MutableStateFlow(emptyList())
+    val flagChanges: SharedFlow<DebugFlag> = MutableSharedFlow()
 
     fun override(key: String, value: Any) = Unit
 

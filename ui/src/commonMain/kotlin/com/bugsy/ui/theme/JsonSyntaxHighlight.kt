@@ -24,11 +24,11 @@ fun highlightJsonPretty(text: String): AnnotatedString {
     }
 }
 
-private val PunctuationStyle = SpanStyle(color = BugsyColors.TextDisabled)
-private val KeyStyle = SpanStyle(color = BugsyColors.TextSecondary)
-private val StringStyle = SpanStyle(color = BugsyColors.Status2xx)
-private val NumberStyle = SpanStyle(color = BugsyColors.Status3xx)
-private val KeywordStyle = SpanStyle(color = BugsyColors.OverrideBadge)
+internal val PunctuationStyle = SpanStyle(color = BugsyColors.TextDisabled)
+internal val KeyStyle = SpanStyle(color = BugsyColors.TextSecondary)
+internal val StringStyle = SpanStyle(color = BugsyColors.Status2xx)
+internal val NumberStyle = SpanStyle(color = BugsyColors.Status3xx)
+internal val KeywordStyle = SpanStyle(color = BugsyColors.OverrideBadge)
 
 /**
  * Colors [text] token-by-token without reformatting it (same length, same characters) — unlike

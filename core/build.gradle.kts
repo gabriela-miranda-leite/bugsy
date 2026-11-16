@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.buildkonfig)
     alias(libs.plugins.mavenPublish)
     alias(libs.plugins.kover)
+    alias(libs.plugins.kotlinxSerialization)
     id("signing")
 }
 
@@ -73,12 +74,19 @@ kotlin {
             api(libs.okhttp)
             implementation(libs.androidx.startup.runtime)
             implementation(libs.androidx.lifecycle.process)
+            // Only Android hosts the real BugsyWsServer: Ktor's embeddedServer has no supported iOS target
+            // (only JVM + macOS/Linux/Windows native), so iosMain's actual is a noop. See DEB-58.
+            implementation(libs.ktor.server.core)
+            implementation(libs.ktor.server.cio)
+            implementation(libs.ktor.server.websockets)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
         }
         androidUnitTest.dependencies {
             implementation(libs.okhttp.mockwebserver)
+            implementation(libs.ktor.server.test.host)
+            implementation(libs.ktor.client.websockets)
         }
     }
 }

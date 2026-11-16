@@ -17,7 +17,7 @@ class BugsyTest {
 
     @Test
     fun `version matches VERSION_NAME configured in gradle properties`() {
-        assertEquals("0.2.0-alpha", Bugsy.version)
+        assertEquals("0.3.0-alpha", Bugsy.version)
     }
 
     @Test

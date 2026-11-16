@@ -15,6 +15,11 @@ import kotlinx.coroutines.sync.withLock
  * In-memory mock rules the interceptor checks before letting a request hit the network. Rules persist for the
  * app session only (cleared on process death, never on disk).
  */
+enum class MockRuleChangeAction { ADDED, UPDATED, DELETED }
+
+/** One [MockEngine.ruleChanges] event: [rule] in its state *after* [action] (its last known state for DELETED). */
+data class MockRuleChange(val rule: MockRule, val action: MockRuleChangeAction)
+
 object MockEngine {
     /** `false` here; the `:bugsy-noop` module's `MockEngine` reports `true` so the UI can hide the Mocks tab. */
     val isNoop: Boolean = false
@@ -35,35 +40,49 @@ object MockEngine {
     /** Emits the rule each time a one-shot fires and gets removed — the UI toasts "Mock used up" off of this. */
     val oneShotConsumedEvents: SharedFlow<MockRule> = _oneShotConsumed
 
+    private val _ruleChanges = MutableSharedFlow<MockRuleChange>(extraBufferCapacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    /** Emits on every add/update/delete — the BugsyWsServer (DEB-58) broadcasts this as `mock_rule_changed`. */
+    val ruleChanges: SharedFlow<MockRuleChange> = _ruleChanges
+
     fun addRule(rule: MockRule) {
-        runBlocking {
+        val isUpdate = runBlocking {
             mutex.withLock {
+                val isUpdate = rules.any { it.id == rule.id }
                 rules.removeAll { it.id == rule.id }
                 rules.add(rule)
                 _rules.value = rules.toList()
+                isUpdate
             }
         }
+        _ruleChanges.tryEmit(MockRuleChange(rule, if (isUpdate) MockRuleChangeAction.UPDATED else MockRuleChangeAction.ADDED))
     }
 
     fun removeRule(id: String) {
-        runBlocking {
+        val removed = runBlocking {
             mutex.withLock {
+                val removed = rules.firstOrNull { it.id == id }
                 rules.removeAll { it.id == id }
                 _rules.value = rules.toList()
+                removed
             }
         }
+        if (removed != null) _ruleChanges.tryEmit(MockRuleChange(removed, MockRuleChangeAction.DELETED))
     }
 
     fun setActive(id: String, active: Boolean) {
-        runBlocking {
+        val updated = runBlocking {
             mutex.withLock {
                 val index = rules.indexOfFirst { it.id == id }
                 if (index >= 0) {
                     rules[index] = rules[index].copy(isActive = active)
                     _rules.value = rules.toList()
+                    rules[index]
+                } else {
+                    null
                 }
             }
         }
+        if (updated != null) _ruleChanges.tryEmit(MockRuleChange(updated, MockRuleChangeAction.UPDATED))
     }
 
     fun clear() {
@@ -102,8 +121,10 @@ object MockEngine {
                 if (fired.isOneShot) {
                     rules.removeAt(index)
                     _oneShotConsumed.tryEmit(fired)
+                    _ruleChanges.tryEmit(MockRuleChange(fired, MockRuleChangeAction.DELETED))
                 } else {
                     rules[index] = fired
+                    _ruleChanges.tryEmit(MockRuleChange(fired, MockRuleChangeAction.UPDATED))
                 }
                 _rules.value = rules.toList()
                 fired

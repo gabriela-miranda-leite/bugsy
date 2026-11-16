@@ -1,10 +1,13 @@
 package com.bugsy.core
 
 import com.bugsy.core.model.DebugRequest
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 object DebugRepository {
@@ -21,6 +24,10 @@ object DebugRepository {
 
     private val _requests = MutableStateFlow<List<DebugRequest>>(emptyList())
     val requests: StateFlow<List<DebugRequest>> = _requests
+
+    private val _added = MutableSharedFlow<DebugRequest>(extraBufferCapacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    /** Emits each request as it's recorded — the BugsyWsServer (DEB-58) broadcasts this as `request_recorded`. */
+    val added: SharedFlow<DebugRequest> = _added
 
     fun configureMaxEntries(maxEntries: Int) {
         require(maxEntries > 0) { "maxEntries must be positive" }
@@ -41,6 +48,7 @@ object DebugRepository {
                 _requests.value = entries.toList()
             }
         }
+        _added.tryEmit(request)
     }
 
     fun getAll(): List<DebugRequest> = requests.value

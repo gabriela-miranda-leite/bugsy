@@ -14,6 +14,8 @@ object Bugsy {
 
     val flagManager: FlagManager = FlagManager()
 
+    val wsServerToken: String? = null
+
     fun initialize(config: BugsyConfig = BugsyConfig()) = Unit
 
     fun destroy() = Unit

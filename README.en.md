@@ -133,6 +133,10 @@ fire only once ("one shot"). You can also pre-fill a rule from a real captured r
 mock from this response"), and export/import the whole rule set as a JSON file to share between
 devices or with the team.
 
+<p align="center">
+<video src="assets/demo-mocks-android.mp4" controls width="300"></video>
+</p>
+
 ## Modules
 
 ```

@@ -187,7 +187,11 @@ fun RequestDetailScreen(
 
             if (requestBody?.isNotBlank() == true) {
                 item {
-                    ExpandableSection(stringResource(Res.string.label_request_body), initiallyExpanded = requestBody.length <= 400) {
+                    ExpandableSection(
+                        stringResource(Res.string.label_request_body),
+                        initiallyExpanded = requestBody.length <= 400,
+                        onCopy = { copy(requestBody) },
+                    ) {
                         CodeBlock(requestBody, json = true)
                     }
                 }
@@ -200,7 +204,11 @@ fun RequestDetailScreen(
 
             if (responseBody?.isNotBlank() == true) {
                 item {
-                    ExpandableSection(stringResource(Res.string.label_response_body), initiallyExpanded = responseBody.length <= 400) {
+                    ExpandableSection(
+                        stringResource(Res.string.label_response_body),
+                        initiallyExpanded = responseBody.length <= 400,
+                        onCopy = { copy(responseBody) },
+                    ) {
                         CodeBlock(responseBody, json = true)
                     }
                 }

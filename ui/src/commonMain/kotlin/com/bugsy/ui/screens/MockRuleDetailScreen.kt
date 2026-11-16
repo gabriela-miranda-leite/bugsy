@@ -32,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -51,6 +53,7 @@ import com.bugsy.core.model.MockRule
 import com.bugsy.core.model.displayName
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.CodeBlock
+import com.bugsy.ui.components.ExpandableSection
 import com.bugsy.ui.components.MethodBadge
 import com.bugsy.ui.components.MetricCard
 import com.bugsy.ui.components.SectionLabel
@@ -71,6 +74,7 @@ fun MockRuleDetailScreen(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val clipboard = LocalClipboardManager.current
     Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -160,8 +164,15 @@ fun MockRuleDetailScreen(
                 items(matches) { match -> MatchRow(match) }
             }
 
-            item { SectionLabel(stringResource(Res.string.label_response_body)) }
-            item { CodeBlock(rule.responseBody, json = true) }
+            item {
+                ExpandableSection(
+                    stringResource(Res.string.label_response_body),
+                    initiallyExpanded = true,
+                    onCopy = { clipboard.setText(AnnotatedString(rule.responseBody)) },
+                ) {
+                    CodeBlock(rule.responseBody, json = true)
+                }
+            }
 
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm), modifier = Modifier.fillMaxWidth()) {

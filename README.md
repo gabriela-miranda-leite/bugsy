@@ -17,7 +17,8 @@
 
 Bugsy é uma biblioteca **Kotlin Multiplatform (Android + iOS)** que funciona como um
 "Flipper/Chucker" de bolso embutido no próprio app: um overlay de debug que captura requests de
-rede, mostra feature flags, informações de device, e permite revelar/mascarar dados sensíveis —
+rede, permite criar mocks para simular respostas (sucesso, erro, lentidão) sem depender do
+backend, mostra feature flags, informações de device, e permite revelar/mascarar dados sensíveis,
 com uma política de segurança "quando em dúvida, mascara" para nunca vazar segredos (tokens,
 senhas, CPF) por acidente.
 
@@ -30,6 +31,7 @@ senhas, CPF) por acidente.
   - [React Native](#react-native)
   - [Flutter](#flutter)
 - [Uso básico](#uso-básico)
+- [Mocks](#mocks)
 - [Módulos](#módulos)
 - [Segurança](#segurança)
 - [Sobre o desenvolvimento](#sobre-o-desenvolvimento)
@@ -122,6 +124,15 @@ OkHttpClient.Builder()
 
 No iOS, chame `startBugsyIosOverlay()` uma vez no startup do app para observar `Bugsy.isVisible`.
 
+## Mocks
+
+Na aba "Mocks" do overlay dá para criar regras que interceptam requests por método e padrão de
+URL (regex) e respondem com um status, headers e body customizados, sem precisar subir ou alterar
+o backend. Cada regra pode ter um delay simulado, ser desativada temporariamente ou configurada
+para disparar só uma vez ("one shot"). É possível criar uma regra já preenchida a partir de um
+request real capturado ("Create mock from this response"), e exportar/importar o conjunto de
+regras como um arquivo JSON para compartilhar entre devices ou com o time.
+
 ## Módulos
 
 ```
@@ -136,7 +147,7 @@ settings.gradle.kts
   redação de headers e mascaramento de campos sensíveis do body, feature flags e os triggers
   (shake, botão flutuante, notificação) que abrem o overlay.
 - **`ui`** — overlay Compose Multiplatform: lista de requests, detalhe de request/response,
-  flags e device info.
+  mock rules (criação, edição, import/export em JSON), flags e device info.
 - **`bugsy-noop`** — artefato para builds de release: mesma API pública de `core`+`ui`, sem
   nenhuma instrumentação.
 

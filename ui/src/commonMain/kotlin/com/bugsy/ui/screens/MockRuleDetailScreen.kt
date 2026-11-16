@@ -32,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -49,8 +51,10 @@ import bugsy.ui.generated.resources.tag_mock
 import com.bugsy.core.model.MockMatch
 import com.bugsy.core.model.MockRule
 import com.bugsy.core.model.displayName
+import com.bugsy.core.model.displayPattern
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.CodeBlock
+import com.bugsy.ui.components.ExpandableSection
 import com.bugsy.ui.components.MethodBadge
 import com.bugsy.ui.components.MetricCard
 import com.bugsy.ui.components.SectionLabel
@@ -59,7 +63,6 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.formatDuration
-import com.bugsy.ui.theme.prettyPrintJson
 import org.jetbrains.compose.resources.stringResource
 
 /** Read-only view of a [MockRule]: metrics, recent matches, response body, and Edit/Delete actions. */
@@ -72,6 +75,7 @@ fun MockRuleDetailScreen(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val clipboard = LocalClipboardManager.current
     Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -127,7 +131,7 @@ fun MockRuleDetailScreen(
             if (!rule.name.isNullOrBlank()) {
                 item {
                     Text(
-                        rule.urlPattern,
+                        rule.displayPattern,
                         style = BugsyTypography.Caption,
                         color = BugsyColors.TextDisabled,
                         maxLines = 1,
@@ -161,8 +165,15 @@ fun MockRuleDetailScreen(
                 items(matches) { match -> MatchRow(match) }
             }
 
-            item { SectionLabel(stringResource(Res.string.label_response_body)) }
-            item { CodeBlock(prettyPrintJson(rule.responseBody)) }
+            item {
+                ExpandableSection(
+                    stringResource(Res.string.label_response_body),
+                    initiallyExpanded = true,
+                    onCopy = { clipboard.setText(AnnotatedString(rule.responseBody)) },
+                ) {
+                    CodeBlock(rule.responseBody, json = true)
+                }
+            }
 
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(BugsySpacing.sm), modifier = Modifier.fillMaxWidth()) {

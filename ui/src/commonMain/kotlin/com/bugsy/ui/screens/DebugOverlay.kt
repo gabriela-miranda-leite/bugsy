@@ -289,10 +289,21 @@ internal fun String.pathOnly(): String {
     return withoutHost.substringBefore('?')
 }
 
+/**
+ * Backslash-escapes regex metacharacters one by one, unlike [Regex.escape] (which wraps the whole string in
+ * `\Q...\E` — valid regex syntax, but unreadable when shown back to the user as a starting point to edit).
+ */
+private fun String.escapeRegexLiterally(): String = buildString {
+    for (c in this@escapeRegexLiterally) {
+        if (c in "\\^$.|?*+()[]{}") append('\\')
+        append(c)
+    }
+}
+
 /** Pre-fills a new rule from [this] request: an exact-match pattern for its path, its method, status and body. */
 internal fun DebugRequest.toMockRulePrefill(): MockRule = MockRule(
     id = "mock-${Random.nextLong()}",
-    urlPattern = "^${Regex.escape(url.pathOnly())}$",
+    urlPattern = "^${url.pathOnly().escapeRegexLiterally()}$",
     method = method,
     statusCode = statusCode ?: 200,
     responseHeaders = responseHeaders.ifEmpty { mapOf("Content-Type" to "application/json") },

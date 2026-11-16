@@ -95,7 +95,7 @@
     <string name="mock_form_error_invalid_status">Enter a valid status code</string>
     <string name="action_save">Save</string>
     <string name="action_create_mock_from_response">Create mock from this response</string>
-    <string name="mock_form_label_headers">Headers</string>
+    <string name="mock_form_label_headers">Headers (optional — one per line, "Key: Value")</string>
     <string name="mock_form_prefilled_from">Pre-filled from %1$s %2$s · %3$s</string>
 
     <string name="mocks_section_last_matches">Last matches</string>

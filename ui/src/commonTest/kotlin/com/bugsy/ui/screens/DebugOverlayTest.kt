@@ -38,13 +38,30 @@ class DebugOverlayTest {
         )
 
     @Test
-    fun `toMockRulePrefill anchors an exact-match pattern on the request's path`() {
+    fun `toMockRulePrefill anchors an exact-match pattern on the request's path and escapes it readably`() {
         val prefill = request("https://api.bugsy.dev/v1/auth/login?x=1").toMockRulePrefill()
 
-        assertEquals("^${Regex.escape("/v1/auth/login")}$", prefill.urlPattern)
-        // The pattern must actually match that exact path and nothing else, regardless of the escaping syntax used.
+        // Plain character-by-character escaping, not Regex.escape()'s \Q...\E — unreadable, and this is
+        // shown back to the user as an editable starting point.
+        assertEquals("^/v1/auth/login$", prefill.urlPattern)
         assertTrue(Regex(prefill.urlPattern).matches("/v1/auth/login"))
         assertTrue(!Regex(prefill.urlPattern).matches("/v1/auth/login/extra"))
+    }
+
+    @Test
+    fun `toMockRulePrefill escapes regex metacharacters in the path one by one`() {
+        val prefill = request("https://api.bugsy.dev/v1/users/42?x=1&y=2").toMockRulePrefill()
+
+        assertEquals("^/v1/users/42$", prefill.urlPattern)
+    }
+
+    @Test
+    fun `toMockRulePrefill escapes a literal dot so it doesn't become a regex wildcard`() {
+        val prefill = request("https://api.bugsy.dev/v1/files/report.pdf").toMockRulePrefill()
+
+        assertEquals("^/v1/files/report\\.pdf$", prefill.urlPattern)
+        assertTrue(Regex(prefill.urlPattern).matches("/v1/files/report.pdf"))
+        assertTrue(!Regex(prefill.urlPattern).matches("/v1/files/reportXpdf"))
     }
 
     @Test

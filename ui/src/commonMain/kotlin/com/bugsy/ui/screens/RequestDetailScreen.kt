@@ -76,7 +76,6 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.formatDuration
-import com.bugsy.ui.theme.prettyPrintJson
 import com.bugsy.ui.theme.statusColor
 import org.jetbrains.compose.resources.stringResource
 
@@ -188,9 +187,12 @@ fun RequestDetailScreen(
 
             if (requestBody?.isNotBlank() == true) {
                 item {
-                    val body = prettyPrintJson(requestBody)
-                    ExpandableSection(stringResource(Res.string.label_request_body), initiallyExpanded = requestBody.length <= 400) {
-                        CodeBlock(body)
+                    ExpandableSection(
+                        stringResource(Res.string.label_request_body),
+                        initiallyExpanded = requestBody.length <= 400,
+                        onCopy = { copy(requestBody) },
+                    ) {
+                        CodeBlock(requestBody, json = true)
                     }
                 }
             }
@@ -202,9 +204,12 @@ fun RequestDetailScreen(
 
             if (responseBody?.isNotBlank() == true) {
                 item {
-                    val body = prettyPrintJson(responseBody)
-                    ExpandableSection(stringResource(Res.string.label_response_body), initiallyExpanded = responseBody.length <= 400) {
-                        CodeBlock(body)
+                    ExpandableSection(
+                        stringResource(Res.string.label_response_body),
+                        initiallyExpanded = responseBody.length <= 400,
+                        onCopy = { copy(responseBody) },
+                    ) {
+                        CodeBlock(responseBody, json = true)
                     }
                 }
             }

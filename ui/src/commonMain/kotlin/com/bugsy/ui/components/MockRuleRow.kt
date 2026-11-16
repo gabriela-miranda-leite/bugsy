@@ -34,6 +34,7 @@ import bugsy.ui.generated.resources.cd_toggle_mock_rule
 import bugsy.ui.generated.resources.tag_mock_once
 import com.bugsy.core.model.MockRule
 import com.bugsy.core.model.displayName
+import com.bugsy.core.model.displayPattern
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
@@ -69,7 +70,7 @@ fun MockRuleRow(
                 }
                 if (!rule.name.isNullOrBlank()) {
                     Text(
-                        rule.urlPattern,
+                        rule.displayPattern,
                         style = BugsyTypography.Caption,
                         color = BugsyColors.TextDisabled,
                         maxLines = 1,

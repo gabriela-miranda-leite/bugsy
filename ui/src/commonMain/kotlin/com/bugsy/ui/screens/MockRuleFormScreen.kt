@@ -41,6 +41,9 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
@@ -69,6 +72,8 @@ import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
+import com.bugsy.ui.theme.highlightJsonLenient
+import com.bugsy.ui.theme.prettyPrintJson
 import org.jetbrains.compose.resources.stringResource
 import kotlin.random.Random
 
@@ -90,8 +95,8 @@ fun MockRuleFormScreen(
     var urlPattern by remember { mutableStateOf(initial?.urlPattern.orEmpty()) }
     var method by remember { mutableStateOf(initial?.method) }
     var statusCode by remember { mutableStateOf((initial?.statusCode ?: 200).toString()) }
-    var headersLine by remember { mutableStateOf(initial?.responseHeaders.toHeaderLine()) }
-    var responseBody by remember { mutableStateOf(initial?.responseBody.orEmpty()) }
+    var headersText by remember { mutableStateOf(initial?.responseHeaders.toHeaderLines()) }
+    var responseBody by remember { mutableStateOf(prettyPrintJson(initial?.responseBody.orEmpty())) }
     var delayMs by remember { mutableStateOf((initial?.delayMs ?: 0L).toString()) }
     var isOneShot by remember { mutableStateOf(initial?.isOneShot ?: (prefillSourceLabel != null)) }
     var patternError by remember { mutableStateOf(false) }
@@ -121,7 +126,7 @@ fun MockRuleFormScreen(
                 name = name.trim().ifBlank { null },
                 method = method,
                 statusCode = statusCode.toIntOrNull() ?: 200,
-                responseHeaders = headersLine.toHeaderMap(),
+                responseHeaders = headersText.toHeaderMap(),
                 responseBody = responseBody,
                 delayMs = delayMs.toLongOrNull() ?: 0L,
                 isOneShot = isOneShot,
@@ -203,8 +208,10 @@ fun MockRuleFormScreen(
             item {
                 FormField(
                     label = stringResource(Res.string.mock_form_label_headers),
-                    value = headersLine,
-                    onValueChange = { headersLine = it },
+                    value = headersText,
+                    onValueChange = { headersText = it },
+                    singleLine = false,
+                    minHeight = BugsySpacing.mockHeadersFieldMinHeight,
                 )
             }
             item {
@@ -214,6 +221,7 @@ fun MockRuleFormScreen(
                     onValueChange = { responseBody = it },
                     singleLine = false,
                     minHeight = BugsySpacing.mockBodyFieldMinHeight,
+                    highlightJson = true,
                 )
             }
             item {
@@ -279,6 +287,7 @@ private fun FormField(
     singleLine: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
     minHeight: Dp? = null,
+    highlightJson: Boolean = false,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(BugsySpacing.sm)) {
         FieldLabel(label)
@@ -289,6 +298,7 @@ private fun FormField(
             singleLine = singleLine,
             cursorBrush = SolidColor(BugsyColors.Brand),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
+            visualTransformation = if (highlightJson) JsonHighlightTransformation else VisualTransformation.None,
             decorationBox = { inner ->
                 Box(
                     modifier = Modifier
@@ -311,6 +321,15 @@ private fun FormField(
             Text(errorText, style = BugsyTypography.Caption, color = BugsyColors.Status4xx)
         }
     }
+}
+
+/**
+ * Colors the response body field while it's being edited, without reformatting it — [highlightJsonLenient]
+ * keeps the exact same characters, so the cursor never needs remapping ([OffsetMapping.Identity]).
+ */
+private object JsonHighlightTransformation : VisualTransformation {
+    override fun filter(text: androidx.compose.ui.text.AnnotatedString) =
+        TransformedText(highlightJsonLenient(text.text), OffsetMapping.Identity)
 }
 
 @Composable
@@ -349,16 +368,18 @@ private fun PrefillBanner(label: String) {
     }
 }
 
-/** "Content-Type: application/json" <-> a single-entry header map; only one line is supported in the form. */
-internal fun Map<String, String>?.toHeaderLine(): String =
-    this?.entries?.firstOrNull()?.let { (k, v) -> "$k: $v" } ?: "Content-Type: application/json"
+/** A header map <-> one "Key: Value" per line, e.g. "Content-Type: application/json\nX-Api-Key: secret". */
+internal fun Map<String, String>?.toHeaderLines(): String =
+    this?.takeIf { it.isNotEmpty() }?.entries?.joinToString("\n") { (k, v) -> "$k: $v" } ?: "Content-Type: application/json"
 
-internal fun String.toHeaderMap(): Map<String, String> {
-    val (name, value) = split(":", limit = 2).map { it.trim() }.let { parts ->
-        if (parts.size == 2) parts[0] to parts[1] else return emptyMap()
-    }
-    return if (name.isBlank()) emptyMap() else mapOf(name to value)
-}
+/** Parses [toHeaderLines]' format back to a map; a line with no colon, or a blank name, is skipped. */
+internal fun String.toHeaderMap(): Map<String, String> =
+    lineSequence()
+        .mapNotNull { line ->
+            val parts = line.split(":", limit = 2).map { it.trim() }
+            if (parts.size == 2 && parts[0].isNotBlank()) parts[0] to parts[1] else null
+        }
+        .toMap()
 
 @Preview
 @Composable

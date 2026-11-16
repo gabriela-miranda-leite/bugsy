@@ -133,6 +133,10 @@ para disparar só uma vez ("one shot"). É possível criar uma regra já preench
 request real capturado ("Create mock from this response"), e exportar/importar o conjunto de
 regras como um arquivo JSON para compartilhar entre devices ou com o time.
 
+<p align="center">
+<video src="assets/demo-mocks-android.mp4" controls width="300"></video>
+</p>
+
 ## Módulos
 
 ```

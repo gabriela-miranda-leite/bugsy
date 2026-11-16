@@ -134,7 +134,7 @@ mock from this response"), and export/import the whole rule set as a JSON file t
 devices or with the team.
 
 <p align="center">
-<video src="assets/demo-mocks-android.mp4" controls width="300"></video>
+<video src="https://raw.githubusercontent.com/gabriela-miranda-leite/bugsy/main/assets/demo-mocks-android.mp4" controls width="300"></video>
 </p>
 
 ## Modules

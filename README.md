@@ -134,7 +134,7 @@ request real capturado ("Create mock from this response"), e exportar/importar o
 regras como um arquivo JSON para compartilhar entre devices ou com o time.
 
 <p align="center">
-<video src="assets/demo-mocks-android.mp4" controls width="300"></video>
+<video src="https://raw.githubusercontent.com/gabriela-miranda-leite/bugsy/main/assets/demo-mocks-android.mp4" controls width="300"></video>
 </p>
 
 ## Módulos

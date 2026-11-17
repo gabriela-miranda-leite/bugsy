@@ -16,8 +16,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -31,7 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bugsy.desktop.ui.theme.BugsyDesktopColors
@@ -43,10 +49,10 @@ import com.bugsy.desktop.wire.displayName
 
 /**
  * Mirrors `:ui`'s `MocksScreen`/`MockRuleRow` (DEB-61): no search field — mobile's own Mocks tab doesn't have
- * one either, just Import/Export/"+ New mock rule" (import/export aren't implemented here yet, see the class
- * doc on `MockRuleFormPanel`). A table layout (Method / URL pattern / Status / Delay / Options columns) matches
- * the reference design more closely than mobile's stacked card rows; the row content itself (active dot,
- * method badge, status, delay, ONCE tag, toggle, delete) is mobile's.
+ * one either, just Import/Export/"+ New mock rule" and the same empty state (shield icon, title, subtitle, "or
+ * create one from any request"). A table layout (Method / URL pattern / Status / Delay / Options columns)
+ * matches the reference design more closely than mobile's stacked card rows; the row content itself (active
+ * dot, method badge, status, delay, ONCE tag, toggle, delete) is mobile's.
  */
 @Composable
 fun MocksScreen(
@@ -56,10 +62,25 @@ fun MocksScreen(
     onNewRule: () -> Unit,
     onToggleActive: (id: String, enabled: Boolean) -> Unit,
     onDeleteRule: (String) -> Unit,
+    onImport: () -> Unit,
+    onExport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().background(BugsyDesktopColors.Surface)) {
-        Row(Modifier.fillMaxWidth().padding(BugsyDesktopSpacing.md)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm),
+            modifier = Modifier.fillMaxWidth().padding(BugsyDesktopSpacing.md),
+        ) {
+            ToolbarButton(Icons.Outlined.Upload, "Import", onClick = onImport)
+            ToolbarButton(Icons.Outlined.Download, "Export", enabled = rules.any { it.isActive }, onClick = onExport)
+        }
+
+        if (rules.isEmpty()) {
+            MocksEmptyState(onNewRule)
+            return@Column
+        }
+
+        Row(Modifier.fillMaxWidth().padding(horizontal = BugsyDesktopSpacing.md, vertical = BugsyDesktopSpacing.xs)) {
             Button(
                 onClick = onNewRule,
                 colors = ButtonDefaults.buttonColors(containerColor = BugsyDesktopColors.Brand, contentColor = BugsyDesktopColors.Surface),
@@ -67,18 +88,6 @@ fun MocksScreen(
             ) {
                 Text("+ New mock rule", style = BugsyDesktopTypography.Body.copy(fontWeight = FontWeight.Medium))
             }
-        }
-
-        if (rules.isEmpty()) {
-            Box(Modifier.fillMaxSize()) {
-                Text(
-                    "No mock rules yet.",
-                    style = BugsyDesktopTypography.Body,
-                    color = BugsyDesktopColors.TextDisabled,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-            }
-            return@Column
         }
 
         Row(
@@ -102,6 +111,52 @@ fun MocksScreen(
                     onDelete = { onDeleteRule(rule.id) },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ToolbarButton(icon: ImageVector, label: String, onClick: () -> Unit, enabled: Boolean = true) {
+    val tint = if (enabled) BugsyDesktopColors.Brand else BugsyDesktopColors.TextDisabled
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.xs),
+        modifier = Modifier
+            .height(BugsyDesktopSpacing.controlHeight)
+            .border(BugsyDesktopSpacing.controlBorder, BugsyDesktopColors.Border, RoundedCornerShape(BugsyDesktopSpacing.controlCorner))
+            .background(BugsyDesktopColors.SurfaceCard, RoundedCornerShape(BugsyDesktopSpacing.controlCorner))
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = BugsyDesktopSpacing.md),
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+        Text(label, style = BugsyDesktopTypography.Caption.copy(fontWeight = FontWeight.Medium), color = tint)
+    }
+}
+
+@Composable
+private fun MocksEmptyState(onNewRule: () -> Unit) {
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm),
+            modifier = Modifier.align(Alignment.Center).padding(BugsyDesktopSpacing.xxl),
+        ) {
+            Icon(Icons.Outlined.Shield, contentDescription = null, tint = BugsyDesktopColors.Brand, modifier = Modifier.size(40.dp))
+            Text("No mock rules yet", style = BugsyDesktopTypography.Heading, color = BugsyDesktopColors.TextPrimary)
+            Text(
+                "Intercept requests before they hit the network. Fake errors, slow responses or new endpoints.",
+                style = BugsyDesktopTypography.Body,
+                color = BugsyDesktopColors.TextDisabled,
+                textAlign = TextAlign.Center,
+            )
+            Button(
+                onClick = onNewRule,
+                colors = ButtonDefaults.buttonColors(containerColor = BugsyDesktopColors.Brand, contentColor = BugsyDesktopColors.Surface),
+                modifier = Modifier.padding(top = BugsyDesktopSpacing.sm).height(44.dp),
+            ) {
+                Text("+ New mock rule", style = BugsyDesktopTypography.Body.copy(fontWeight = FontWeight.Medium))
+            }
+            Text("or create one from any request →", style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
         }
     }
 }

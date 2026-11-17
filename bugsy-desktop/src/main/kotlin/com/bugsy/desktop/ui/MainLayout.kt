@@ -83,6 +83,8 @@ fun MainLayout(viewModel: DesktopViewModel) {
                             onNewRule = viewModel::startNewMockRule,
                             onToggleActive = viewModel::toggleMockRule,
                             onDeleteRule = viewModel::deleteMockRule,
+                            onImport = viewModel::importMockRules,
+                            onExport = viewModel::exportMockRules,
                             modifier = Modifier.weight(0.5f).fillMaxHeight(),
                         )
                         if (isMockFormOpen) {

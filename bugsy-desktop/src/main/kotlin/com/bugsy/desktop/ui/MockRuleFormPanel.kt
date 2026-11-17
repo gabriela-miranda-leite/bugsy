@@ -51,6 +51,7 @@ import com.bugsy.desktop.ui.theme.BugsyDesktopColors
 import com.bugsy.desktop.ui.theme.BugsyDesktopSpacing
 import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
 import com.bugsy.desktop.ui.theme.highlightJsonLenient
+import com.bugsy.desktop.ui.theme.prettyPrintJson
 import com.bugsy.desktop.wire.WireMockRule
 import kotlin.random.Random
 
@@ -76,6 +77,7 @@ fun MockRuleFormPanel(
     modifier: Modifier = Modifier,
 ) {
     val isEditingExisting = initial != null && prefillSourceLabel == null
+    var name by remember(initial) { mutableStateOf(initial?.name.orEmpty()) }
     var urlPattern by remember(initial) { mutableStateOf(initial?.urlPattern.orEmpty()) }
     var method by remember(initial) { mutableStateOf(initial?.method) }
     var statusCode by remember(initial) { mutableStateOf((initial?.statusCode ?: 200).toString()) }
@@ -83,7 +85,7 @@ fun MockRuleFormPanel(
     val headerRows = remember(initial) {
         mutableStateListOf(*(initial?.responseHeaders?.takeIf { it.isNotEmpty() } ?: mapOf("Content-Type" to "application/json")).toList().toTypedArray())
     }
-    var responseBody by remember(initial) { mutableStateOf(initial?.responseBody.orEmpty()) }
+    var responseBody by remember(initial) { mutableStateOf(prettyPrintJson(initial?.responseBody.orEmpty())) }
     var isOneShot by remember(initial) { mutableStateOf(initial?.isOneShot ?: (prefillSourceLabel != null)) }
     var patternError by remember(initial) { mutableStateOf(false) }
 
@@ -97,6 +99,7 @@ fun MockRuleFormPanel(
             WireMockRule(
                 id = initial?.id ?: "mock-${Random.nextLong()}",
                 urlPattern = urlPattern,
+                name = name.trim().ifBlank { null },
                 method = method,
                 statusCode = statusCode.toIntOrNull() ?: 200,
                 responseHeaders = headerRows.filter { it.first.isNotBlank() }.toMap(),
@@ -123,6 +126,9 @@ fun MockRuleFormPanel(
         ) {
             if (prefillSourceLabel != null) {
                 item { PrefillBanner(prefillSourceLabel) }
+            }
+            item {
+                FormField(label = "Name (optional — defaults to the route)", value = name, onValueChange = { name = it })
             }
             item {
                 FormField(

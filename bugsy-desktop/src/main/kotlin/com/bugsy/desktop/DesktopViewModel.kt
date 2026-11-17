@@ -1,5 +1,6 @@
 package com.bugsy.desktop
 
+import com.bugsy.desktop.export.MockRuleFile
 import com.bugsy.desktop.export.buildHar
 import com.bugsy.desktop.export.saveHarToFile
 import com.bugsy.desktop.wire.WireDebugRequest
@@ -97,6 +98,16 @@ class DesktopViewModel {
     fun deleteMockRule(id: String) {
         client.sendDeleteMockRule(id)
         if (_selectedMockRuleId.value == id) closeMockForm()
+    }
+
+    fun exportMockRules() {
+        MockRuleFile.exportToFile(mockRules.value)
+    }
+
+    /** Always merges — upserts each imported rule as its own `add_mock_rule` command. Unlike mobile, there's no
+     * merge/replace choice dialog here. */
+    fun importMockRules() {
+        MockRuleFile.importFromFile()?.forEach { client.sendAddOrUpdateMockRule(it) }
     }
 
     /** Mirrors mobile's `DebugRequest.toMockRulePrefill()`: an exact-match pattern for the request's path, its

@@ -44,6 +44,9 @@ object BugsyDesktopColors {
     val Status3xx = Color(0xFFFBBF24)
     val Status4xx = Color(0xFFFF686E)
     val Status5xx = Color(0xFFFF2854)
+
+    val SwitchOn = Color(0xFF3A8A4C)
+    val SwitchOff = Color(0xFF47474E)
 }
 
 fun methodColors(method: String): Pair<Color, Color> = when (method.uppercase()) {

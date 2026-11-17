@@ -3,6 +3,7 @@ package com.bugsy.desktop
 import com.bugsy.desktop.export.buildHar
 import com.bugsy.desktop.export.saveHarToFile
 import com.bugsy.desktop.wire.WireDebugRequest
+import com.bugsy.desktop.wire.WireMockRule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlin.random.Random
 
 /** Matches the reference design's quick filter chips (All/Errors/Slow/Mocked) — a different axis from the
  * search field, which filters by URL/method text (DEB-60's own ticket text asked for that one). */
@@ -44,6 +46,78 @@ class DesktopViewModel {
 
     fun selectTab(tab: DesktopTab) {
         _selectedTab.value = tab
+    }
+
+    val mockRules: StateFlow<List<WireMockRule>> = client.mockRules
+
+    private val _mockPrefill = MutableStateFlow<WireMockRule?>(null)
+    private val _mockPrefillSourceLabel = MutableStateFlow<String?>(null)
+    val mockPrefillSourceLabel: StateFlow<String?> = _mockPrefillSourceLabel
+
+    private val _selectedMockRuleId = MutableStateFlow<String?>(null)
+
+    private val _isCreatingMockRule = MutableStateFlow(false)
+
+    /** The rule being edited in the form panel: the prefill (if any), else a persisted rule by id, else `null`
+     * (list-only, no panel) — unless [_isCreatingMockRule] is set, in which case `null` itself means "blank new
+     * rule form", distinguished by [isMockFormOpen]. */
+    val editingMockRule: StateFlow<WireMockRule?> =
+        combine(mockRules, _selectedMockRuleId, _mockPrefill) { rules, id, prefill ->
+            prefill ?: rules.firstOrNull { it.id == id }
+        }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    val isMockFormOpen: StateFlow<Boolean> =
+        combine(_selectedMockRuleId, _mockPrefill, _isCreatingMockRule) { id, prefill, creating ->
+            id != null || prefill != null || creating
+        }.stateIn(scope, SharingStarted.Eagerly, false)
+
+    fun selectMockRule(id: String) {
+        _isCreatingMockRule.value = false
+        _selectedMockRuleId.value = id
+    }
+
+    fun startNewMockRule() {
+        _selectedMockRuleId.value = null
+        _isCreatingMockRule.value = true
+    }
+
+    fun closeMockForm() {
+        _selectedMockRuleId.value = null
+        _isCreatingMockRule.value = false
+        consumeMockPrefill()
+    }
+
+    fun addOrUpdateMockRule(rule: WireMockRule) {
+        client.sendAddOrUpdateMockRule(rule)
+        closeMockForm()
+    }
+
+    fun toggleMockRule(id: String, enabled: Boolean) = client.sendToggleMockRule(id, enabled)
+
+    fun deleteMockRule(id: String) {
+        client.sendDeleteMockRule(id)
+        if (_selectedMockRuleId.value == id) closeMockForm()
+    }
+
+    /** Mirrors mobile's `DebugRequest.toMockRulePrefill()`: an exact-match pattern for the request's path, its
+     * method and status, pre-filled as a one-shot rule — then switches to the Mocks tab to show it. */
+    fun createMockFromRequest(request: WireDebugRequest) {
+        _mockPrefill.value = WireMockRule(
+            id = "mock-${Random.nextLong()}",
+            urlPattern = "^${request.url.pathOnly().escapeRegexLiterally()}$",
+            method = request.method,
+            statusCode = request.statusCode ?: 200,
+            responseHeaders = request.responseHeaders.ifEmpty { mapOf("Content-Type" to "application/json") },
+            responseBody = request.responseBody.orEmpty(),
+            isOneShot = true,
+        )
+        _mockPrefillSourceLabel.value = "Pre-filled from ${request.method} ${request.url.pathOnly()} · ${request.statusCode ?: "—"}"
+        _selectedTab.value = DesktopTab.MOCKS
+    }
+
+    private fun consumeMockPrefill() {
+        _mockPrefill.value = null
+        _mockPrefillSourceLabel.value = null
     }
 
     /** Unfiltered — HAR export uses this, same as mobile's `onExportHar(requests)` (the raw list, not what's
@@ -96,5 +170,21 @@ class DesktopViewModel {
     fun onCloseWindow() {
         client.close()
         scope.cancel()
+    }
+}
+
+/** Mirrors `:ui`'s `String.pathOnly()`: "https://api.bugsy.dev/v1/users/42?x=1" -> "/v1/users/42". */
+private fun String.pathOnly(): String {
+    val afterScheme = substringAfter("://", missingDelimiterValue = this)
+    val withoutHost = afterScheme.substringAfter('/', missingDelimiterValue = "").let { if (it.isEmpty()) "/" else "/$it" }
+    return withoutHost.substringBefore('?')
+}
+
+/** Mirrors `:ui`'s `String.escapeRegexLiterally()`: backslash-escapes regex metacharacters one by one, so the
+ * generated pattern reads as the plain route with light escaping, not `Regex.escape`'s unreadable `\Q...\E`. */
+private fun String.escapeRegexLiterally(): String = buildString {
+    for (c in this@escapeRegexLiterally) {
+        if (c in "\\^$.|?*+()[]{}") append('\\')
+        append(c)
     }
 }

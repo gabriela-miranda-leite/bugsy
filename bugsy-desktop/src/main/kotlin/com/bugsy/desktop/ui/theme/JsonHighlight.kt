@@ -6,9 +6,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 
 /**
- * A local copy of `:ui`'s `highlightJsonPretty` (DEB-60) — same reasoning as the rest of this module not
- * depending on `:ui`/`:core`. Only the pretty+highlight path is copied, not the lenient variant (`:ui` needs
- * that one for a live-editing text field; this detail panel is read-only).
+ * A local copy of `:ui`'s `highlightJsonPretty`/`highlightJsonLenient` (DEB-60/DEB-61) — same reasoning as the
+ * rest of this module not depending on `:ui`/`:core`.
  */
 private val PunctuationStyle = SpanStyle(color = BugsyDesktopColors.TextDisabled)
 private val KeyStyle = SpanStyle(color = BugsyDesktopColors.TextSecondary)
@@ -27,6 +26,44 @@ fun highlightJsonPretty(text: String): AnnotatedString {
         result
     } catch (e: Exception) {
         AnnotatedString(text)
+    }
+}
+
+/** Colors JSON while it's still being typed, without reformatting it — one pass over [text], no parse step, so
+ * invalid/in-progress JSON still highlights what it can instead of falling back to plain text. */
+fun highlightJsonLenient(text: String): AnnotatedString = buildAnnotatedString {
+    var i = 0
+    while (i < text.length) {
+        val c = text[i]
+        when {
+            c == '"' -> {
+                val start = i
+                i++
+                while (i < text.length && text[i] != '"') {
+                    if (text[i] == '\\' && i + 1 < text.length) i++
+                    i++
+                }
+                if (i < text.length) i++
+                var lookahead = i
+                while (lookahead < text.length && text[lookahead].isWhitespace()) lookahead++
+                val isKey = lookahead < text.length && text[lookahead] == ':'
+                withStyle(if (isKey) KeyStyle else StringStyle) { append(text, start, i) }
+            }
+            c in "{}[],:" -> {
+                withStyle(PunctuationStyle) { append(c) }
+                i++
+            }
+            c == '-' || c.isDigit() -> {
+                val start = i
+                if (c == '-') i++
+                while (i < text.length && (text[i].isDigit() || text[i] in ".eE+-")) i++
+                withStyle(NumberStyle) { append(text, start, i) }
+            }
+            text.startsWith("true", i) -> { withStyle(KeywordStyle) { append("true") }; i += 4 }
+            text.startsWith("false", i) -> { withStyle(KeywordStyle) { append("false") }; i += 5 }
+            text.startsWith("null", i) -> { withStyle(KeywordStyle) { append("null") }; i += 4 }
+            else -> { append(c); i++ }
+        }
     }
 }
 

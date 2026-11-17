@@ -64,4 +64,15 @@ object BugsyDesktopSpacing {
     val badgePaddingHorizontal = 6.dp
     val badgePaddingVertical = 2.dp
     val badgeCorner = 4.dp
+
+    // Form fields (mock rule form, connect screen's manual fields)
+    val controlHeight = 36.dp
+    val fieldLabelSpacing = 6.dp
+
+    // Mock rule list/form (DEB-61)
+    val mockRowVertical = 12.dp
+    val mockActiveDotSize = 8.dp
+    val mockHeaderRowSpacing = 8.dp
+    val mockBodyFieldMinHeight = 140.dp
+    val mockFormPanelPadding = 20.dp
 }

@@ -32,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,15 +46,13 @@ import com.bugsy.desktop.ui.theme.formatDuration
 import com.bugsy.desktop.ui.theme.highlightJsonPretty
 import com.bugsy.desktop.ui.theme.statusColor
 import com.bugsy.desktop.wire.WireDebugRequest
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * Mirrors `:ui`'s `RequestDetailScreen` (DEB-60): metrics, headers, bodies (JSON-highlighted), cURL, a
  * reveal/mask toggle for secrets, and a "Create mock from this response" action.
  */
 @Composable
-fun RequestDetailPanel(request: WireDebugRequest?, modifier: Modifier = Modifier) {
+fun RequestDetailPanel(request: WireDebugRequest?, onCreateMock: (WireDebugRequest) -> Unit, modifier: Modifier = Modifier) {
     val clipboard = LocalClipboardManager.current
     fun copy(text: String) = clipboard.setText(AnnotatedString(text))
     var revealed by remember(request?.id) { mutableStateOf(false) }
@@ -133,7 +130,7 @@ fun RequestDetailPanel(request: WireDebugRequest?, modifier: Modifier = Modifier
                 item { CodeBlock(AnnotatedString(curlCommand)) }
             }
 
-            item { CreateMockButton() }
+            item { CreateMockButton(onClick = { onCreateMock(request) }) }
         }
     }
 }
@@ -242,35 +239,16 @@ private fun CodeBlock(text: AnnotatedString) {
     }
 }
 
-/**
- * Present for visual/feature parity with mobile's "Create mock from this response", but not wired to anything
- * yet: that needs `BugsyWsClient` to be able to *send* a `BugsyCommand.AddMockRule` (it only ever receives
- * events today) plus a mock-editing UI, neither of which exist on desktop yet — deferred to the Mocks tab work.
- */
+/** Mirrors mobile's "Create mock from this response" (DEB-61): switches to the Mocks tab with a pre-filled,
+ * one-shot rule open in the form panel — see `DesktopViewModel.createMockFromRequest`. */
 @Composable
-private fun CreateMockButton() {
-    var showHint by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    Column {
-        Button(
-            onClick = {
-                showHint = true
-                scope.launch { delay(2_500); showHint = false }
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = BugsyDesktopColors.Brand, contentColor = BugsyDesktopColors.Surface),
-            modifier = Modifier.fillMaxWidth().height(44.dp),
-        ) {
-            Text("Create mock from this response", style = BugsyDesktopTypography.Body)
-        }
-        if (showHint) {
-            Text(
-                "Not available yet — mock management is coming to the desktop app in a future update.",
-                style = BugsyDesktopTypography.Caption,
-                color = BugsyDesktopColors.TextDisabled,
-                modifier = Modifier.padding(top = BugsyDesktopSpacing.xs),
-            )
-        }
+private fun CreateMockButton(onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(containerColor = BugsyDesktopColors.Brand, contentColor = BugsyDesktopColors.Surface),
+        modifier = Modifier.fillMaxWidth().height(44.dp),
+    ) {
+        Text("Create mock from this response", style = BugsyDesktopTypography.Body)
     }
 }
 

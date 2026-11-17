@@ -40,6 +40,10 @@ fun MainLayout(viewModel: DesktopViewModel) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val quickFilter by viewModel.quickFilter.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
+    val mockRules by viewModel.mockRules.collectAsState()
+    val editingMockRule by viewModel.editingMockRule.collectAsState()
+    val isMockFormOpen by viewModel.isMockFormOpen.collectAsState()
+    val mockPrefillSourceLabel by viewModel.mockPrefillSourceLabel.collectAsState()
 
     Row(Modifier.fillMaxSize().background(BugsyDesktopColors.Background)) {
         Sidebar(selectedTab = selectedTab, onSelectTab = viewModel::selectTab)
@@ -65,9 +69,34 @@ fun MainLayout(viewModel: DesktopViewModel) {
                             modifier = Modifier.weight(0.4f).fillMaxHeight(),
                         )
                         VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)
-                        RequestDetailPanel(request = selectedRequest, modifier = Modifier.weight(0.6f).fillMaxHeight())
+                        RequestDetailPanel(
+                            request = selectedRequest,
+                            onCreateMock = { viewModel.createMockFromRequest(it) },
+                            modifier = Modifier.weight(0.6f).fillMaxHeight(),
+                        )
                     }
-                    DesktopTab.MOCKS -> PlaceholderScreen("Mocks", Modifier.weight(1f))
+                    DesktopTab.MOCKS -> Row(Modifier.weight(1f).fillMaxWidth()) {
+                        MocksScreen(
+                            rules = mockRules,
+                            selectedRuleId = editingMockRule?.id,
+                            onSelectRule = viewModel::selectMockRule,
+                            onNewRule = viewModel::startNewMockRule,
+                            onToggleActive = viewModel::toggleMockRule,
+                            onDeleteRule = viewModel::deleteMockRule,
+                            modifier = Modifier.weight(0.5f).fillMaxHeight(),
+                        )
+                        if (isMockFormOpen) {
+                            VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)
+                            MockRuleFormPanel(
+                                initial = editingMockRule,
+                                prefillSourceLabel = mockPrefillSourceLabel,
+                                onSave = viewModel::addOrUpdateMockRule,
+                                onDelete = editingMockRule?.takeIf { mockPrefillSourceLabel == null }?.let { rule -> { viewModel.deleteMockRule(rule.id) } },
+                                onCancel = viewModel::closeMockForm,
+                                modifier = Modifier.weight(0.5f).fillMaxHeight(),
+                            )
+                        }
+                    }
                     DesktopTab.TIMELINE -> PlaceholderScreen("Timeline", Modifier.weight(1f))
                     DesktopTab.FLAGS -> PlaceholderScreen("Flags", Modifier.weight(1f))
                     DesktopTab.DEVICE -> PlaceholderScreen("Device", Modifier.weight(1f))

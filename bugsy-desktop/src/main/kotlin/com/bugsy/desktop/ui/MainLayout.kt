@@ -2,10 +2,12 @@
 
 package com.bugsy.desktop.ui
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Scaffold
@@ -18,6 +20,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.bugsy.desktop.ConnectionState
+import com.bugsy.desktop.DesktopTab
 import com.bugsy.desktop.DesktopViewModel
 import com.bugsy.desktop.ui.theme.BugsyDesktopColors
 import com.bugsy.desktop.ui.theme.BugsyDesktopSpacing
@@ -26,31 +29,46 @@ import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
 @Composable
 fun MainLayout(viewModel: DesktopViewModel) {
     val connectionState by viewModel.connectionState.collectAsState()
+
+    if (connectionState == ConnectionState.DISCONNECTED) {
+        ConnectionScreen(onConnect = viewModel::connect)
+        return
+    }
+
     val requests by viewModel.requests.collectAsState()
     val selectedRequest by viewModel.selectedRequest.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val methodFilter by viewModel.methodFilter.collectAsState()
+    val selectedTab by viewModel.selectedTab.collectAsState()
 
-    Scaffold(
-        topBar = { ConnectionToolbar(connectionState, onDisconnect = viewModel::disconnect) },
-    ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
-            if (connectionState == ConnectionState.DISCONNECTED) {
-                ConnectionScreen(onConnect = viewModel::connect)
-            } else {
-                Row(Modifier.fillMaxSize()) {
-                    RequestListScreen(
-                        requests = requests,
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = viewModel::setSearchQuery,
-                        methodFilter = methodFilter,
-                        onMethodFilterChange = viewModel::setMethodFilter,
-                        selectedRequestId = selectedRequest?.id,
-                        onSelectRequest = viewModel::selectRequest,
-                        modifier = Modifier.weight(0.4f).fillMaxHeight(),
-                    )
-                    VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)
-                    RequestDetailPanel(request = selectedRequest, modifier = Modifier.weight(0.6f).fillMaxHeight())
+    Row(Modifier.fillMaxSize().background(BugsyDesktopColors.Background)) {
+        Sidebar(selectedTab = selectedTab, onSelectTab = viewModel::selectTab)
+        VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)
+
+        Scaffold(
+            topBar = { ConnectionToolbar(connectionState, onDisconnect = viewModel::disconnect) },
+            bottomBar = { StatusBar(connectionState, requests.size) },
+        ) { padding ->
+            Column(Modifier.padding(padding).fillMaxSize()) {
+                when (selectedTab) {
+                    DesktopTab.REQUESTS -> Row(Modifier.weight(1f).fillMaxWidth()) {
+                        RequestListScreen(
+                            requests = requests,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = viewModel::setSearchQuery,
+                            methodFilter = methodFilter,
+                            onMethodFilterChange = viewModel::setMethodFilter,
+                            selectedRequestId = selectedRequest?.id,
+                            onSelectRequest = viewModel::selectRequest,
+                            modifier = Modifier.weight(0.4f).fillMaxHeight(),
+                        )
+                        VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)
+                        RequestDetailPanel(request = selectedRequest, modifier = Modifier.weight(0.6f).fillMaxHeight())
+                    }
+                    DesktopTab.MOCKS -> PlaceholderScreen("Mocks", Modifier.weight(1f))
+                    DesktopTab.TIMELINE -> PlaceholderScreen("Timeline", Modifier.weight(1f))
+                    DesktopTab.FLAGS -> PlaceholderScreen("Flags", Modifier.weight(1f))
+                    DesktopTab.DEVICE -> PlaceholderScreen("Device", Modifier.weight(1f))
                 }
             }
         }
@@ -69,9 +87,7 @@ private fun ConnectionToolbar(state: ConnectionState, onDisconnect: () -> Unit) 
                 ConnectionState.RECONNECTING -> "Reconnecting..." to BugsyDesktopColors.Status3xx
             }
             Text(label, style = BugsyDesktopTypography.Body, color = color, modifier = Modifier.padding(end = BugsyDesktopSpacing.sm))
-            if (state != ConnectionState.DISCONNECTED) {
-                TextButton(onClick = onDisconnect) { Text("Disconnect", style = BugsyDesktopTypography.Body) }
-            }
+            TextButton(onClick = onDisconnect) { Text("Disconnect", style = BugsyDesktopTypography.Body) }
         },
     )
 }

@@ -29,6 +29,13 @@ class DesktopViewModel {
 
     private val _selectedRequestId = MutableStateFlow<String?>(null)
 
+    private val _selectedTab = MutableStateFlow(DesktopTab.REQUESTS)
+    val selectedTab: StateFlow<DesktopTab> = _selectedTab
+
+    fun selectTab(tab: DesktopTab) {
+        _selectedTab.value = tab
+    }
+
     val requests: StateFlow<List<WireDebugRequest>> = combine(client.requests, _searchQuery, _methodFilter) { all, query, method ->
         all.filter { request ->
             (method == null || request.method.equals(method, ignoreCase = true)) &&

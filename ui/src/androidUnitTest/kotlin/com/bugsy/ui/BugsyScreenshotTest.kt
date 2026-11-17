@@ -344,6 +344,13 @@ class BugsyScreenshotTest {
     }
 
     @Test
+    fun settingsScreenWithDesktopToken() {
+        // A fixed value, not the real Bugsy.wsServerToken: that one is randomly generated per
+        // Bugsy.initialize() call (DEB-58) and would make this snapshot non-deterministic.
+        snapshotOnSurface { SettingsScreen(wsTokenOverride = "b8LiQD8n") }
+    }
+
+    @Test
     fun debugOverlay() {
         paparazzi.snapshot {
             // The overlay takes up 80% of the available height: the container fixes that height (~800dp screen).

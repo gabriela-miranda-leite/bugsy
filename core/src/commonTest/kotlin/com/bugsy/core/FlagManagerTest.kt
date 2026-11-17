@@ -134,4 +134,31 @@ class FlagManagerTest {
 
         assertEquals(null, manager.value("unknown"))
     }
+
+    @Test
+    fun `defaultValue mirrors the provider value when there is no override`() {
+        val manager = manager()
+
+        assertEquals(false, manager.flagX().defaultValue)
+    }
+
+    @Test
+    fun `defaultValue keeps the provider value even when overridden`() {
+        val manager = manager()
+
+        manager.override("feature_x", true)
+
+        assertEquals(false, manager.flagX().defaultValue)
+        assertEquals(true, manager.flagX().value)
+    }
+
+    @Test
+    fun `defaultValue reverts to the provider value after reset`() {
+        val manager = manager()
+        manager.override("feature_x", true)
+
+        manager.reset("feature_x")
+
+        assertEquals(false, manager.flagX().defaultValue)
+    }
 }

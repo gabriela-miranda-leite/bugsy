@@ -34,7 +34,49 @@ class WireProtocolTest {
 
     @Test
     fun `treats an unrecognized event type as unhandled instead of crashing`() {
+        assertEquals(WireEvent.Unhandled, parseWireEvent("""{"type":"something_else"}"""))
+    }
+
+    @Test
+    fun `parses a flag_changed event`() {
+        val text = """{"type":"flag_changed","flag":{"key":"featureNewCheckout","label":"featureNewCheckout","value":true,"isOverridden":true,"defaultValue":false}}"""
+        val event = assertIs<WireEvent.FlagChanged>(parseWireEvent(text))
+        assertEquals("featureNewCheckout", event.flag.key)
+        assertEquals(true, event.flag.value)
+        assertEquals(false, event.flag.defaultValue)
+        assertEquals(true, event.flag.isOverridden)
+    }
+
+    @Test
+    fun `treats a flag_changed with a malformed flag as unhandled`() {
         assertEquals(WireEvent.Unhandled, parseWireEvent("""{"type":"flag_changed","flag":{}}"""))
+    }
+
+    @Test
+    fun `parses a snapshot's flags, including non-boolean values`() {
+        val text = """{"type":"snapshot","requests":[],"mockRules":[],"flags":[
+            {"key":"debugLogging","label":"debugLogging","value":true,"isOverridden":false},
+            {"key":"apiEnvironment","label":"apiEnvironment","value":"sandbox","isOverridden":true,"defaultValue":"production"}
+        ]}"""
+        val event = assertIs<WireEvent.Snapshot>(parseWireEvent(text))
+        assertEquals(2, event.flags.size)
+        assertEquals("sandbox", event.flags.last().value)
+        assertEquals("production", event.flags.last().defaultValue)
+    }
+
+    @Test
+    fun `encodes a toggle_flag command`() {
+        assertEquals("""{"type":"toggle_flag","key":"featureNewCheckout","enabled":true}""", encodeToggleFlag("featureNewCheckout", true))
+    }
+
+    @Test
+    fun `encodes a reset_flag command`() {
+        assertEquals("""{"type":"reset_flag","key":"featureNewCheckout"}""", encodeResetFlag("featureNewCheckout"))
+    }
+
+    @Test
+    fun `encodes a reset_all_flags command`() {
+        assertEquals("""{"type":"reset_all_flags"}""", encodeResetAllFlags())
     }
 
     @Test

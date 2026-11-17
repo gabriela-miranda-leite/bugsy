@@ -3,6 +3,7 @@ package com.bugsy.desktop
 import com.bugsy.desktop.export.MockRuleFile
 import com.bugsy.desktop.export.buildHar
 import com.bugsy.desktop.export.saveHarToFile
+import com.bugsy.desktop.wire.WireDebugFlag
 import com.bugsy.desktop.wire.WireDebugRequest
 import com.bugsy.desktop.wire.WireMockRule
 import kotlinx.coroutines.CoroutineScope
@@ -130,6 +131,33 @@ class DesktopViewModel {
         _mockPrefill.value = null
         _mockPrefillSourceLabel.value = null
     }
+
+    val flags: StateFlow<List<WireDebugFlag>> = client.flags
+
+    private val _flagSearchQuery = MutableStateFlow("")
+    val flagSearchQuery: StateFlow<String> = _flagSearchQuery
+
+    fun setFlagSearchQuery(query: String) {
+        _flagSearchQuery.value = query
+    }
+
+    private val _selectedFlagKey = MutableStateFlow<String?>(null)
+
+    val selectedFlag: StateFlow<WireDebugFlag?> =
+        combine(flags, _selectedFlagKey) { all, key -> all.firstOrNull { it.key == key } }
+            .stateIn(scope, SharingStarted.Eagerly, null)
+
+    fun selectFlag(key: String?) {
+        _selectedFlagKey.value = key
+    }
+
+    /** Boolean-only, same as mobile's own `FlagsScreen` — other types are read-only in the UI even though
+     * `FlagManager.override` itself accepts `Any`. */
+    fun toggleFlag(key: String, enabled: Boolean) = client.sendToggleFlag(key, enabled)
+
+    fun resetFlag(key: String) = client.sendResetFlag(key)
+
+    fun resetAllFlags() = client.sendResetAllFlags()
 
     /** Unfiltered — HAR export uses this, same as mobile's `onExportHar(requests)` (the raw list, not what's
      * currently filtered on screen). */

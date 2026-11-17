@@ -55,6 +55,14 @@ sealed class BugsyCommand {
     data class ToggleFlag(val key: String, val enabled: Boolean) : BugsyCommand()
 
     @Serializable
+    @SerialName("reset_flag")
+    data class ResetFlag(val key: String) : BugsyCommand()
+
+    @Serializable
+    @SerialName("reset_all_flags")
+    object ResetAllFlags : BugsyCommand()
+
+    @Serializable
     @SerialName("clear_requests")
     object ClearRequests : BugsyCommand()
 }

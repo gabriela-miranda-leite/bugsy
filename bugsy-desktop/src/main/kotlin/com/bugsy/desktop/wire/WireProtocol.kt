@@ -1,21 +1,33 @@
 package com.bugsy.desktop.wire
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.longOrNull
 
 /**
- * A local copy of the BugsyWsServer protocol's wire shapes (DEB-58), not a dependency on `:core` — `:core`'s
- * commonMain declares mobile-only `expect` classes (`ShakeDetector`, `FloatingButtonController`, ...) that have
- * no desktop meaning, so adding a desktop target there would require noop `actual`s for things this app will
- * never use. `bugsy-noop` already duplicates its own copies of `MockRule`/`DebugFlag` for a similar reason —
- * this follows the same convention. Deliberately minimal: this MVP (DEB-59) only needs the request list, so
- * `mock_rule_changed`/`flag_changed` events (and the `mockRules`/`flags` fields of `snapshot`) are read with
- * `ignoreUnknownKeys` and otherwise ignored, not duplicated as types.
+ * A local copy of the BugsyWsServer protocol's wire shapes (DEB-58/60/61), not a dependency on `:core` —
+ * `:core`'s commonMain declares mobile-only `expect` classes (`ShakeDetector`, `FloatingButtonController`, ...)
+ * that have no desktop meaning, so adding a desktop target there would require noop `actual`s for things this
+ * app will never use. `bugsy-noop` already duplicates its own copies of `MockRule`/`DebugFlag` for a similar
+ * reason — this follows the same convention.
  */
 @Serializable
 data class WireDebugRequest(
@@ -89,12 +101,58 @@ private fun String.toDisplayRoute(): String {
     }
 }
 
+/** Mirrors `core`'s `DebugFlag` (DEB-60): [value] is a `Boolean`, `String` or number set by the host app's
+ * `flagsProvider`, same `Any` typing problem as `core`'s own model, same [WireFlagValueSerializer] solution. */
+@Serializable
+data class WireDebugFlag(
+    val key: String,
+    val label: String,
+    @Serializable(with = WireFlagValueSerializer::class) val value: Any,
+    val isOverridden: Boolean,
+    @Serializable(with = WireFlagValueSerializer::class) val defaultValue: Any = value,
+)
+
+/** A local copy of `core`'s `FlagValueSerializer` — only usable with [Json], round-trips through [JsonElement]. */
+internal object WireFlagValueSerializer : KSerializer<Any> {
+    override val descriptor: SerialDescriptor = JsonElement.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: Any) {
+        val jsonEncoder = encoder as? JsonEncoder ?: error("WireFlagValueSerializer only works with Json")
+        val element = when (value) {
+            is Boolean -> JsonPrimitive(value)
+            is Int -> JsonPrimitive(value)
+            is Long -> JsonPrimitive(value)
+            is Double -> JsonPrimitive(value)
+            is String -> JsonPrimitive(value)
+            else -> JsonPrimitive(value.toString())
+        }
+        jsonEncoder.encodeJsonElement(element)
+    }
+
+    override fun deserialize(decoder: Decoder): Any {
+        val jsonDecoder = decoder as? JsonDecoder ?: error("WireFlagValueSerializer only works with Json")
+        val primitive = jsonDecoder.decodeJsonElement() as? JsonPrimitive ?: return ""
+        return when {
+            primitive.isString -> primitive.content
+            primitive.booleanOrNull != null -> primitive.boolean
+            primitive.longOrNull != null -> primitive.long
+            primitive.doubleOrNull != null -> primitive.double
+            else -> primitive.content
+        }
+    }
+}
+
 sealed class WireEvent {
-    data class Snapshot(val requests: List<WireDebugRequest>, val mockRules: List<WireMockRule>) : WireEvent()
+    data class Snapshot(
+        val requests: List<WireDebugRequest>,
+        val mockRules: List<WireMockRule>,
+        val flags: List<WireDebugFlag>,
+    ) : WireEvent()
     data class RequestRecorded(val request: WireDebugRequest) : WireEvent()
     data class MockRuleChanged(val rule: WireMockRule, val action: String) : WireEvent()
+    data class FlagChanged(val flag: WireDebugFlag) : WireEvent()
 
-    /** Any event this doesn't render yet (`flag_changed`, or an unrecognized type). */
+    /** An unrecognized event type. */
     object Unhandled : WireEvent()
 }
 
@@ -111,6 +169,15 @@ private data class ToggleMockRuleCommand(val type: String, val id: String, val e
 @Serializable
 private data class DeleteMockRuleCommand(val type: String, val id: String)
 
+@Serializable
+private data class ToggleFlagCommand(val type: String, val key: String, val enabled: Boolean)
+
+@Serializable
+private data class ResetFlagCommand(val type: String, val key: String)
+
+@Serializable
+private data class ResetAllFlagsCommand(val type: String)
+
 /**
  * Mirrors `core`'s `BugsyCommand` (DEB-58/DEB-61) — only the subset `bugsy-desktop` sends today. `type` has no
  * default value on the command classes above: kotlinx.serialization's `Json` (with the default
@@ -126,6 +193,15 @@ fun encodeToggleMockRule(id: String, enabled: Boolean): String =
 fun encodeDeleteMockRule(id: String): String =
     wireJson.encodeToString(DeleteMockRuleCommand.serializer(), DeleteMockRuleCommand(type = "delete_mock_rule", id = id))
 
+fun encodeToggleFlag(key: String, enabled: Boolean): String =
+    wireJson.encodeToString(ToggleFlagCommand.serializer(), ToggleFlagCommand(type = "toggle_flag", key = key, enabled = enabled))
+
+fun encodeResetFlag(key: String): String =
+    wireJson.encodeToString(ResetFlagCommand.serializer(), ResetFlagCommand(type = "reset_flag", key = key))
+
+fun encodeResetAllFlags(): String =
+    wireJson.encodeToString(ResetAllFlagsCommand.serializer(), ResetAllFlagsCommand(type = "reset_all_flags"))
+
 /** Never throws: a malformed or unrecognized frame becomes [WireEvent.Unhandled] rather than crashing the client. */
 fun parseWireEvent(text: String): WireEvent {
     val root = runCatching { wireJson.parseToJsonElement(text).jsonObject }.getOrNull() ?: return WireEvent.Unhandled
@@ -137,7 +213,10 @@ fun parseWireEvent(text: String): WireEvent {
             val mockRules = (root["mockRules"] as? JsonArray).orEmpty().mapNotNull { element ->
                 runCatching { wireJson.decodeFromJsonElement(WireMockRule.serializer(), element) }.getOrNull()
             }
-            WireEvent.Snapshot(requests, mockRules)
+            val flags = (root["flags"] as? JsonArray).orEmpty().mapNotNull { element ->
+                runCatching { wireJson.decodeFromJsonElement(WireDebugFlag.serializer(), element) }.getOrNull()
+            }
+            WireEvent.Snapshot(requests, mockRules, flags)
         }
         "request_recorded" -> root["request"]
             ?.let { runCatching { wireJson.decodeFromJsonElement(WireDebugRequest.serializer(), it) }.getOrNull() }
@@ -146,6 +225,10 @@ fun parseWireEvent(text: String): WireEvent {
         "mock_rule_changed" -> root["rule"]
             ?.let { runCatching { wireJson.decodeFromJsonElement(WireMockRule.serializer(), it) }.getOrNull() }
             ?.let { rule -> root["action"]?.jsonPrimitive?.contentOrNull?.let { WireEvent.MockRuleChanged(rule, it) } }
+            ?: WireEvent.Unhandled
+        "flag_changed" -> root["flag"]
+            ?.let { runCatching { wireJson.decodeFromJsonElement(WireDebugFlag.serializer(), it) }.getOrNull() }
+            ?.let { WireEvent.FlagChanged(it) }
             ?: WireEvent.Unhandled
         else -> WireEvent.Unhandled
     }

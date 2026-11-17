@@ -44,6 +44,9 @@ fun MainLayout(viewModel: DesktopViewModel) {
     val editingMockRule by viewModel.editingMockRule.collectAsState()
     val isMockFormOpen by viewModel.isMockFormOpen.collectAsState()
     val mockPrefillSourceLabel by viewModel.mockPrefillSourceLabel.collectAsState()
+    val flags by viewModel.flags.collectAsState()
+    val flagSearchQuery by viewModel.flagSearchQuery.collectAsState()
+    val selectedFlag by viewModel.selectedFlag.collectAsState()
 
     Row(Modifier.fillMaxSize().background(BugsyDesktopColors.Background)) {
         Sidebar(selectedTab = selectedTab, onSelectTab = viewModel::selectTab)
@@ -100,7 +103,25 @@ fun MainLayout(viewModel: DesktopViewModel) {
                         }
                     }
                     DesktopTab.TIMELINE -> PlaceholderScreen("Timeline", Modifier.weight(1f))
-                    DesktopTab.FLAGS -> PlaceholderScreen("Flags", Modifier.weight(1f))
+                    DesktopTab.FLAGS -> Row(Modifier.weight(1f).fillMaxWidth()) {
+                        FlagsScreen(
+                            flags = flags,
+                            searchQuery = flagSearchQuery,
+                            onSearchQueryChange = viewModel::setFlagSearchQuery,
+                            selectedKey = selectedFlag?.key,
+                            onSelectFlag = viewModel::selectFlag,
+                            onToggle = viewModel::toggleFlag,
+                            onResetAll = viewModel::resetAllFlags,
+                            modifier = Modifier.weight(0.6f).fillMaxHeight(),
+                        )
+                        VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)
+                        FlagDetailPanel(
+                            flag = selectedFlag,
+                            onToggle = { enabled -> selectedFlag?.let { viewModel.toggleFlag(it.key, enabled) } },
+                            onReset = { selectedFlag?.let { viewModel.resetFlag(it.key) } },
+                            modifier = Modifier.weight(0.4f).fillMaxHeight(),
+                        )
+                    }
                     DesktopTab.DEVICE -> PlaceholderScreen("Device", Modifier.weight(1f))
                 }
             }

@@ -22,6 +22,8 @@ internal fun applyBugsyCommand(command: BugsyCommand) {
         is BugsyCommand.ToggleMockRule -> MockEngine.setActive(command.id, command.enabled)
         is BugsyCommand.DeleteMockRule -> MockEngine.removeRule(command.id)
         is BugsyCommand.ToggleFlag -> Bugsy.flagManager.override(command.key, command.enabled)
+        is BugsyCommand.ResetFlag -> Bugsy.flagManager.reset(command.key)
+        BugsyCommand.ResetAllFlags -> Bugsy.flagManager.resetAll()
         is BugsyCommand.ClearRequests -> DebugRepository.clear()
     }
 }

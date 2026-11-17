@@ -1,11 +1,15 @@
 package com.bugsy.desktop
 
+import com.bugsy.desktop.wire.WireDebugFlag
 import com.bugsy.desktop.wire.WireDebugRequest
 import com.bugsy.desktop.wire.WireEvent
 import com.bugsy.desktop.wire.WireMockRule
 import com.bugsy.desktop.wire.encodeAddMockRule
 import com.bugsy.desktop.wire.encodeDeleteMockRule
 import com.bugsy.desktop.wire.encodeHandshake
+import com.bugsy.desktop.wire.encodeResetAllFlags
+import com.bugsy.desktop.wire.encodeResetFlag
+import com.bugsy.desktop.wire.encodeToggleFlag
 import com.bugsy.desktop.wire.encodeToggleMockRule
 import com.bugsy.desktop.wire.parseWireEvent
 import io.ktor.client.HttpClient
@@ -43,6 +47,9 @@ class BugsyWsClient(private val scope: CoroutineScope) {
     private val _mockRules = MutableStateFlow<List<WireMockRule>>(emptyList())
     val mockRules: StateFlow<List<WireMockRule>> = _mockRules
 
+    private val _flags = MutableStateFlow<List<WireDebugFlag>>(emptyList())
+    val flags: StateFlow<List<WireDebugFlag>> = _flags
+
     private var job: Job? = null
 
     /** Set while the handshake has completed, so [sendAddOrUpdateMockRule]/etc. have somewhere to write; `null`
@@ -53,6 +60,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
         disconnect()
         _requests.value = emptyList()
         _mockRules.value = emptyList()
+        _flags.value = emptyList()
         job = scope.launch {
             var backoffMs = INITIAL_BACKOFF_MS
             var firstAttempt = true
@@ -72,6 +80,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                                     is WireEvent.Snapshot -> {
                                         _requests.value = event.requests
                                         _mockRules.value = event.mockRules
+                                        _flags.value = event.flags
                                     }
                                     is WireEvent.RequestRecorded -> _requests.update { listOf(event.request) + it }
                                     is WireEvent.MockRuleChanged -> _mockRules.update { rules ->
@@ -79,6 +88,9 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                                             "deleted" -> rules.filterNot { it.id == event.rule.id }
                                             else -> listOf(event.rule) + rules.filterNot { it.id == event.rule.id }
                                         }
+                                    }
+                                    is WireEvent.FlagChanged -> _flags.update { flags ->
+                                        listOf(event.flag) + flags.filterNot { it.key == event.flag.key }
                                     }
                                     WireEvent.Unhandled -> Unit
                                 }
@@ -119,6 +131,18 @@ class BugsyWsClient(private val scope: CoroutineScope) {
 
     fun sendDeleteMockRule(id: String) {
         scope.launch { runCatching { session?.send(Frame.Text(encodeDeleteMockRule(id))) } }
+    }
+
+    fun sendToggleFlag(key: String, enabled: Boolean) {
+        scope.launch { runCatching { session?.send(Frame.Text(encodeToggleFlag(key, enabled))) } }
+    }
+
+    fun sendResetFlag(key: String) {
+        scope.launch { runCatching { session?.send(Frame.Text(encodeResetFlag(key))) } }
+    }
+
+    fun sendResetAllFlags() {
+        scope.launch { runCatching { session?.send(Frame.Text(encodeResetAllFlags())) } }
     }
 
     fun disconnect() {

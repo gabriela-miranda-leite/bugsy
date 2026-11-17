@@ -23,6 +23,7 @@ import com.bugsy.desktop.ui.theme.BugsyDesktopColors
 import com.bugsy.desktop.ui.theme.BugsyDesktopSpacing
 import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
 import com.bugsy.desktop.ui.theme.formatDuration
+import com.bugsy.desktop.ui.theme.highlightJsonPretty
 import com.bugsy.desktop.ui.theme.statusColor
 import com.bugsy.desktop.wire.WireDebugRequest
 
@@ -67,7 +68,7 @@ fun RequestDetailPanel(request: WireDebugRequest?, modifier: Modifier = Modifier
 
             if (!request.requestBody.isNullOrBlank()) {
                 item { SectionLabel("REQUEST BODY") }
-                item { CodeBlock(request.requestBody) }
+                item { CodeBlock(highlightJsonPretty(request.requestBody)) }
             }
 
             if (request.responseHeaders.isNotEmpty()) {
@@ -77,12 +78,12 @@ fun RequestDetailPanel(request: WireDebugRequest?, modifier: Modifier = Modifier
 
             if (!request.responseBody.isNullOrBlank()) {
                 item { SectionLabel("RESPONSE BODY") }
-                item { CodeBlock(request.responseBody) }
+                item { CodeBlock(highlightJsonPretty(request.responseBody)) }
             }
 
             if (request.curlCommand.isNotBlank()) {
                 item { SectionLabel("cURL") }
-                item { CodeBlock(request.curlCommand) }
+                item { CodeBlock(androidx.compose.ui.text.AnnotatedString(request.curlCommand)) }
             }
         }
     }
@@ -130,7 +131,7 @@ private fun KeyValueRow(key: String, value: String) {
 }
 
 @Composable
-private fun CodeBlock(text: String) {
+private fun CodeBlock(text: androidx.compose.ui.text.AnnotatedString) {
     Box(
         Modifier
             .fillMaxWidth()

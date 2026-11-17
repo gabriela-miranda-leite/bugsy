@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -41,7 +42,7 @@ fun Sidebar(selectedTab: DesktopTab, onSelectTab: (DesktopTab) -> Unit, modifier
             horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm),
             modifier = Modifier.padding(horizontal = BugsyDesktopSpacing.lg, vertical = BugsyDesktopSpacing.md),
         ) {
-            Text("🐛", style = BugsyDesktopTypography.Heading)
+            BugsyIcon(modifier = Modifier.size(BugsyDesktopSpacing.navIconSize * 1.4f))
             Text("Bugsy", style = BugsyDesktopTypography.Heading.copy(fontWeight = FontWeight.Bold), color = BugsyDesktopColors.TextPrimary)
         }
 

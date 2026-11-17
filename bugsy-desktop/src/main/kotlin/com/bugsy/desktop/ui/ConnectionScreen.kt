@@ -70,7 +70,7 @@ private fun ConnectTopBar() {
         modifier = Modifier.fillMaxWidth().padding(horizontal = BugsyDesktopSpacing.lg, vertical = BugsyDesktopSpacing.md),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm)) {
-            Text("🐛", style = BugsyDesktopTypography.Heading)
+            BugsyIcon(modifier = Modifier.size(28.dp))
             Text("Bugsy", style = BugsyDesktopTypography.Heading, color = BugsyDesktopColors.TextPrimary)
         }
         Text("⚙", style = BugsyDesktopTypography.Heading, color = BugsyDesktopColors.TextDisabled)

@@ -22,11 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.bugsy.desktop.ui.theme.BugsyDesktopColors
+import com.bugsy.desktop.ui.theme.BugsyDesktopSpacing
+import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
 import com.bugsy.desktop.ui.theme.formatDuration
 import com.bugsy.desktop.ui.theme.statusColor
 import com.bugsy.desktop.wire.WireDebugRequest
@@ -48,21 +46,22 @@ fun RequestListScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
-            placeholder = { Text("Search by URL or method", color = BugsyDesktopColors.TextDisabled) },
+            placeholder = { Text("Search by URL or method", style = BugsyDesktopTypography.Body, color = BugsyDesktopColors.TextDisabled) },
             singleLine = true,
-            textStyle = TextStyle(color = BugsyDesktopColors.TextPrimary, fontSize = 13.sp),
+            textStyle = BugsyDesktopTypography.Body.copy(color = BugsyDesktopColors.TextPrimary),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = BugsyDesktopColors.Brand,
                 unfocusedBorderColor = BugsyDesktopColors.Border,
                 focusedContainerColor = BugsyDesktopColors.SurfaceCard,
                 unfocusedContainerColor = BugsyDesktopColors.SurfaceCard,
             ),
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(BugsyDesktopSpacing.md),
         )
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxWidth().horizontalScroll(ScrollState(0)).padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.filterChipSpacing),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(ScrollState(0))
+                .padding(horizontal = BugsyDesktopSpacing.md, vertical = BugsyDesktopSpacing.xs),
         ) {
             FilterChip(label = "All", selected = methodFilter == null, onClick = { onMethodFilterChange(null) })
             Methods.forEach { method ->
@@ -73,7 +72,12 @@ fun RequestListScreen(
 
         if (requests.isEmpty()) {
             Box(Modifier.fillMaxSize()) {
-                Text("No requests yet.", color = BugsyDesktopColors.TextDisabled, modifier = Modifier.align(Alignment.Center))
+                Text(
+                    "No requests yet.",
+                    style = BugsyDesktopTypography.Body,
+                    color = BugsyDesktopColors.TextDisabled,
+                    modifier = Modifier.align(Alignment.Center),
+                )
             }
             return@Column
         }
@@ -94,12 +98,20 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .background(
                 if (selected) BugsyDesktopColors.Brand.copy(alpha = 0.18f) else BugsyDesktopColors.SurfaceCard,
-                RoundedCornerShape(50),
+                RoundedCornerShape(BugsyDesktopSpacing.filterChipCorner),
             )
-            .border(1.dp, if (selected) BugsyDesktopColors.Brand else BugsyDesktopColors.Border, RoundedCornerShape(50))
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .border(
+                BugsyDesktopSpacing.controlBorder,
+                if (selected) BugsyDesktopColors.Brand else BugsyDesktopColors.Border,
+                RoundedCornerShape(BugsyDesktopSpacing.filterChipCorner),
+            )
+            .padding(horizontal = BugsyDesktopSpacing.filterChipPaddingHorizontal, vertical = BugsyDesktopSpacing.filterChipPaddingVertical),
     ) {
-        Text(label, color = if (selected) BugsyDesktopColors.Brand else BugsyDesktopColors.TextDimmed, fontSize = 12.sp)
+        Text(
+            label,
+            style = BugsyDesktopTypography.Label,
+            color = if (selected) BugsyDesktopColors.Brand else BugsyDesktopColors.TextDimmed,
+        )
     }
 }
 
@@ -107,23 +119,22 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun RequestRow(request: WireDebugRequest, selected: Boolean, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.requestRowSpacing),
         modifier = Modifier
             .fillMaxWidth()
             .background(if (selected) BugsyDesktopColors.SurfaceCard else BugsyDesktopColors.Surface)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = BugsyDesktopSpacing.requestRowHorizontal, vertical = BugsyDesktopSpacing.requestRowVertical),
     ) {
         MethodBadge(request.method)
         Text(
             request.url,
+            style = BugsyDesktopTypography.CodeSmall,
             color = BugsyDesktopColors.TextDimmed,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 12.sp,
             maxLines = 1,
             modifier = Modifier.weight(1f),
         )
-        Text(request.statusCode?.toString() ?: "—", color = statusColor(request.statusCode), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
-        Text(formatDuration(request.durationMs), color = BugsyDesktopColors.TextDisabled, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+        Text(request.statusCode?.toString() ?: "—", style = BugsyDesktopTypography.CodeSmall, color = statusColor(request.statusCode))
+        Text(formatDuration(request.durationMs), style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
     }
 }

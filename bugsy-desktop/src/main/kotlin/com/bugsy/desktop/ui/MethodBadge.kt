@@ -9,11 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.bugsy.desktop.ui.theme.BugsyDesktopSpacing
+import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
 import com.bugsy.desktop.ui.theme.methodColors
 
 @Composable
@@ -22,15 +19,10 @@ fun MethodBadge(method: String, modifier: Modifier = Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .background(bgColor, RoundedCornerShape(4.dp))
-            .defaultMinSize(minWidth = 52.dp)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+            .background(bgColor, RoundedCornerShape(BugsyDesktopSpacing.badgeCorner))
+            .defaultMinSize(minWidth = BugsyDesktopSpacing.badgeMinWidth)
+            .padding(horizontal = BugsyDesktopSpacing.badgePaddingHorizontal, vertical = BugsyDesktopSpacing.badgePaddingVertical),
     ) {
-        Text(
-            text = method.uppercase(),
-            style = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 12.sp),
-            color = textColor,
-            maxLines = 1,
-        )
+        Text(text = method.uppercase(), style = BugsyDesktopTypography.CodeBold, color = textColor, maxLines = 1)
     }
 }

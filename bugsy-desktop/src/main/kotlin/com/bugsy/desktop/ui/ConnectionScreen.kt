@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -20,9 +19,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.bugsy.desktop.ui.theme.BugsyDesktopColors
+import com.bugsy.desktop.ui.theme.BugsyDesktopSpacing
+import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
 
 @Composable
 fun ConnectionScreen(onConnect: (host: String, port: Int, token: String) -> Unit) {
@@ -34,33 +34,33 @@ fun ConnectionScreen(onConnect: (host: String, port: Int, token: String) -> Unit
     Box(Modifier.fillMaxSize().background(BugsyDesktopColors.Surface), contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier.width(360.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.md),
         ) {
-            Text("Connect to app", style = MaterialTheme.typography.headlineSmall, color = BugsyDesktopColors.TextPrimary)
+            Text("Connect to app", style = BugsyDesktopTypography.Title, color = BugsyDesktopColors.TextPrimary)
             OutlinedTextField(
                 value = host,
                 onValueChange = { host = it },
-                label = { Text("Device IP") },
+                label = { Text("Device IP", style = BugsyDesktopTypography.Body) },
                 singleLine = true,
-                textStyle = TextStyle(color = BugsyDesktopColors.TextPrimary),
+                textStyle = BugsyDesktopTypography.Body.copy(color = BugsyDesktopColors.TextPrimary),
                 colors = fieldColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = port,
                 onValueChange = { port = it },
-                label = { Text("Port") },
+                label = { Text("Port", style = BugsyDesktopTypography.Body) },
                 singleLine = true,
-                textStyle = TextStyle(color = BugsyDesktopColors.TextPrimary),
+                textStyle = BugsyDesktopTypography.Body.copy(color = BugsyDesktopColors.TextPrimary),
                 colors = fieldColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = token,
                 onValueChange = { token = it },
-                label = { Text("Token (shown in the app's overlay)") },
+                label = { Text("Token (shown in the app's overlay)", style = BugsyDesktopTypography.Body) },
                 singleLine = true,
-                textStyle = TextStyle(color = BugsyDesktopColors.TextPrimary),
+                textStyle = BugsyDesktopTypography.Body.copy(color = BugsyDesktopColors.TextPrimary),
                 colors = fieldColors(),
                 modifier = Modifier.fillMaxWidth(),
             )

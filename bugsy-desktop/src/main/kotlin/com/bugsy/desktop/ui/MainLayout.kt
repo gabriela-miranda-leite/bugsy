@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -18,10 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.bugsy.desktop.ConnectionState
 import com.bugsy.desktop.DesktopViewModel
 import com.bugsy.desktop.ui.theme.BugsyDesktopColors
+import com.bugsy.desktop.ui.theme.BugsyDesktopSpacing
+import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
 
 @Composable
 fun MainLayout(viewModel: DesktopViewModel) {
@@ -49,7 +49,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
                         onSelectRequest = viewModel::selectRequest,
                         modifier = Modifier.weight(0.4f).fillMaxHeight(),
                     )
-                    VerticalDivider(modifier = Modifier.width(1.dp), color = BugsyDesktopColors.BorderHeader)
+                    VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)
                     RequestDetailPanel(request = selectedRequest, modifier = Modifier.weight(0.6f).fillMaxHeight())
                 }
             }
@@ -60,17 +60,17 @@ fun MainLayout(viewModel: DesktopViewModel) {
 @Composable
 private fun ConnectionToolbar(state: ConnectionState, onDisconnect: () -> Unit) {
     TopAppBar(
-        title = { Text("Bugsy Desktop") },
+        title = { Text("Bugsy Desktop", style = BugsyDesktopTypography.Heading) },
         actions = {
             val (label, color) = when (state) {
-                ConnectionState.DISCONNECTED -> "Disconnected" to MaterialTheme.colorScheme.error
-                ConnectionState.CONNECTING -> "Connecting..." to MaterialTheme.colorScheme.tertiary
-                ConnectionState.CONNECTED -> "Connected" to MaterialTheme.colorScheme.primary
-                ConnectionState.RECONNECTING -> "Reconnecting..." to MaterialTheme.colorScheme.tertiary
+                ConnectionState.DISCONNECTED -> "Disconnected" to BugsyDesktopColors.Status4xx
+                ConnectionState.CONNECTING -> "Connecting..." to BugsyDesktopColors.Status3xx
+                ConnectionState.CONNECTED -> "Connected" to BugsyDesktopColors.Status2xx
+                ConnectionState.RECONNECTING -> "Reconnecting..." to BugsyDesktopColors.Status3xx
             }
-            Text(label, color = color, modifier = Modifier.padding(end = 8.dp))
+            Text(label, style = BugsyDesktopTypography.Body, color = color, modifier = Modifier.padding(end = BugsyDesktopSpacing.sm))
             if (state != ConnectionState.DISCONNECTED) {
-                TextButton(onClick = onDisconnect) { Text("Disconnect") }
+                TextButton(onClick = onDisconnect) { Text("Disconnect", style = BugsyDesktopTypography.Body) }
             }
         },
     )

@@ -17,12 +17,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -69,6 +73,8 @@ fun RequestDetailPanel(request: WireDebugRequest?, modifier: Modifier = Modifier
         }
 
         LazyColumn(contentPadding = PaddingValues(BugsyDesktopSpacing.xl), verticalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.xl)) {
+            item { RevealToggleRow() }
+
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm)) {
                     MethodBadge(request.method)
@@ -132,8 +138,34 @@ private fun SectionLabel(text: String, onCopy: () -> Unit) {
 
 @Composable
 private fun CopyButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(28.dp)) {
-        Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy", tint = BugsyDesktopColors.TextDisabled, modifier = Modifier.size(16.dp))
+    val flash = rememberCopyFlash()
+    IconButton(onClick = { onClick(); flash.flash() }, modifier = Modifier.size(28.dp)) {
+        Icon(
+            if (flash.copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
+            contentDescription = "Copy",
+            tint = if (flash.copied) BugsyDesktopColors.Status2xx else BugsyDesktopColors.TextDisabled,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+/**
+ * Shown for visual/feature parity with mobile's reveal/mask toggle, but disabled: the wire protocol never
+ * carries `DebugRequest.secrets` (DEB-58's `@Transient`), so there is no unmasked version on the desktop side
+ * for this to switch to — what's already shown is mobile's masked default, same data either way.
+ */
+@Composable
+private fun RevealToggleRow() {
+    Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = {}, enabled = false) {
+            Icon(Icons.Outlined.Visibility, contentDescription = null, tint = BugsyDesktopColors.TextDisabled, modifier = Modifier.size(16.dp))
+            Text(
+                "Show sensitive data (not sent to desktop)",
+                style = BugsyDesktopTypography.Caption,
+                color = BugsyDesktopColors.TextDisabled,
+                modifier = Modifier.padding(start = BugsyDesktopSpacing.xs),
+            )
+        }
     }
 }
 

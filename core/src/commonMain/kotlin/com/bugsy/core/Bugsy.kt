@@ -32,6 +32,17 @@ object Bugsy {
      */
     val wsServerToken: String? get() = wsServer?.sessionToken
 
+    /**
+     * Stops and restarts the BugsyWsServer, generating a new [wsServerToken] and dropping any desktop client
+     * currently connected with the old one — a manual "disconnect" since there's no per-connection control.
+     * A noop where the server isn't running (not yet [initialize]d, or no real server on this platform).
+     */
+    fun restartWsServer() {
+        val current = wsServer ?: return
+        current.stop()
+        wsServer = startBugsyWsServer()
+    }
+
     fun initialize(config: BugsyConfig = BugsyConfig()) {
         destroy()
         _flagManager = FlagManager(config.flagsProvider)

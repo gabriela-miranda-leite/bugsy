@@ -347,7 +347,7 @@ class BugsyScreenshotTest {
     fun settingsScreenWithDesktopToken() {
         // A fixed value, not the real Bugsy.wsServerToken: that one is randomly generated per
         // Bugsy.initialize() call (DEB-58) and would make this snapshot non-deterministic.
-        snapshotOnSurface { SettingsScreen(wsToken = "b8LiQD8n") }
+        snapshotOnSurface { SettingsScreen(wsTokenOverride = "b8LiQD8n") }
     }
 
     @Test

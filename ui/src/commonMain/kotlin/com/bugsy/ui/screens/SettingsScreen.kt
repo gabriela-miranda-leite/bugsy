@@ -17,6 +17,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -24,6 +27,7 @@ import androidx.compose.ui.text.AnnotatedString
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.settings_bugsy_version
+import bugsy.ui.generated.resources.settings_desktop_disconnect
 import bugsy.ui.generated.resources.settings_desktop_token
 import bugsy.ui.generated.resources.settings_desktop_token_hint
 import bugsy.ui.generated.resources.settings_desktop_token_unavailable
@@ -46,14 +50,18 @@ import com.bugsy.ui.theme.BugsyTypography
 /**
  * Preferences for whoever uses the overlay: sensitive data by default and the Bugsy version.
  *
- * @param wsToken defaults to the real [Bugsy.wsServerToken]; overridable so screenshot tests can pass a fixed
- * value instead of the real one, which is randomly generated per [Bugsy.initialize] call and would otherwise
- * make the snapshot non-deterministic.
+ * @param wsTokenOverride bypasses the real [Bugsy.wsServerToken] when set, so screenshot tests can pass a fixed
+ * value instead of the real one, which is randomly generated per [Bugsy.initialize]/[Bugsy.restartWsServer] call
+ * and would otherwise make the snapshot non-deterministic.
  */
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier, wsToken: String? = Bugsy.wsServerToken) {
+fun SettingsScreen(modifier: Modifier = Modifier, wsTokenOverride: String? = null) {
     val revealDefault by BugsySettings.revealSensitiveByDefault.collectAsState()
     val clipboard = LocalClipboardManager.current
+    // Bumped after Bugsy.restartWsServer() so `wsToken` below re-reads the new value — a plain property read
+    // isn't observable on its own, this is what makes the UI actually reflect the new token.
+    var tokenGeneration by remember { mutableIntStateOf(0) }
+    val wsToken = wsTokenOverride ?: remember(tokenGeneration) { Bugsy.wsServerToken }
 
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
@@ -108,6 +116,17 @@ fun SettingsScreen(modifier: Modifier = Modifier, wsToken: String? = Bugsy.wsSer
                         style = BugsyTypography.Caption,
                         color = BugsyColors.TextDisabled,
                         modifier = Modifier.padding(top = BugsySpacing.xs),
+                    )
+                    Text(
+                        stringResource(Res.string.settings_desktop_disconnect),
+                        style = BugsyTypography.Caption,
+                        color = BugsyColors.DeleteText,
+                        modifier = Modifier
+                            .padding(top = BugsySpacing.sm)
+                            .clickable {
+                                Bugsy.restartWsServer()
+                                tokenGeneration++
+                            },
                     )
                 }
             } else {

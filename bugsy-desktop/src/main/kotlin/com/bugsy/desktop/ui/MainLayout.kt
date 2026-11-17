@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -23,7 +24,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
     val requests by viewModel.requests.collectAsState()
 
     Scaffold(
-        topBar = { ConnectionToolbar(connectionState) },
+        topBar = { ConnectionToolbar(connectionState, onDisconnect = viewModel::disconnect) },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (connectionState == ConnectionState.DISCONNECTED) {
@@ -36,17 +37,20 @@ fun MainLayout(viewModel: DesktopViewModel) {
 }
 
 @Composable
-private fun ConnectionToolbar(state: ConnectionState) {
+private fun ConnectionToolbar(state: ConnectionState, onDisconnect: () -> Unit) {
     TopAppBar(
         title = { Text("Bugsy Desktop") },
         actions = {
             val (label, color) = when (state) {
-                ConnectionState.DISCONNECTED -> "Desconectado" to MaterialTheme.colorScheme.error
-                ConnectionState.CONNECTING -> "Conectando..." to MaterialTheme.colorScheme.tertiary
-                ConnectionState.CONNECTED -> "Conectado" to MaterialTheme.colorScheme.primary
-                ConnectionState.RECONNECTING -> "Reconectando..." to MaterialTheme.colorScheme.tertiary
+                ConnectionState.DISCONNECTED -> "Disconnected" to MaterialTheme.colorScheme.error
+                ConnectionState.CONNECTING -> "Connecting..." to MaterialTheme.colorScheme.tertiary
+                ConnectionState.CONNECTED -> "Connected" to MaterialTheme.colorScheme.primary
+                ConnectionState.RECONNECTING -> "Reconnecting..." to MaterialTheme.colorScheme.tertiary
             }
-            Text(label, color = color, modifier = Modifier.padding(end = 16.dp))
+            Text(label, color = color, modifier = Modifier.padding(end = 8.dp))
+            if (state != ConnectionState.DISCONNECTED) {
+                TextButton(onClick = onDisconnect) { Text("Disconnect") }
+            }
         },
     )
 }

@@ -16,6 +16,8 @@ object Bugsy {
 
     val wsServerToken: String? = null
 
+    fun restartWsServer() = Unit
+
     fun initialize(config: BugsyConfig = BugsyConfig()) = Unit
 
     fun destroy() = Unit

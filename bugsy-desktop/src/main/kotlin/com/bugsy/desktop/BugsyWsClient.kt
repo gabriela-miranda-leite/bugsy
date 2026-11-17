@@ -84,13 +84,18 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                                     }
                                     is WireEvent.RequestRecorded -> _requests.update { listOf(event.request) + it }
                                     is WireEvent.MockRuleChanged -> _mockRules.update { rules ->
-                                        when (event.action) {
-                                            "deleted" -> rules.filterNot { it.id == event.rule.id }
-                                            else -> listOf(event.rule) + rules.filterNot { it.id == event.rule.id }
+                                        when {
+                                            event.action == "deleted" -> rules.filterNot { it.id == event.rule.id }
+                                            rules.any { it.id == event.rule.id } -> rules.map { if (it.id == event.rule.id) event.rule else it }
+                                            else -> rules + event.rule
                                         }
                                     }
                                     is WireEvent.FlagChanged -> _flags.update { flags ->
-                                        listOf(event.flag) + flags.filterNot { it.key == event.flag.key }
+                                        if (flags.any { it.key == event.flag.key }) {
+                                            flags.map { if (it.key == event.flag.key) event.flag else it }
+                                        } else {
+                                            flags + event.flag
+                                        }
                                     }
                                     WireEvent.Unhandled -> Unit
                                 }

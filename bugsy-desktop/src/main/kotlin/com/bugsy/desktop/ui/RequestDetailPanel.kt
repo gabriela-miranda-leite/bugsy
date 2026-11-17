@@ -51,15 +51,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Mirrors `:ui`'s `RequestDetailScreen` (DEB-60): metrics, headers, bodies (JSON-highlighted), cURL, and a
- * "Create mock from this response" action. No reveal/mask toggle here, unlike mobile — the wire protocol never
- * carries `DebugRequest.secrets` (DEB-58's `@Transient`), so there's no unmasked version to reveal; what's shown
- * is already mobile's default-masked view, same data either way.
+ * Mirrors `:ui`'s `RequestDetailScreen` (DEB-60): metrics, headers, bodies (JSON-highlighted), cURL, a
+ * reveal/mask toggle for secrets, and a "Create mock from this response" action.
  */
 @Composable
 fun RequestDetailPanel(request: WireDebugRequest?, modifier: Modifier = Modifier) {
     val clipboard = LocalClipboardManager.current
     fun copy(text: String) = clipboard.setText(AnnotatedString(text))
+    var revealed by remember(request?.id) { mutableStateOf(false) }
 
     Box(modifier.fillMaxSize().background(BugsyDesktopColors.Background)) {
         if (request == null) {
@@ -72,8 +71,21 @@ fun RequestDetailPanel(request: WireDebugRequest?, modifier: Modifier = Modifier
             return@Box
         }
 
+        val secrets = request.secrets
+        val requestHeaders = if (revealed) secrets?.requestHeaders ?: request.requestHeaders else request.requestHeaders
+        val requestBody = if (revealed) secrets?.requestBody ?: request.requestBody else request.requestBody
+        val responseHeaders = if (revealed) secrets?.responseHeaders ?: request.responseHeaders else request.responseHeaders
+        val responseBody = if (revealed) secrets?.responseBody ?: request.responseBody else request.responseBody
+        val curlCommand = if (revealed) secrets?.curlCommand ?: request.curlCommand else request.curlCommand
+
         LazyColumn(contentPadding = PaddingValues(BugsyDesktopSpacing.xl), verticalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.xl)) {
-            item { RevealToggleRow() }
+            item {
+                RevealToggleRow(
+                    revealed = revealed,
+                    available = secrets != null,
+                    onToggle = { revealed = !revealed },
+                )
+            }
 
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm)) {
@@ -96,29 +108,29 @@ fun RequestDetailPanel(request: WireDebugRequest?, modifier: Modifier = Modifier
                 }
             }
 
-            if (request.requestHeaders.isNotEmpty()) {
-                item { SectionLabel("REQUEST HEADERS", onCopy = { copy(request.requestHeaders.asText()) }) }
-                items(request.requestHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v, onCopy = { copy("$k: $v") }) }
+            if (requestHeaders.isNotEmpty()) {
+                item { SectionLabel("REQUEST HEADERS", onCopy = { copy(requestHeaders.asText()) }) }
+                items(requestHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v, onCopy = { copy("$k: $v") }) }
             }
 
-            if (!request.requestBody.isNullOrBlank()) {
-                item { SectionLabel("REQUEST BODY", onCopy = { copy(request.requestBody) }) }
-                item { CodeBlock(highlightJsonPretty(request.requestBody)) }
+            if (!requestBody.isNullOrBlank()) {
+                item { SectionLabel("REQUEST BODY", onCopy = { copy(requestBody) }) }
+                item { CodeBlock(highlightJsonPretty(requestBody)) }
             }
 
-            if (request.responseHeaders.isNotEmpty()) {
-                item { SectionLabel("RESPONSE HEADERS", onCopy = { copy(request.responseHeaders.asText()) }) }
-                items(request.responseHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v, onCopy = { copy("$k: $v") }) }
+            if (responseHeaders.isNotEmpty()) {
+                item { SectionLabel("RESPONSE HEADERS", onCopy = { copy(responseHeaders.asText()) }) }
+                items(responseHeaders.entries.toList()) { (k, v) -> KeyValueRow(k, v, onCopy = { copy("$k: $v") }) }
             }
 
-            if (!request.responseBody.isNullOrBlank()) {
-                item { SectionLabel("RESPONSE BODY", onCopy = { copy(request.responseBody) }) }
-                item { CodeBlock(highlightJsonPretty(request.responseBody)) }
+            if (!responseBody.isNullOrBlank()) {
+                item { SectionLabel("RESPONSE BODY", onCopy = { copy(responseBody) }) }
+                item { CodeBlock(highlightJsonPretty(responseBody)) }
             }
 
-            if (request.curlCommand.isNotBlank()) {
-                item { SectionLabel("cURL", onCopy = { copy(request.curlCommand) }) }
-                item { CodeBlock(AnnotatedString(request.curlCommand)) }
+            if (curlCommand.isNotBlank()) {
+                item { SectionLabel("cURL", onCopy = { copy(curlCommand) }) }
+                item { CodeBlock(AnnotatedString(curlCommand)) }
             }
 
             item { CreateMockButton() }
@@ -150,19 +162,30 @@ private fun CopyButton(onClick: () -> Unit) {
 }
 
 /**
- * Shown for visual/feature parity with mobile's reveal/mask toggle, but disabled: the wire protocol never
- * carries `DebugRequest.secrets` (DEB-58's `@Transient`), so there is no unmasked version on the desktop side
- * for this to switch to — what's already shown is mobile's masked default, same data either way.
+ * Mirrors mobile's reveal/mask toggle (DEB-60): the real values now travel over the wire too (`core`'s
+ * `RequestSecrets` is `@Serializable`, gated by `BugsyConfig.allowRevealingSecrets` same as mobile's own
+ * toggle), so flipping this swaps every header/body/cURL block below between masked and real. Disabled when
+ * [available] is `false` — the host app had secrets turned off, or this particular request never had any
+ * masked in the first place.
  */
 @Composable
-private fun RevealToggleRow() {
+private fun RevealToggleRow(revealed: Boolean, available: Boolean, onToggle: () -> Unit) {
     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-        OutlinedButton(onClick = {}, enabled = false) {
-            Icon(Icons.Outlined.Visibility, contentDescription = null, tint = BugsyDesktopColors.TextDisabled, modifier = Modifier.size(16.dp))
+        OutlinedButton(onClick = onToggle, enabled = available) {
+            Icon(
+                if (revealed) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                contentDescription = null,
+                tint = if (available) BugsyDesktopColors.TextSecondary else BugsyDesktopColors.TextDisabled,
+                modifier = Modifier.size(16.dp),
+            )
             Text(
-                "Show sensitive data (not sent to desktop)",
+                when {
+                    !available -> "No sensitive data for this request"
+                    revealed -> "Hide sensitive data"
+                    else -> "Show sensitive data"
+                },
                 style = BugsyDesktopTypography.Caption,
-                color = BugsyDesktopColors.TextDisabled,
+                color = if (available) BugsyDesktopColors.TextSecondary else BugsyDesktopColors.TextDisabled,
                 modifier = Modifier.padding(start = BugsyDesktopSpacing.xs),
             )
         }

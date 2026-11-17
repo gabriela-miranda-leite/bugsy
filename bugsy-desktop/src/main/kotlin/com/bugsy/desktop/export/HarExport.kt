@@ -14,9 +14,10 @@ import kotlinx.serialization.json.put
 
 /**
  * A minimal HAR 1.2 writer, hand-built the same way `:core`'s `HarSerializer` is (not shared — same reasoning
- * as the rest of `:bugsy-desktop` not depending on `:core`). Desktop's export is always the masked data: the
- * wire protocol never carries `DebugRequest.secrets` (DEB-58's `@Transient`), so there's no "reveal real
- * values" option here the way the mobile overlay's share sheet has.
+ * as the rest of `:bugsy-desktop` not depending on `:core`). Always exports the masked data, regardless of
+ * whether the detail panel's reveal toggle is on: mirrors `HarSerializer`'s own default (mobile's share sheet
+ * only reveals secrets when the user explicitly confirms it for that export), and avoids writing real secrets
+ * to a file on disk by default.
  */
 fun buildHar(requests: List<WireDebugRequest>): String {
     val json = Json { prettyPrint = true }

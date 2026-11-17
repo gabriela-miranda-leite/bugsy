@@ -31,11 +31,23 @@ data class WireDebugRequest(
     val timestamp: Long = 0,
     val curlCommand: String = "",
     val metadata: Map<String, String> = emptyMap(),
+    /** Mirrors `core`'s `RequestSecrets` (DEB-60): the real, unmasked values, present only when something was
+     * masked and the host app's `BugsyConfig.allowRevealingSecrets` is on. */
+    val secrets: WireRequestSecrets? = null,
 ) {
     /** Mirrors `com.bugsy.core.MockMetadata.KEY_MOCKED`/`VALUE_TRUE` — duplicated as a string here for the same
      * reason the rest of this file doesn't depend on `:core`. */
     val isMocked: Boolean get() = metadata["mocked"] == "true"
 }
+
+@Serializable
+data class WireRequestSecrets(
+    val requestHeaders: Map<String, String> = emptyMap(),
+    val requestBody: String? = null,
+    val responseHeaders: Map<String, String> = emptyMap(),
+    val responseBody: String? = null,
+    val curlCommand: String = "",
+)
 
 @Serializable
 data class WireHandshake(val value: String)

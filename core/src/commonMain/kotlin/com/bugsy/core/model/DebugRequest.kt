@@ -1,7 +1,6 @@
 package com.bugsy.core.model
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
 data class DebugRequest(
@@ -18,9 +17,10 @@ data class DebugRequest(
     val curlCommand: String,
     val metadata: Map<String, String> = emptyMap(),
     /**
-     * Real values, only in memory and only when something was masked. See `BugsyConfig.allowRevealingSecrets`.
-     * `@Transient`: never sent over the BugsyWsServer protocol (DEB-58) — the desktop client only ever sees the
-     * already-masked fields above, same "when in doubt, mask it" policy as the rest of the overlay.
+     * Real values, only populated when something was masked and `BugsyConfig.allowRevealingSecrets` is on.
+     * Sent over the BugsyWsServer protocol (DEB-58/DEB-60) so the desktop client can offer the same reveal
+     * toggle as the mobile overlay — same gate, so a host app that turns `allowRevealingSecrets` off keeps
+     * secrets out of both UIs and off the wire.
      */
-    @Transient val secrets: RequestSecrets? = null
+    val secrets: RequestSecrets? = null
 )

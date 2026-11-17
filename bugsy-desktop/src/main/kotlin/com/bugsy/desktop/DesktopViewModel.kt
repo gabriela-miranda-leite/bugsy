@@ -5,7 +5,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 
 /**
  * Plain class, not `androidx.lifecycle.ViewModel` — this is a desktop JVM app, no Android lifecycle to hook
@@ -16,11 +20,44 @@ class DesktopViewModel {
     private val client = BugsyWsClient(scope)
 
     val connectionState: StateFlow<ConnectionState> = client.state
-    val requests: StateFlow<List<WireDebugRequest>> = client.requests
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+
+    private val _methodFilter = MutableStateFlow<String?>(null)
+    val methodFilter: StateFlow<String?> = _methodFilter
+
+    private val _selectedRequestId = MutableStateFlow<String?>(null)
+
+    val requests: StateFlow<List<WireDebugRequest>> = combine(client.requests, _searchQuery, _methodFilter) { all, query, method ->
+        all.filter { request ->
+            (method == null || request.method.equals(method, ignoreCase = true)) &&
+                (query.isBlank() || request.url.contains(query, ignoreCase = true) || request.method.contains(query, ignoreCase = true))
+        }
+    }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    val selectedRequest: StateFlow<WireDebugRequest?> =
+        combine(client.requests, _selectedRequestId) { all, id -> all.firstOrNull { it.id == id } }
+            .stateIn(scope, SharingStarted.Eagerly, null)
 
     fun connect(host: String, port: Int, token: String) = client.connect(host, port, token)
 
-    fun disconnect() = client.disconnect()
+    fun disconnect() {
+        client.disconnect()
+        _selectedRequestId.value = null
+    }
+
+    fun selectRequest(id: String?) {
+        _selectedRequestId.value = id
+    }
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setMethodFilter(method: String?) {
+        _methodFilter.value = method
+    }
 
     fun onCloseWindow() {
         client.close()

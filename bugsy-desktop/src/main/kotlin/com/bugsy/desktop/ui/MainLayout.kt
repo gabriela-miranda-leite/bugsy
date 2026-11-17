@@ -38,7 +38,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
     val requests by viewModel.requests.collectAsState()
     val selectedRequest by viewModel.selectedRequest.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val methodFilter by viewModel.methodFilter.collectAsState()
+    val quickFilter by viewModel.quickFilter.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
 
     Row(Modifier.fillMaxSize().background(BugsyDesktopColors.Background)) {
@@ -56,10 +56,12 @@ fun MainLayout(viewModel: DesktopViewModel) {
                             requests = requests,
                             searchQuery = searchQuery,
                             onSearchQueryChange = viewModel::setSearchQuery,
-                            methodFilter = methodFilter,
-                            onMethodFilterChange = viewModel::setMethodFilter,
+                            quickFilter = quickFilter,
+                            onQuickFilterChange = viewModel::setQuickFilter,
                             selectedRequestId = selectedRequest?.id,
                             onSelectRequest = viewModel::selectRequest,
+                            onExportHar = viewModel::exportHar,
+                            onClear = viewModel::clearRequests,
                             modifier = Modifier.weight(0.4f).fillMaxHeight(),
                         )
                         VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)

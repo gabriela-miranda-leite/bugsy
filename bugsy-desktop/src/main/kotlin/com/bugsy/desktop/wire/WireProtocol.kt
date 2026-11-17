@@ -30,7 +30,12 @@ data class WireDebugRequest(
     val durationMs: Long = 0,
     val timestamp: Long = 0,
     val curlCommand: String = "",
-)
+    val metadata: Map<String, String> = emptyMap(),
+) {
+    /** Mirrors `com.bugsy.core.MockMetadata.KEY_MOCKED`/`VALUE_TRUE` — duplicated as a string here for the same
+     * reason the rest of this file doesn't depend on `:core`. */
+    val isMocked: Boolean get() = metadata["mocked"] == "true"
+}
 
 @Serializable
 data class WireHandshake(val value: String)

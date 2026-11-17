@@ -73,6 +73,13 @@ class BugsyWsClient(private val scope: CoroutineScope) {
         }
     }
 
+    /** Clears the local view only — same "display vs. source" distinction as [setPaused]. There's no
+     * `BugsyCommand.ClearRequests` sent to mobile (the client never sends commands today); mobile's own history
+     * keeps whatever it already had, and would resend it in a `snapshot` on the next reconnect. */
+    fun clearLocal() {
+        _requests.value = emptyList()
+    }
+
     fun disconnect() {
         job?.cancel()
         job = null

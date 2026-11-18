@@ -28,7 +28,12 @@ import com.bugsy.ui.theme.BugsyTypography
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun BugsySearchBar(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+fun BugsySearchBar(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = stringResource(Res.string.search_placeholder),
+) {
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -55,7 +60,7 @@ fun BugsySearchBar(value: String, onValueChange: (String) -> Unit, modifier: Mod
                 Box(Modifier.weight(1f)) {
                     if (value.isEmpty()) {
                         Text(
-                            stringResource(Res.string.search_placeholder),
+                            placeholder,
                             style = BugsyTypography.Code.copy(color = BugsyColors.TextDisabled),
                         )
                     }

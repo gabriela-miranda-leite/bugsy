@@ -102,7 +102,7 @@ private fun DeviceRow(label: String, value: String, onCopy: () -> Unit) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm),
-            modifier = Modifier.fillMaxWidth().height(36.dp),
+            modifier = Modifier.fillMaxWidth().height(BugsyDesktopSpacing.controlHeight),
         ) {
             Text(label, style = BugsyDesktopTypography.Body, color = BugsyDesktopColors.TextDisabled, modifier = Modifier.weight(0.4f))
             Text(
@@ -114,7 +114,7 @@ private fun DeviceRow(label: String, value: String, onCopy: () -> Unit) {
                 if (flash.copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
                 contentDescription = "Copy",
                 tint = if (flash.copied) BugsyDesktopColors.Status2xx else BugsyDesktopColors.TextDisabled,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall),
             )
         }
         HorizontalDivider(color = BugsyDesktopColors.BorderSubtle)

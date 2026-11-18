@@ -82,7 +82,7 @@ fun FlagsScreen(
             )
             if (overrideCount > 0) {
                 OutlinedButton(onClick = onResetAll, modifier = Modifier.height(BugsyDesktopSpacing.controlHeight)) {
-                    Icon(Icons.Outlined.Refresh, contentDescription = null, tint = BugsyDesktopColors.Status4xx, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Outlined.Refresh, contentDescription = null, tint = BugsyDesktopColors.Status4xx, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall))
                     Text(
                         "Reset all overrides ($overrideCount)",
                         style = BugsyDesktopTypography.Body,
@@ -96,7 +96,7 @@ fun FlagsScreen(
         if (flags.isEmpty()) {
             Box(Modifier.fillMaxSize()) {
                 Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm)) {
-                    Icon(Icons.Outlined.Flag, contentDescription = null, tint = BugsyDesktopColors.TextDisabled, modifier = Modifier.size(40.dp))
+                    Icon(Icons.Outlined.Flag, contentDescription = null, tint = BugsyDesktopColors.TextDisabled, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeXLarge))
                     Text("No feature flags", style = BugsyDesktopTypography.Heading, color = BugsyDesktopColors.TextPrimary)
                     Text(
                         "The connected app isn't exposing any flags to Bugsy.",
@@ -111,10 +111,10 @@ fun FlagsScreen(
 
         Row(Modifier.fillMaxWidth().padding(horizontal = BugsyDesktopSpacing.md, vertical = BugsyDesktopSpacing.xs)) {
             ColumnHeader("Flag", Modifier.weight(1f))
-            ColumnHeader("Type", Modifier.width(80.dp))
-            ColumnHeader("Default", Modifier.width(90.dp))
-            ColumnHeader("Current", Modifier.width(90.dp))
-            ColumnHeader("Override", Modifier.width(96.dp))
+            ColumnHeader("Type", Modifier.width(BugsyDesktopSpacing.flagsColumnType))
+            ColumnHeader("Default", Modifier.width(BugsyDesktopSpacing.flagsColumnDefault))
+            ColumnHeader("Current", Modifier.width(BugsyDesktopSpacing.flagsColumnCurrent))
+            ColumnHeader("Override", Modifier.width(BugsyDesktopSpacing.flagsColumnOverride))
         }
         androidx.compose.material3.HorizontalDivider(color = BugsyDesktopColors.BorderHeader)
 
@@ -150,9 +150,9 @@ private fun FlagRow(flag: WireDebugFlag, selected: Boolean, onClick: () -> Unit,
             .padding(horizontal = BugsyDesktopSpacing.md, vertical = BugsyDesktopSpacing.mockRowVertical),
     ) {
         Text(flag.key, style = BugsyDesktopTypography.Code.copy(color = BugsyDesktopColors.TextSecondary), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(end = BugsyDesktopSpacing.sm))
-        Text(flag.typeLabel(), style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled, modifier = Modifier.width(80.dp))
-        Text(flag.defaultValue.toString(), style = BugsyDesktopTypography.Code, color = BugsyDesktopColors.TextDisabled, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(90.dp))
-        Box(Modifier.width(90.dp)) {
+        Text(flag.typeLabel(), style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled, modifier = Modifier.width(BugsyDesktopSpacing.flagsColumnType))
+        Text(flag.defaultValue.toString(), style = BugsyDesktopTypography.Code, color = BugsyDesktopColors.TextDisabled, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(BugsyDesktopSpacing.flagsColumnDefault))
+        Box(Modifier.width(BugsyDesktopSpacing.flagsColumnCurrent)) {
             if (flag.value is Boolean) {
                 Switch(
                     checked = flag.value,
@@ -174,7 +174,7 @@ private fun FlagRow(flag: WireDebugFlag, selected: Boolean, onClick: () -> Unit,
                 )
             }
         }
-        Box(Modifier.width(96.dp)) {
+        Box(Modifier.width(BugsyDesktopSpacing.flagsColumnOverride)) {
             if (flag.isOverridden) OverrideTag() else Text("—", style = BugsyDesktopTypography.Body, color = BugsyDesktopColors.TextDisabled)
         }
     }

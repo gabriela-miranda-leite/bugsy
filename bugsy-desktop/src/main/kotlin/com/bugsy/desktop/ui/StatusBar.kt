@@ -35,7 +35,7 @@ fun StatusBar(connectionState: ConnectionState, requestCount: Int, modifier: Mod
             ConnectionState.DISCONNECTED -> BugsyDesktopColors.Status4xx
             ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> BugsyDesktopColors.Status3xx
         }
-        Box(Modifier.size(8.dp).background(dotColor, CircleShape))
+        Box(Modifier.size(BugsyDesktopSpacing.statusDotSize).background(dotColor, CircleShape))
         Text("$requestCount requests", style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
     }
 }

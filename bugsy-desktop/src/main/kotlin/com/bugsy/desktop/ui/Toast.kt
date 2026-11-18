@@ -91,7 +91,7 @@ fun DesktopToastOverlay(modifier: Modifier = Modifier) {
             visible = toast != null,
             enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
             exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 2 }),
-            modifier = Modifier.align(Alignment.TopCenter).width(420.dp).padding(top = BugsyDesktopSpacing.lg),
+            modifier = Modifier.align(Alignment.TopCenter).width(BugsyDesktopSpacing.toastWidth).padding(top = BugsyDesktopSpacing.lg),
         ) {
             toast?.let { data -> ToastCard(data) }
         }
@@ -131,8 +131,8 @@ private fun ToastCard(data: DesktopToastData) {
         if (showCountdown) {
             Spacer(Modifier.height(BugsyDesktopSpacing.sm))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm)) {
-                Box(Modifier.weight(1f).height(4.dp).background(BugsyDesktopColors.SwitchOff, RoundedCornerShape(2.dp))) {
-                    Box(Modifier.fillMaxWidth(progress.value).height(4.dp).background(BugsyDesktopColors.Brand, RoundedCornerShape(2.dp)))
+                Box(Modifier.weight(1f).height(BugsyDesktopSpacing.toastProgressHeight).background(BugsyDesktopColors.SwitchOff, RoundedCornerShape(BugsyDesktopSpacing.toastProgressCorner))) {
+                    Box(Modifier.fillMaxWidth(progress.value).height(BugsyDesktopSpacing.toastProgressHeight).background(BugsyDesktopColors.Brand, RoundedCornerShape(BugsyDesktopSpacing.toastProgressCorner)))
                 }
                 val secondsLeft = ceil(progress.value * (data.durationMs / 1_000f)).toInt().coerceAtLeast(0)
                 Text("${secondsLeft}s", style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
@@ -150,7 +150,7 @@ private fun ToastIcon(type: DesktopToastType) {
         DesktopToastType.Warning -> Icons.Outlined.WarningAmber to BugsyDesktopColors.Status3xx
         DesktopToastType.Error -> Icons.Outlined.ErrorOutline to BugsyDesktopColors.Status4xx
     }
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(36.dp).background(color, CircleShape)) {
-        Icon(icon, contentDescription = null, tint = BugsyDesktopColors.Surface, modifier = Modifier.size(20.dp))
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(BugsyDesktopSpacing.toastIconSize).background(color, CircleShape)) {
+        Icon(icon, contentDescription = null, tint = BugsyDesktopColors.Surface, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeMedium))
     }
 }

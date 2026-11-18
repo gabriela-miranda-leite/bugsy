@@ -165,7 +165,7 @@ fun MockRuleFormPanel(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         FieldLabel("Response headers")
                         TextButton(onClick = { headerRows.add("" to "") }) {
-                            Icon(Icons.Outlined.Add, contentDescription = null, tint = BugsyDesktopColors.Brand, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Outlined.Add, contentDescription = null, tint = BugsyDesktopColors.Brand, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall))
                             Text("Add header", style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.Brand)
                         }
                     }
@@ -173,8 +173,8 @@ fun MockRuleFormPanel(
                         Row(horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Box(Modifier.weight(1f)) { PlainField(value = key, onValueChange = { headerRows[index] = it to value }) }
                             Box(Modifier.weight(1f)) { PlainField(value = value, onValueChange = { headerRows[index] = key to it }) }
-                            IconButton(onClick = { headerRows.removeAt(index) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove header", tint = BugsyDesktopColors.TextDisabled, modifier = Modifier.size(16.dp))
+                            IconButton(onClick = { headerRows.removeAt(index) }, modifier = Modifier.size(BugsyDesktopSpacing.iconButtonSize)) {
+                                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove header", tint = BugsyDesktopColors.TextDisabled, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall))
                             }
                         }
                     }
@@ -218,7 +218,7 @@ fun MockRuleFormPanel(
                             border = androidx.compose.foundation.BorderStroke(BugsyDesktopSpacing.controlBorder, BugsyDesktopColors.Status4xx),
                             modifier = Modifier.weight(1f),
                         ) {
-                            Icon(Icons.Outlined.DeleteOutline, contentDescription = null, tint = BugsyDesktopColors.Status4xx, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Outlined.DeleteOutline, contentDescription = null, tint = BugsyDesktopColors.Status4xx, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall))
                             Text("Delete", style = BugsyDesktopTypography.Body, color = BugsyDesktopColors.Status4xx, modifier = Modifier.padding(start = BugsyDesktopSpacing.xs))
                         }
                     } else {

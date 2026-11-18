@@ -75,4 +75,49 @@ object BugsyDesktopSpacing {
     val mockHeaderRowSpacing = 8.dp
     val mockBodyFieldMinHeight = 140.dp
     val mockFormPanelPadding = 20.dp
+
+    // Icon sizes (used across detail panels, toolbars, toasts, empty states)
+    val iconSizeSmall = 16.dp
+    val iconSizeMedium = 20.dp
+    val iconSizeLarge = 28.dp
+    val iconSizeXLarge = 40.dp
+
+    // Buttons
+    val buttonHeightLarge = 44.dp
+
+    // A small colored circle indicating live/connected/active state (status bar, connection screen, mock rows)
+    val statusDotSize = 8.dp
+
+    // Toast (DEB-60)
+    val toastWidth = 420.dp
+    val toastIconSize = 36.dp
+    val toastProgressHeight = 4.dp
+    val toastProgressCorner = 2.dp
+
+    // Connect screen
+    val connectPairingPanelWidth = 380.dp
+    val connectFormPanelWidth = 420.dp
+    val connectLogoSize = 28.dp
+    val qrCodeSize = 180.dp
+    val qrCodePadding = 8.dp
+    val qrCodeCorner = 4.dp
+
+    // Filter chip control height (search/filter row)
+    val filterChipMinHeight = 32.dp
+
+    // Mocks/Flags table columns
+    val mocksColumnMethod = 72.dp
+    val mocksColumnStatus = 56.dp
+    val mocksColumnDelay = 64.dp
+    val mocksColumnOptions = 136.dp
+    val flagsColumnType = 80.dp
+    val flagsColumnDefault = 90.dp
+    val flagsColumnCurrent = 90.dp
+    val flagsColumnOverride = 96.dp
+
+    // Small icon-only button touch target (copy/delete icon buttons)
+    val iconButtonSize = 28.dp
+
+    // Tag (SLOW/MOCK/ONCE) text size
+    val tagFontSize = 10.sp
 }

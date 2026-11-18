@@ -81,9 +81,9 @@ fun FlagDetailPanel(flag: WireDebugFlag?, onToggle: (Boolean) -> Unit, onReset: 
             OutlinedButton(
                 onClick = onReset,
                 enabled = flag.isOverridden,
-                modifier = Modifier.fillMaxWidth().height(44.dp).padding(top = BugsyDesktopSpacing.sm),
+                modifier = Modifier.fillMaxWidth().height(BugsyDesktopSpacing.buttonHeightLarge).padding(top = BugsyDesktopSpacing.sm),
             ) {
-                Icon(Icons.Outlined.Refresh, contentDescription = null, tint = if (flag.isOverridden) BugsyDesktopColors.TextSecondary else BugsyDesktopColors.TextDisabled, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Refresh, contentDescription = null, tint = if (flag.isOverridden) BugsyDesktopColors.TextSecondary else BugsyDesktopColors.TextDisabled, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall))
                 Text(
                     "Reset to default",
                     style = BugsyDesktopTypography.Body,

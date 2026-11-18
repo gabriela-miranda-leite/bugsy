@@ -34,7 +34,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import com.bugsy.desktop.RequestQuickFilter
 import com.bugsy.desktop.SLOW_REQUEST_THRESHOLD_MS
 import com.bugsy.desktop.ui.theme.BugsyDesktopColors
@@ -143,7 +142,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .defaultMinSize(minHeight = 32.dp())
+            .defaultMinSize(minHeight = BugsyDesktopSpacing.filterChipMinHeight)
             .border(
                 BugsyDesktopSpacing.controlBorder,
                 if (selected) BugsyDesktopColors.Brand else BugsyDesktopColors.Border,
@@ -160,8 +159,6 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
         )
     }
 }
-
-private fun Int.dp() = androidx.compose.ui.unit.Dp(this.toFloat())
 
 @Composable
 private fun RequestRow(request: WireDebugRequest, selected: Boolean, onClick: () -> Unit) {
@@ -221,8 +218,8 @@ private fun MockTag() = Tag("MOCK", BugsyDesktopColors.PatchText)
 
 @Composable
 private fun Tag(text: String, color: androidx.compose.ui.graphics.Color) {
-    Box(Modifier.background(color.copy(alpha = 0.16f), RoundedCornerShape(BugsyDesktopSpacing.badgeCorner)).padding(horizontal = 6.dp(), vertical = 2.dp())) {
-        Text(text, style = BugsyDesktopTypography.CodeBold.copy(fontFamily = FontFamily.Default, fontSize = 10.sp), color = color)
+    Box(Modifier.background(color.copy(alpha = 0.16f), RoundedCornerShape(BugsyDesktopSpacing.badgeCorner)).padding(horizontal = BugsyDesktopSpacing.badgePaddingHorizontal, vertical = BugsyDesktopSpacing.badgePaddingVertical)) {
+        Text(text, style = BugsyDesktopTypography.CodeBold.copy(fontFamily = FontFamily.Default, fontSize = BugsyDesktopSpacing.tagFontSize), color = color)
     }
 }
 

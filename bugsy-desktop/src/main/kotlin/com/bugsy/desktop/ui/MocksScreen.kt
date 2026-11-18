@@ -94,11 +94,11 @@ fun MocksScreen(
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = BugsyDesktopSpacing.md, vertical = BugsyDesktopSpacing.xs),
         ) {
-            ColumnHeader("Method", Modifier.width(72.dp))
+            ColumnHeader("Method", Modifier.width(BugsyDesktopSpacing.mocksColumnMethod))
             ColumnHeader("URL pattern (regex)", Modifier.weight(1f))
-            ColumnHeader("Status", Modifier.width(56.dp))
-            ColumnHeader("Delay", Modifier.width(64.dp))
-            ColumnHeader("Options", Modifier.width(136.dp))
+            ColumnHeader("Status", Modifier.width(BugsyDesktopSpacing.mocksColumnStatus))
+            ColumnHeader("Delay", Modifier.width(BugsyDesktopSpacing.mocksColumnDelay))
+            ColumnHeader("Options", Modifier.width(BugsyDesktopSpacing.mocksColumnOptions))
         }
         HorizontalDivider(color = BugsyDesktopColors.BorderHeader)
 
@@ -129,7 +129,7 @@ private fun ToolbarButton(icon: ImageVector, label: String, onClick: () -> Unit,
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = BugsyDesktopSpacing.md),
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall))
         Text(label, style = BugsyDesktopTypography.Caption.copy(fontWeight = FontWeight.Medium), color = tint)
     }
 }
@@ -142,7 +142,7 @@ private fun MocksEmptyState(onNewRule: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm),
             modifier = Modifier.align(Alignment.Center).padding(BugsyDesktopSpacing.xxl),
         ) {
-            Icon(Icons.Outlined.Shield, contentDescription = null, tint = BugsyDesktopColors.Brand, modifier = Modifier.size(40.dp))
+            Icon(Icons.Outlined.Shield, contentDescription = null, tint = BugsyDesktopColors.Brand, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeXLarge))
             Text("No mock rules yet", style = BugsyDesktopTypography.Heading, color = BugsyDesktopColors.TextPrimary)
             Text(
                 "Intercept requests before they hit the network. Fake errors, slow responses or new endpoints.",
@@ -153,7 +153,7 @@ private fun MocksEmptyState(onNewRule: () -> Unit) {
             Button(
                 onClick = onNewRule,
                 colors = ButtonDefaults.buttonColors(containerColor = BugsyDesktopColors.Brand, contentColor = BugsyDesktopColors.Surface),
-                modifier = Modifier.padding(top = BugsyDesktopSpacing.sm).height(44.dp),
+                modifier = Modifier.padding(top = BugsyDesktopSpacing.sm).height(BugsyDesktopSpacing.buttonHeightLarge),
             ) {
                 Text("+ New mock rule", style = BugsyDesktopTypography.Body.copy(fontWeight = FontWeight.Medium))
             }
@@ -184,7 +184,7 @@ private fun MockRuleRow(
             .drawBehind { drawLine(BugsyDesktopColors.BorderSubtle, Offset(0f, size.height), Offset(size.width, size.height), 1f) }
             .padding(horizontal = BugsyDesktopSpacing.md, vertical = BugsyDesktopSpacing.mockRowVertical),
     ) {
-        Row(Modifier.width(72.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.xs)) {
+        Row(Modifier.width(BugsyDesktopSpacing.mocksColumnMethod), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.xs)) {
             ActiveDot(active = rule.isActive)
             MethodBadge(rule.method ?: "ANY")
         }
@@ -195,14 +195,14 @@ private fun MockRuleRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(end = BugsyDesktopSpacing.sm),
         )
-        Box(Modifier.width(56.dp)) { StatusBadge(rule.statusCode) }
+        Box(Modifier.width(BugsyDesktopSpacing.mocksColumnStatus)) { StatusBadge(rule.statusCode) }
         Text(
             "${rule.delayMs}ms",
             style = BugsyDesktopTypography.Caption,
             color = BugsyDesktopColors.TextDisabled,
-            modifier = Modifier.width(64.dp),
+            modifier = Modifier.width(BugsyDesktopSpacing.mocksColumnDelay),
         )
-        Row(Modifier.width(136.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.xs)) {
+        Row(Modifier.width(BugsyDesktopSpacing.mocksColumnOptions), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.xs)) {
             if (rule.isOneShot) OnceTag()
             Switch(
                 checked = rule.isActive,
@@ -216,8 +216,8 @@ private fun MockRuleRow(
                     uncheckedBorderColor = BugsyDesktopColors.SwitchOff,
                 ),
             )
-            IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete mock rule", tint = BugsyDesktopColors.Status4xx, modifier = Modifier.size(16.dp))
+            IconButton(onClick = onDelete, modifier = Modifier.size(BugsyDesktopSpacing.iconButtonSize)) {
+                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete mock rule", tint = BugsyDesktopColors.Status4xx, modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall))
             }
         }
     }

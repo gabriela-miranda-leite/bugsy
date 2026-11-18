@@ -70,7 +70,7 @@ private fun ConnectTopBar() {
         modifier = Modifier.fillMaxWidth().padding(horizontal = BugsyDesktopSpacing.lg, vertical = BugsyDesktopSpacing.md),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.sm)) {
-            BugsyIcon(modifier = Modifier.size(28.dp))
+            BugsyIcon(modifier = Modifier.size(BugsyDesktopSpacing.connectLogoSize))
             Text("Bugsy", style = BugsyDesktopTypography.Heading, color = BugsyDesktopColors.TextPrimary)
         }
         Text("⚙", style = BugsyDesktopTypography.Heading, color = BugsyDesktopColors.TextDisabled)
@@ -87,7 +87,7 @@ private fun PairingPanel() {
         }
     }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(380.dp)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(BugsyDesktopSpacing.connectPairingPanelWidth)) {
         Text("Connect to your app", style = BugsyDesktopTypography.Title, color = BugsyDesktopColors.TextPrimary)
         androidx.compose.foundation.layout.Spacer(Modifier.height(BugsyDesktopSpacing.sm))
         Text(
@@ -105,7 +105,7 @@ private fun PairingPanel() {
                 .border(BugsyDesktopSpacing.controlBorder, BugsyDesktopColors.Border, RoundedCornerShape(BugsyDesktopSpacing.controlCorner))
                 .padding(BugsyDesktopSpacing.xl),
         ) {
-            DecorativeQrCode(modifier = Modifier.size(180.dp))
+            DecorativeQrCode(modifier = Modifier.size(BugsyDesktopSpacing.qrCodeSize))
             androidx.compose.foundation.layout.Spacer(Modifier.height(BugsyDesktopSpacing.md))
             Text("Pairing code", style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
             Text("482 913", style = BugsyDesktopTypography.Title.copy(fontFamily = BugsyDesktopTypography.Code.fontFamily), color = BugsyDesktopColors.TextPrimary)
@@ -123,7 +123,7 @@ private fun PairingPanel() {
 @Composable
 private fun DecorativeQrCode(modifier: Modifier = Modifier) {
     val cells = remember { List(49) { Random.nextBoolean() } }
-    Canvas(modifier.aspectRatio(1f).background(Color.White, RoundedCornerShape(4.dp)).padding(8.dp)) {
+    Canvas(modifier.aspectRatio(1f).background(Color.White, RoundedCornerShape(BugsyDesktopSpacing.qrCodeCorner)).padding(BugsyDesktopSpacing.qrCodePadding)) {
         val gridSize = 7
         val cellSize = Size(size.width / gridSize, size.height / gridSize)
         for (row in 0 until gridSize) {
@@ -144,7 +144,7 @@ private fun DecorativeQrCode(modifier: Modifier = Modifier) {
 
 @Composable
 private fun DevicesPanel(onConnect: (host: String, port: Int, token: String) -> Unit) {
-    Column(Modifier.width(420.dp)) {
+    Column(Modifier.width(BugsyDesktopSpacing.connectFormPanelWidth)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -233,7 +233,7 @@ private fun ConnectBottomBar() {
         modifier = Modifier.fillMaxWidth().height(BugsyDesktopSpacing.statusBarHeight).padding(horizontal = BugsyDesktopSpacing.statusBarPaddingHorizontal),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.xs)) {
-            Box(Modifier.size(8.dp).background(BugsyDesktopColors.Status4xx, androidx.compose.foundation.shape.CircleShape))
+            Box(Modifier.size(BugsyDesktopSpacing.statusDotSize).background(BugsyDesktopColors.Status4xx, androidx.compose.foundation.shape.CircleShape))
             Text("Disconnected", style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
         }
         Text(BugsyDesktopVersion, style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)

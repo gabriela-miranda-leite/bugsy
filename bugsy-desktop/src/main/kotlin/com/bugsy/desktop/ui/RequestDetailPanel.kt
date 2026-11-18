@@ -148,12 +148,12 @@ private fun SectionLabel(text: String, onCopy: () -> Unit) {
 @Composable
 private fun CopyButton(onClick: () -> Unit) {
     val flash = rememberCopyFlash()
-    IconButton(onClick = { onClick(); flash.flash() }, modifier = Modifier.size(28.dp)) {
+    IconButton(onClick = { onClick(); flash.flash() }, modifier = Modifier.size(BugsyDesktopSpacing.iconButtonSize)) {
         Icon(
             if (flash.copied) Icons.Outlined.Check else Icons.Outlined.ContentCopy,
             contentDescription = "Copy",
             tint = if (flash.copied) BugsyDesktopColors.Status2xx else BugsyDesktopColors.TextDisabled,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall),
         )
     }
 }
@@ -173,7 +173,7 @@ private fun RevealToggleRow(revealed: Boolean, available: Boolean, onToggle: () 
                 if (revealed) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                 contentDescription = null,
                 tint = if (available) BugsyDesktopColors.TextSecondary else BugsyDesktopColors.TextDisabled,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(BugsyDesktopSpacing.iconSizeSmall),
             )
             Text(
                 when {
@@ -246,7 +246,7 @@ private fun CreateMockButton(onClick: () -> Unit) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = BugsyDesktopColors.Brand, contentColor = BugsyDesktopColors.Surface),
-        modifier = Modifier.fillMaxWidth().height(44.dp),
+        modifier = Modifier.fillMaxWidth().height(BugsyDesktopSpacing.buttonHeightLarge),
     ) {
         Text("Create mock from this response", style = BugsyDesktopTypography.Body)
     }

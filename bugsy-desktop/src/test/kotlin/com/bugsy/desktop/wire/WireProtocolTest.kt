@@ -108,6 +108,14 @@ class WireProtocolTest {
     }
 
     @Test
+    fun `parses a mock_rule_consumed event`() {
+        val text = """{"type":"mock_rule_consumed","rule":{"id":"mock-1","urlPattern":"^/v1/auth/login$","statusCode":401}}"""
+        val event = assertIs<WireEvent.MockRuleConsumed>(parseWireEvent(text))
+        assertEquals("mock-1", event.rule.id)
+        assertEquals(401, event.rule.statusCode)
+    }
+
+    @Test
     fun `treats a mock_rule_changed with a malformed rule as unhandled`() {
         assertEquals(WireEvent.Unhandled, parseWireEvent("""{"type":"mock_rule_changed","rule":{},"action":"added"}"""))
     }

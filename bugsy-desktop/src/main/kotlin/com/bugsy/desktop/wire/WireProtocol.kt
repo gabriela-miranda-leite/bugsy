@@ -168,6 +168,7 @@ sealed class WireEvent {
     ) : WireEvent()
     data class RequestRecorded(val request: WireDebugRequest) : WireEvent()
     data class MockRuleChanged(val rule: WireMockRule, val action: String) : WireEvent()
+    data class MockRuleConsumed(val rule: WireMockRule) : WireEvent()
     data class FlagChanged(val flag: WireDebugFlag) : WireEvent()
 
     /** An unrecognized event type. */
@@ -245,6 +246,10 @@ fun parseWireEvent(text: String): WireEvent {
         "mock_rule_changed" -> root["rule"]
             ?.let { runCatching { wireJson.decodeFromJsonElement(WireMockRule.serializer(), it) }.getOrNull() }
             ?.let { rule -> root["action"]?.jsonPrimitive?.contentOrNull?.let { WireEvent.MockRuleChanged(rule, it) } }
+            ?: WireEvent.Unhandled
+        "mock_rule_consumed" -> root["rule"]
+            ?.let { runCatching { wireJson.decodeFromJsonElement(WireMockRule.serializer(), it) }.getOrNull() }
+            ?.let { WireEvent.MockRuleConsumed(it) }
             ?: WireEvent.Unhandled
         "flag_changed" -> root["flag"]
             ?.let { runCatching { wireJson.decodeFromJsonElement(WireDebugFlag.serializer(), it) }.getOrNull() }

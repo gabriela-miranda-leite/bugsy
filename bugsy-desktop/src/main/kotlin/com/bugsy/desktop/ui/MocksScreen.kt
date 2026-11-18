@@ -64,8 +64,6 @@ fun MocksScreen(
     onDeleteRule: (String) -> Unit,
     onImport: () -> Unit,
     onExport: () -> Unit,
-    importMessage: String? = null,
-    onImportMessageConsumed: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().background(BugsyDesktopColors.Surface)) {
@@ -76,18 +74,6 @@ fun MocksScreen(
         ) {
             ToolbarButton(Icons.Outlined.Upload, "Import", onClick = onImport)
             ToolbarButton(Icons.Outlined.Download, "Export", enabled = rules.any { it.isActive }, onClick = onExport)
-            if (importMessage != null) {
-                Text(
-                    importMessage,
-                    style = BugsyDesktopTypography.Caption,
-                    color = if (importMessage.startsWith("Import failed")) BugsyDesktopColors.Status4xx else BugsyDesktopColors.TextSecondary,
-                    modifier = Modifier.padding(start = BugsyDesktopSpacing.sm),
-                )
-                androidx.compose.runtime.LaunchedEffect(importMessage) {
-                    kotlinx.coroutines.delay(4_000)
-                    onImportMessageConsumed()
-                }
-            }
         }
 
         if (rules.isEmpty()) {

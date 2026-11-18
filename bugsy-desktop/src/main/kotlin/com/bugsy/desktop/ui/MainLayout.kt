@@ -3,6 +3,7 @@
 package com.bugsy.desktop.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -44,13 +45,13 @@ fun MainLayout(viewModel: DesktopViewModel) {
     val editingMockRule by viewModel.editingMockRule.collectAsState()
     val isMockFormOpen by viewModel.isMockFormOpen.collectAsState()
     val mockPrefillSourceLabel by viewModel.mockPrefillSourceLabel.collectAsState()
-    val mockImportMessage by viewModel.mockImportMessage.collectAsState()
     val flags by viewModel.flags.collectAsState()
     val flagSearchQuery by viewModel.flagSearchQuery.collectAsState()
     val selectedFlag by viewModel.selectedFlag.collectAsState()
     val deviceInfo by viewModel.deviceInfo.collectAsState()
     val connectedAtEpochMs by viewModel.connectedAtEpochMs.collectAsState()
 
+    Box(Modifier.fillMaxSize()) {
     Row(Modifier.fillMaxSize().background(BugsyDesktopColors.Background)) {
         Sidebar(selectedTab = selectedTab, onSelectTab = viewModel::selectTab)
         VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)
@@ -91,8 +92,6 @@ fun MainLayout(viewModel: DesktopViewModel) {
                             onDeleteRule = viewModel::deleteMockRule,
                             onImport = viewModel::importMockRules,
                             onExport = viewModel::exportMockRules,
-                            importMessage = mockImportMessage,
-                            onImportMessageConsumed = viewModel::consumeMockImportMessage,
                             modifier = Modifier.weight(0.5f).fillMaxHeight(),
                         )
                         if (isMockFormOpen) {
@@ -130,6 +129,8 @@ fun MainLayout(viewModel: DesktopViewModel) {
                 }
             }
         }
+    }
+        DesktopToastOverlay(Modifier.fillMaxSize())
     }
 }
 

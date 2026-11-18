@@ -24,7 +24,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -53,6 +55,12 @@ class BugsyWsClient(private val scope: CoroutineScope) {
 
     private val _deviceInfo = MutableStateFlow<WireDeviceInfo?>(null)
     val deviceInfo: StateFlow<WireDeviceInfo?> = _deviceInfo
+
+    /** A one-shot event stream (not state) — a toast fires once per consumption, it isn't "the current
+     * consumed rule" the way [mockRules] is "the current rule list". `replay = 0` so a late subscriber doesn't
+     * get a stale one. */
+    private val _mockRuleConsumed = MutableSharedFlow<WireMockRule>(extraBufferCapacity = 8)
+    val mockRuleConsumed: SharedFlow<WireMockRule> = _mockRuleConsumed
 
     private var job: Job? = null
 
@@ -96,6 +104,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                                             else -> rules + event.rule
                                         }
                                     }
+                                    is WireEvent.MockRuleConsumed -> _mockRuleConsumed.tryEmit(event.rule)
                                     is WireEvent.FlagChanged -> _flags.update { flags ->
                                         if (flags.any { it.key == event.flag.key }) {
                                             flags.map { if (it.key == event.flag.key) event.flag else it }

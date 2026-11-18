@@ -3,10 +3,15 @@ package com.bugsy.desktop
 import com.bugsy.desktop.export.MockRuleFile
 import com.bugsy.desktop.export.buildHar
 import com.bugsy.desktop.export.saveHarToFile
+import com.bugsy.desktop.ui.DesktopToastAction
+import com.bugsy.desktop.ui.DesktopToastData
+import com.bugsy.desktop.ui.DesktopToastHost
+import com.bugsy.desktop.ui.DesktopToastType
 import com.bugsy.desktop.wire.WireDebugFlag
 import com.bugsy.desktop.wire.WireDebugRequest
 import com.bugsy.desktop.wire.WireDeviceInfo
 import com.bugsy.desktop.wire.WireMockRule
+import com.bugsy.desktop.wire.displayName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -91,45 +96,68 @@ class DesktopViewModel {
         consumeMockPrefill()
     }
 
+    /** Mirrors mobile's `addMockRuleWithToast` in `DebugOverlay.kt`: same toast title/subtitle shape, whether
+     * this is a new rule or an edit of an existing one. */
     fun addOrUpdateMockRule(rule: WireMockRule) {
         client.sendAddOrUpdateMockRule(rule)
         closeMockForm()
+        DesktopToastHost.show(
+            DesktopToastData(type = DesktopToastType.Success, title = "Mock rule saved", subtitle = "${rule.method ?: "ANY"} ${rule.displayName} → ${rule.statusCode}"),
+        )
     }
 
-    fun toggleMockRule(id: String, enabled: Boolean) = client.sendToggleMockRule(id, enabled)
+    /** Mirrors mobile's `setMockActiveWithToast`: only toasts when disabling, not when (re-)enabling. */
+    fun toggleMockRule(id: String, enabled: Boolean) {
+        val rule = mockRules.value.firstOrNull { it.id == id }
+        client.sendToggleMockRule(id, enabled)
+        if (!enabled && rule != null) {
+            DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Info, title = "Mock disabled", subtitle = rule.displayName))
+        }
+    }
 
+    /** Mirrors mobile's `removeMockRuleWithToast`: a Destructive toast with a 5s Undo window that re-sends the
+     * exact same rule (same id) as a fresh `add_mock_rule` if clicked. */
     fun deleteMockRule(id: String) {
+        val removed = mockRules.value.firstOrNull { it.id == id }
         client.sendDeleteMockRule(id)
         if (_selectedMockRuleId.value == id) closeMockForm()
+        if (removed != null) {
+            DesktopToastHost.show(
+                DesktopToastData(
+                    type = DesktopToastType.Destructive,
+                    title = "Mock rule deleted",
+                    subtitle = "${removed.method ?: "ANY"} ${removed.displayName}",
+                    action = DesktopToastAction("Undo") { client.sendAddOrUpdateMockRule(removed) },
+                    durationMs = 5_000L,
+                ),
+            )
+        }
     }
 
-    private val _mockImportMessage = MutableStateFlow<String?>(null)
-    val mockImportMessage: StateFlow<String?> = _mockImportMessage
-
     fun exportMockRules() {
-        MockRuleFile.exportToFile(mockRules.value)
+        val file = MockRuleFile.exportToFile(mockRules.value) ?: return
+        DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "Mock rules exported", subtitle = file.name))
     }
 
     /** Always merges — upserts each imported rule as its own `add_mock_rule` command. Unlike mobile, there's no
-     * merge/replace choice dialog here. Sets [mockImportMessage] either way, so a failed/empty import says so
-     * instead of silently doing nothing. */
+     * merge/replace choice dialog here. Toasts either way, so a failed/empty import says so instead of silently
+     * doing nothing. */
     fun importMockRules() {
         when (val result = MockRuleFile.importFromFile()) {
             is MockRuleFile.ImportResult.Success -> {
                 result.rules.forEach { client.sendAddOrUpdateMockRule(it) }
-                _mockImportMessage.value = when (result.rules.size) {
-                    0 -> "The file had no rules to import."
-                    1 -> "Imported 1 rule."
-                    else -> "Imported ${result.rules.size} rules."
+                val subtitle = when (result.rules.size) {
+                    0 -> "The file had no rules to import"
+                    1 -> "Imported 1 rule"
+                    else -> "Imported ${result.rules.size} rules"
                 }
+                DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "Mock rules imported", subtitle = subtitle))
             }
-            is MockRuleFile.ImportResult.Invalid -> _mockImportMessage.value = "Import failed: ${result.reason}."
+            is MockRuleFile.ImportResult.Invalid -> DesktopToastHost.show(
+                DesktopToastData(type = DesktopToastType.Error, title = "Import failed", subtitle = result.reason),
+            )
             MockRuleFile.ImportResult.Cancelled -> Unit
         }
-    }
-
-    fun consumeMockImportMessage() {
-        _mockImportMessage.value = null
     }
 
     /** Mirrors mobile's `DebugRequest.toMockRulePrefill()`: an exact-match pattern for the request's path, its
@@ -196,6 +224,14 @@ class DesktopViewModel {
                 wasConnected = state == ConnectionState.CONNECTED
             }
         }
+        // Mirrors mobile's own toast trigger off `MockEngine.oneShotConsumedEvents` (DebugOverlay.kt).
+        scope.launch {
+            client.mockRuleConsumed.collect { rule ->
+                DesktopToastHost.show(
+                    DesktopToastData(type = DesktopToastType.Warning, title = "Mock used up (ONCE)", subtitle = "${rule.displayName} · ${rule.statusCode}"),
+                )
+            }
+        }
     }
 
     /** Unfiltered — HAR export uses this, same as mobile's `onExportHar(requests)` (the raw list, not what's
@@ -242,7 +278,8 @@ class DesktopViewModel {
     fun clearRequests() = client.clearLocal()
 
     fun exportHar() {
-        saveHarToFile(buildHar(allRequests.value))
+        val file = saveHarToFile(buildHar(allRequests.value)) ?: return
+        DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "HAR exported", subtitle = "${file.name} · ${allRequests.value.size} requests"))
     }
 
     fun onCloseWindow() {

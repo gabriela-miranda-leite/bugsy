@@ -93,6 +93,7 @@ fun MockRuleFormPanel(
         val isValidPattern = urlPattern.isNotBlank() && runCatching { Regex(urlPattern) }.isSuccess
         if (!isValidPattern) {
             patternError = true
+            DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Error, title = "Invalid regex pattern", subtitle = "Check the URL pattern field"))
             return
         }
         onSave(

@@ -32,6 +32,14 @@ sealed class BugsyEvent {
     @SerialName("mock_rule_changed")
     data class MockRuleChanged(val rule: MockRule, val action: String) : BugsyEvent()
 
+    /** A one-shot [MockRule] firing and getting removed, mirroring mobile's own toast trigger
+     * (`MockEngine.oneShotConsumedEvents`). Separate from [MockRuleChanged]'s "deleted" action, which also
+     * fires for this same removal — a desktop client wants both: the rule-list update, and the "used up"
+     * notice, which `MockRuleChanged` alone can't distinguish from a manual delete. */
+    @Serializable
+    @SerialName("mock_rule_consumed")
+    data class MockRuleConsumed(val rule: MockRule) : BugsyEvent()
+
     @Serializable
     @SerialName("flag_changed")
     data class FlagChanged(val flag: DebugFlag) : BugsyEvent()

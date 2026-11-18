@@ -20,8 +20,11 @@ import kotlinx.cinterop.value
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -59,6 +62,9 @@ actual fun startBugsyWsServer(port: Int): BugsyWsServerHandle? = IosBugsyWsServe
 
 internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
     override val sessionToken: String = generateBugsySessionToken()
+
+    private val _connectedClients = MutableStateFlow(0)
+    override val connectedClients: StateFlow<Int> = _connectedClients
 
     @Volatile private var running = false
     private var listenFd: Int = -1
@@ -114,6 +120,7 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
         if (listenFd >= 0) close(listenFd)
         listenFd = -1
         connections.closeAll()
+        _connectedClients.value = 0
     }
 
     private fun acceptLoop(fd: Int) {
@@ -146,7 +153,13 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
         // Registered before the snapshot is sent, or a change right after it could be broadcast (missing this
         // connection) before this connection is registered to receive broadcasts at all (DEB-58).
         connections.add(fd)
-        if (!sendAll(fd, encodeFrame(OPCODE_TEXT, encodeEvent(currentBugsySnapshot())))) run { close(fd); return }
+        _connectedClients.update { it + 1 }
+        if (!sendAll(fd, encodeFrame(OPCODE_TEXT, encodeEvent(currentBugsySnapshot())))) run {
+            connections.remove(fd)
+            _connectedClients.update { it - 1 }
+            close(fd)
+            return
+        }
 
         while (true) {
             val payload = readIncomingFrame(fd, reader) ?: break
@@ -155,6 +168,7 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
         }
 
         connections.remove(fd)
+        _connectedClients.update { it - 1 }
         close(fd)
     }
 }

@@ -7,6 +7,17 @@ import com.bugsy.desktop.ui.DesktopToastAction
 import com.bugsy.desktop.ui.DesktopToastData
 import com.bugsy.desktop.ui.DesktopToastHost
 import com.bugsy.desktop.ui.DesktopToastType
+import com.bugsy.desktop.pairing.DesktopPairingServer
+import com.bugsy.desktop.pairing.DeviceDiscovery
+import com.bugsy.desktop.pairing.DiscoveredDevice
+import com.bugsy.desktop.pairing.PAIRING_DESKTOP_UDP_PORT
+import com.bugsy.desktop.pairing.PairedDevice
+import com.bugsy.desktop.pairing.PairingCode
+import com.bugsy.desktop.pairing.PairingCodeManager
+import com.bugsy.desktop.pairing.PairingHandler
+import com.bugsy.desktop.pairing.desktopDisplayName
+import com.bugsy.desktop.pairing.localIpv4Address
+import com.bugsy.desktop.pairing.pairingQrText
 import com.bugsy.desktop.wire.WireDebugFlag
 import com.bugsy.desktop.wire.WireDebugRequest
 import com.bugsy.desktop.wire.WireDeviceInfo
@@ -16,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +44,8 @@ enum class RequestQuickFilter { ALL, ERRORS, SLOW, MOCKED }
  * local approximation, not necessarily what the connected app is actually configured with. */
 const val SLOW_REQUEST_THRESHOLD_MS = 2_000L
 
+private const val PENDING_REQUEST_TIMEOUT_MS = 60_000L
+
 /**
  * Plain class, not `androidx.lifecycle.ViewModel` — this is a desktop JVM app, no Android lifecycle to hook
  * into. Owns the coroutine scope for the whole window's lifetime; [onCloseWindow] tears it down.
@@ -41,6 +55,62 @@ class DesktopViewModel {
     private val client = BugsyWsClient(scope)
 
     val connectionState: StateFlow<ConnectionState> = client.state
+
+    // --- Pairing with a phone (DEB-64) -------------------------------------------------------------------
+
+    private val codeManager = PairingCodeManager()
+    private val pairingHandler = PairingHandler(codeManager, desktopName = ::desktopDisplayName, onPaired = ::onDevicePaired)
+    private val pairingServer = DesktopPairingServer(scope, pairingHandler)
+    private val discovery = DeviceDiscovery(scope)
+
+    /** `false` when UDP port [PAIRING_DESKTOP_UDP_PORT] is taken (another Bugsy Desktop is open): the QR code and
+     * 6-digit code then can't work, but "Manual connection" still does. */
+    val isPairingAvailable: Boolean = pairingServer.start()
+
+    val pairingCode: StateFlow<PairingCode> = codeManager.current
+
+    private val _localIp = MutableStateFlow(localIpv4Address())
+
+    /** What the QR code encodes, or `null` when this machine isn't on a network. */
+    val pairingQrText: StateFlow<String?> = combine(codeManager.current, _localIp) { code, ip ->
+        ip?.let { pairingQrText(it, PAIRING_DESKTOP_UDP_PORT, code.code) }
+    }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    val devices: StateFlow<List<DiscoveredDevice>> = discovery.devices
+    val isScanningDevices: StateFlow<Boolean> = discovery.isScanning
+
+    private val _pendingDeviceRequest = MutableStateFlow<DiscoveredDevice?>(null)
+
+    /** The device that was asked to approve this desktop and hasn't answered yet. */
+    val pendingDeviceRequest: StateFlow<DiscoveredDevice?> = _pendingDeviceRequest
+
+    fun refreshDevices() {
+        _localIp.value = localIpv4Address()
+        discovery.refresh()
+    }
+
+    /** "Connect" on a discovered device: the phone can't just hand out its token to anyone on the network who
+     * asks, so the user has to approve this desktop in the phone's overlay first. */
+    fun connectToDevice(device: DiscoveredDevice) {
+        val nonce = (1..16).map { "0123456789abcdef"[Random.nextInt(16)] }.joinToString("")
+        pairingHandler.expectNonce(nonce, device.host)
+        _pendingDeviceRequest.value = device
+        scope.launch {
+            if (!discovery.requestConnect(device, nonce, desktopDisplayName())) {
+                _pendingDeviceRequest.value = null
+                DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Error, title = "Could not reach ${device.name}", subtitle = "Check that it is on the same network"))
+                return@launch
+            }
+            delay(PENDING_REQUEST_TIMEOUT_MS)
+            if (_pendingDeviceRequest.value == device) _pendingDeviceRequest.value = null
+        }
+    }
+
+    private fun onDevicePaired(device: PairedDevice) {
+        _pendingDeviceRequest.value = null
+        client.connect(device.host, device.port, device.token)
+        DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "Paired with ${device.name ?: device.host}", subtitle = listOfNotNull(device.os, device.host).joinToString(" · ")))
+    }
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
@@ -217,6 +287,12 @@ class DesktopViewModel {
 
     init {
         scope.launch {
+            while (true) {
+                delay(1_000)
+                codeManager.rotateIfExpired()
+            }
+        }
+        scope.launch {
             var wasConnected = false
             connectionState.collect { state ->
                 if (state == ConnectionState.CONNECTED && !wasConnected) _connectedAtEpochMs.value = System.currentTimeMillis()
@@ -283,6 +359,7 @@ class DesktopViewModel {
     }
 
     fun onCloseWindow() {
+        pairingServer.stop()
         client.close()
         scope.cancel()
     }

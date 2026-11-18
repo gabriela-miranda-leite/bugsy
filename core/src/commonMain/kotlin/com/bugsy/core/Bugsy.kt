@@ -1,9 +1,15 @@
 package com.bugsy.core
 
+import com.bugsy.core.pairing.BugsyPairing
 import com.bugsy.core.ws.BugsyWsServerHandle
 import com.bugsy.core.ws.startBugsyWsServer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 object Bugsy {
     val version: String = BuildKonfig.VERSION
@@ -24,6 +30,13 @@ object Bugsy {
     private var floatingButtonController: FloatingButtonController? = null
     private var notificationTrigger: NotificationTrigger? = null
     private var wsServer: BugsyWsServerHandle? = null
+    private val wsScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var connectionWatchJob: Job? = null
+
+    private val _isDesktopConnected = MutableStateFlow(false)
+
+    /** Whether a Bugsy Desktop client is connected to this device's BugsyWsServer right now (DEB-64). */
+    val isDesktopConnected: StateFlow<Boolean> = _isDesktopConnected
 
     /**
      * Session token the desktop client (DEB-58) must send to connect to this device's BugsyWsServer, or `null`
@@ -40,7 +53,17 @@ object Bugsy {
     fun restartWsServer() {
         val current = wsServer ?: return
         current.stop()
-        wsServer = startBugsyWsServer()
+        startWsServer()
+    }
+
+    private fun startWsServer() {
+        connectionWatchJob?.cancel()
+        val server = startBugsyWsServer()
+        wsServer = server
+        _isDesktopConnected.value = false
+        connectionWatchJob = server?.let { handle ->
+            wsScope.launch { handle.connectedClients.collect { _isDesktopConnected.value = it > 0 } }
+        }
     }
 
     fun initialize(config: BugsyConfig = BugsyConfig()) {
@@ -50,7 +73,8 @@ object Bugsy {
         CaptureSettings.configure(allowRevealingSecrets = config.allowRevealingSecrets)
         DebugRepository.slowRequestThresholdMs = config.slowRequestThresholdMs
         debugInterceptor = DebugInterceptor.create().also { it.attach() }
-        wsServer = startBugsyWsServer()
+        startWsServer()
+        BugsyPairing.start()
 
         when (config.trigger) {
             Trigger.Shake -> {
@@ -69,6 +93,10 @@ object Bugsy {
     }
 
     fun destroy() {
+        BugsyPairing.stop()
+        connectionWatchJob?.cancel()
+        connectionWatchJob = null
+        _isDesktopConnected.value = false
         wsServer?.stop()
         wsServer = null
         debugInterceptor?.detach()

@@ -4,6 +4,7 @@ import com.bugsy.core.Bugsy
 import com.bugsy.core.DebugRepository
 import com.bugsy.core.MockEngine
 import com.bugsy.core.model.DeviceInfo
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.random.Random
 
 /** Default port the BugsyWsServer listens on (DEB-58); the desktop client connects to `ws://<host>:7788/bugsy`. */
@@ -64,6 +65,10 @@ internal fun generateBugsySessionToken(): String =
 interface BugsyWsServerHandle {
     /** Shown in the mobile overlay; the desktop client must send it as the first frame to authenticate. */
     val sessionToken: String
+
+    /** How many desktop clients are connected right now (past the handshake). */
+    val connectedClients: StateFlow<Int>
+
     fun stop()
 }
 

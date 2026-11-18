@@ -17,6 +17,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -32,7 +33,23 @@ fun MainLayout(viewModel: DesktopViewModel) {
     val connectionState by viewModel.connectionState.collectAsState()
 
     if (connectionState == ConnectionState.DISCONNECTED) {
-        ConnectionScreen(onConnect = viewModel::connect)
+        val pairingCode by viewModel.pairingCode.collectAsState()
+        val qrText by viewModel.pairingQrText.collectAsState()
+        val devices by viewModel.devices.collectAsState()
+        val isScanning by viewModel.isScanningDevices.collectAsState()
+        val pendingDevice by viewModel.pendingDeviceRequest.collectAsState()
+        LaunchedEffect(Unit) { viewModel.refreshDevices() }
+        ConnectionScreen(
+            pairingCode = pairingCode,
+            qrText = qrText,
+            isPairingAvailable = viewModel.isPairingAvailable,
+            devices = devices,
+            isScanning = isScanning,
+            pendingDevice = pendingDevice,
+            onRefreshDevices = viewModel::refreshDevices,
+            onConnectDevice = viewModel::connectToDevice,
+            onConnect = viewModel::connect,
+        )
         return
     }
 

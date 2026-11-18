@@ -16,7 +16,10 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
@@ -29,10 +32,13 @@ actual fun startBugsyWsServer(port: Int): BugsyWsServerHandle? = AndroidBugsyWsS
 internal class AndroidBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
     override val sessionToken: String = generateBugsySessionToken()
 
+    private val _connectedClients = MutableStateFlow(0)
+    override val connectedClients: StateFlow<Int> = _connectedClients
+
     private var engine: EmbeddedServer<*, *>? = null
 
     fun start() {
-        engine = embeddedServer(CIO, port = port) { bugsyModule(sessionToken) }.start(wait = false)
+        engine = embeddedServer(CIO, port = port) { bugsyModule(sessionToken, _connectedClients) }.start(wait = false)
     }
 
     override fun stop() {
@@ -42,7 +48,7 @@ internal class AndroidBugsyWsServer(private val port: Int) : BugsyWsServerHandle
 }
 
 /** Shared between the real server and its tests ([AndroidBugsyWsServerTest]) via Ktor's `testApplication`. */
-internal fun Application.bugsyModule(sessionToken: String) {
+internal fun Application.bugsyModule(sessionToken: String, connectedClients: MutableStateFlow<Int> = MutableStateFlow(0)) {
     install(WebSockets)
     routing {
         webSocket("/bugsy") {
@@ -53,31 +59,36 @@ internal fun Application.bugsyModule(sessionToken: String) {
                 return@webSocket
             }
 
-            // UNDISPATCHED, and started before the snapshot is sent: must subscribe to the merged flows before
-            // the client can possibly react to anything (even the snapshot arriving), or a change processed
-            // right after could emit its event before this collector exists to see it — SharedFlow's default
-            // replay = 0 means that emission would just be lost (DEB-58).
-            val job = launch(start = CoroutineStart.UNDISPATCHED) {
-                merge(
-                    DebugRepository.added.map { BugsyEvent.RequestRecorded(it) },
-                    MockEngine.ruleChanges.map { BugsyEvent.MockRuleChanged(it.rule, it.action.name.lowercase()) },
-                    MockEngine.oneShotConsumedEvents.map { BugsyEvent.MockRuleConsumed(it) },
-                    Bugsy.flagManager.flagChanges.map { BugsyEvent.FlagChanged(it) },
-                ).collect { event -> send(Frame.Text(json.encodeToString(BugsyEvent.serializer(), event))) }
-            }
-
-            send(Frame.Text(json.encodeToString(BugsyEvent.serializer(), currentBugsySnapshot())))
-
-            for (frame in incoming) {
-                if (frame is Frame.Text) {
-                    val command = runCatching {
-                        json.decodeFromString(BugsyCommand.serializer(), frame.readText())
-                    }.getOrNull()
-                    if (command != null) applyBugsyCommand(command)
+            connectedClients.update { it + 1 }
+            try {
+                // UNDISPATCHED, and started before the snapshot is sent: must subscribe to the merged flows before
+                // the client can possibly react to anything (even the snapshot arriving), or a change processed
+                // right after could emit its event before this collector exists to see it — SharedFlow's default
+                // replay = 0 means that emission would just be lost (DEB-58).
+                val job = launch(start = CoroutineStart.UNDISPATCHED) {
+                    merge(
+                        DebugRepository.added.map { BugsyEvent.RequestRecorded(it) },
+                        MockEngine.ruleChanges.map { BugsyEvent.MockRuleChanged(it.rule, it.action.name.lowercase()) },
+                        MockEngine.oneShotConsumedEvents.map { BugsyEvent.MockRuleConsumed(it) },
+                        Bugsy.flagManager.flagChanges.map { BugsyEvent.FlagChanged(it) },
+                    ).collect { event -> send(Frame.Text(json.encodeToString(BugsyEvent.serializer(), event))) }
                 }
-            }
 
-            job.cancel()
+                send(Frame.Text(json.encodeToString(BugsyEvent.serializer(), currentBugsySnapshot())))
+
+                for (frame in incoming) {
+                    if (frame is Frame.Text) {
+                        val command = runCatching {
+                            json.decodeFromString(BugsyCommand.serializer(), frame.readText())
+                        }.getOrNull()
+                        if (command != null) applyBugsyCommand(command)
+                    }
+                }
+
+                job.cancel()
+            } finally {
+                connectedClients.update { it - 1 }
+            }
         }
     }
 }

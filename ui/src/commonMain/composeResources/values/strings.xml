@@ -41,6 +41,8 @@
     <string name="flags_empty_subtitle">Feature flags will appear here.</string>
     <string name="flags_badge_override">override</string>
     <string name="flags_action_reset_all">Reset all overrides (%1$d)</string>
+    <string name="flags_search_placeholder">Filter flags…</string>
+    <string name="flags_empty_filtered">No flags for \"%1$s\"</string>
 
     <string name="device_section_account">Account</string>
     <string name="device_section_app">App</string>

@@ -1,7 +1,10 @@
 package com.bugsy.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -11,17 +14,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.flags_action_reset_all
+import bugsy.ui.generated.resources.flags_empty_filtered
 import bugsy.ui.generated.resources.flags_empty_subtitle
 import bugsy.ui.generated.resources.flags_empty_title
+import bugsy.ui.generated.resources.flags_search_placeholder
 import bugsy.ui.generated.resources.loading_flags_title
 import bugsy.ui.generated.resources.loading_subtitle_default
 import com.bugsy.core.model.DebugFlag
 import com.bugsy.ui.PreviewFixtures
+import com.bugsy.ui.components.BugsySearchBar
 import com.bugsy.ui.components.EmptyState
 import com.bugsy.ui.components.FlagValueRow
 import com.bugsy.ui.components.LoadingState
@@ -58,35 +68,55 @@ fun FlagsScreen(
         return
     }
 
+    // Ephemeral screen state, same rule as RequestListScreen's own `filter` — never goes to the ViewModel.
+    var filter by remember { mutableStateOf("") }
+    val filtered = remember(flags, filter) {
+        flags.filter { it.key.contains(filter, ignoreCase = true) || it.label.contains(filter, ignoreCase = true) }
+    }
     val overrideCount = flags.count { it.isOverridden }
 
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = BugsySpacing.xl, vertical = BugsySpacing.sm),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        items(flags, key = { it.key }) { flag ->
-            if (flag.value is Boolean) {
-                ToggleRow(flag = flag, onToggle = { onOverride(flag.key, it) })
-            } else {
-                FlagValueRow(flag = flag)
-            }
+    Column(Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(horizontal = BugsySpacing.lg, vertical = BugsySpacing.searchBarVerticalMargin)) {
+            BugsySearchBar(
+                value = filter,
+                onValueChange = { filter = it },
+                placeholder = stringResource(Res.string.flags_search_placeholder),
+            )
         }
-        if (overrideCount > 0) {
-            item {
-                OutlinedButton(
-                    onClick = onResetAll,
-                    border = BorderStroke(BugsySpacing.strokeBorder, BugsyColors.BorderButton),
-                    shape = RoundedCornerShape(BugsySpacing.cornerButtonLarge),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = BugsySpacing.lg)
-                        .height(BugsySpacing.resetAllButtonHeight),
-                ) {
-                    Text(
-                        stringResource(Res.string.flags_action_reset_all, overrideCount),
-                        style = BugsyTypography.Body.copy(fontSize = 16.sp),
-                        color = BugsyColors.Status4xx,
-                    )
+
+        if (filtered.isEmpty()) {
+            EmptyState(title = stringResource(Res.string.flags_empty_filtered, filter))
+            return@Column
+        }
+
+        LazyColumn(
+            contentPadding = PaddingValues(horizontal = BugsySpacing.xl, vertical = BugsySpacing.sm),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            items(filtered, key = { it.key }) { flag ->
+                if (flag.value is Boolean) {
+                    ToggleRow(flag = flag, onToggle = { onOverride(flag.key, it) })
+                } else {
+                    FlagValueRow(flag = flag)
+                }
+            }
+            if (overrideCount > 0) {
+                item {
+                    OutlinedButton(
+                        onClick = onResetAll,
+                        border = BorderStroke(BugsySpacing.strokeBorder, BugsyColors.BorderButton),
+                        shape = RoundedCornerShape(BugsySpacing.cornerButtonLarge),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = BugsySpacing.lg)
+                            .height(BugsySpacing.resetAllButtonHeight),
+                    ) {
+                        Text(
+                            stringResource(Res.string.flags_action_reset_all, overrideCount),
+                            style = BugsyTypography.Body.copy(fontSize = 16.sp),
+                            color = BugsyColors.Status4xx,
+                        )
+                    }
                 }
             }
         }

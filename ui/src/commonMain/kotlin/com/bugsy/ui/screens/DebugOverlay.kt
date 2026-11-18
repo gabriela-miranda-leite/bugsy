@@ -40,6 +40,7 @@ import bugsy.ui.generated.resources.toast_mock_saved_title
 import bugsy.ui.generated.resources.toast_mock_used_up_subtitle
 import bugsy.ui.generated.resources.toast_mock_used_up_title
 import com.bugsy.core.MockEngine
+import com.bugsy.core.pairing.BugsyPairing
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.core.model.MockRule
 import com.bugsy.core.model.displayName
@@ -54,6 +55,7 @@ import com.bugsy.ui.components.BugsyToastType
 import com.bugsy.ui.components.DragHandle
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
+import com.bugsy.ui.settings.DesktopPairingState
 import com.bugsy.ui.theme.BugsyTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -85,6 +87,9 @@ fun DebugOverlay(
 ) {
     var selectedTab by remember { mutableStateOf(BugsyTab.Requests) }
     var showSettings by remember { mutableStateOf(false) }
+    var showQrScanner by remember { mutableStateOf(false) }
+    val desktopPairing = remember { DesktopPairingState() }
+    val connectRequest by BugsyPairing.pendingConnectRequest.collectAsState()
     val requests by viewModel.requests.collectAsState()
     val flags by viewModel.flags.collectAsState()
     val mockRules by MockEngine.rulesFlow.collectAsState()
@@ -232,7 +237,7 @@ fun DebugOverlay(
                 }
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     if (showSettings) {
-                        SettingsScreen()
+                        SettingsScreen(pairing = desktopPairing, onScanQr = { showQrScanner = true })
                         return@Box
                     }
                     when (selectedTab) {
@@ -275,6 +280,31 @@ fun DebugOverlay(
                     }
                     BugsyToastOverlay()
                 }
+            }
+
+            // Pairing with Bugsy Desktop (DEB-64): the scanner covers the whole window, and a desktop's request to
+            // connect (from its device list) needs the user's approval wherever they are in the overlay.
+            if (showQrScanner) {
+                QrScanScreen(
+                    onBack = { showQrScanner = false },
+                    onEnterCodeManually = {
+                        showQrScanner = false
+                        desktopPairing.requestCodeFocus()
+                    },
+                    onQrScanned = { text ->
+                        showQrScanner = false
+                        scope.launch { desktopPairing.connectWithQr(text) }
+                    },
+                    // Swallows taps so they don't reach the scrim behind, which would dismiss the overlay.
+                    modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
+                )
+            }
+            connectRequest?.let { request ->
+                ConnectRequestCard(
+                    desktopName = request.desktopName,
+                    onAllow = { scope.launch { BugsyPairing.respondToConnectRequest(allow = true) } },
+                    onDeny = { scope.launch { BugsyPairing.respondToConnectRequest(allow = false) } },
+                )
             }
         }
     }

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Scanning the Bugsy Desktop QR code (DEB-64). Only asked for at runtime when the user taps "Scan QR code". -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <application>
         <!-- Lets the share sheet read the exported .har from the app's cache. Authority is per app, so it never clashes. -->
         <provider

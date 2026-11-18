@@ -31,6 +31,15 @@ Em Release o app linka o `Bugsy.framework` do módulo `:bugsy-noop`: a mesma API
 
 O overlay é Compose Multiplatform e lê strings e fontes do bundle do app em `compose-resources/`. O projeto tem uma Run Script phase ("Copy Compose Resources") que copia esses arquivos de `ui/build`. Um app que consome o `Bugsy.xcframework` precisa de um passo equivalente.
 
+## Pareamento com o Bugsy Desktop
+
+O pareamento lê um QR code com a câmera e encontra o desktop na rede local, então um app iOS que embute o Bugsy precisa de duas entradas no `Info.plist` (o sample as define como build settings `INFOPLIST_KEY_*`):
+
+- `NSCameraUsageDescription`: exibida quando o overlay pede acesso à câmera para ler o QR code do desktop.
+- `NSLocalNetworkUsageDescription`: exibida pelo iOS na primeira vez que o Bugsy envia ou recebe um broadcast de pareamento na rede local.
+
+Sem elas o iOS encerra o app no primeiro pedido de câmera e bloqueia em silêncio o tráfego da rede local.
+
 ## Modo automático
 
 Com `BUGSY_SAMPLE_AUTORUN=1` no ambiente, o app faz a request e abre o overlay sozinho após 3 s:

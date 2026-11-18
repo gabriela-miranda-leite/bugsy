@@ -26,7 +26,13 @@ import com.bugsy.ui.screens.MockRuleFormScreen
 import com.bugsy.ui.screens.MocksScreen
 import com.bugsy.ui.screens.RequestDetailScreen
 import com.bugsy.ui.screens.RequestListScreen
+import com.bugsy.ui.screens.ConnectRequestCard
+import com.bugsy.ui.screens.QrScanScreen
 import com.bugsy.ui.screens.SettingsScreen
+import com.bugsy.ui.settings.DesktopPairingState
+import com.bugsy.ui.settings.PairingFeedback
+import com.bugsy.core.pairing.PairingResult
+import androidx.compose.ui.graphics.Color
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsyTheme
 import androidx.compose.foundation.background
@@ -345,9 +351,82 @@ class BugsyScreenshotTest {
 
     @Test
     fun settingsScreenWithDesktopToken() {
-        // A fixed value, not the real Bugsy.wsServerToken: that one is randomly generated per
-        // Bugsy.initialize() call (DEB-58) and would make this snapshot non-deterministic.
-        snapshotOnSurface { SettingsScreen(wsTokenOverride = "b8LiQD8n") }
+        // Fixed values, not the real ones: the token is randomly generated per Bugsy.initialize() call (DEB-58) and
+        // the address depends on the machine running the test, which would make this snapshot non-deterministic.
+        snapshotOnSurface {
+            SettingsScreen(wsTokenOverride = "5gnywzFu", deviceAddressOverride = "192.168.0.24:7788", desktopConnectedOverride = false)
+        }
+    }
+
+    @Test
+    fun settingsScreenDesktopConnected() {
+        snapshotOnSurface {
+            SettingsScreen(wsTokenOverride = "5gnywzFu", deviceAddressOverride = "192.168.0.24:7788", desktopConnectedOverride = true)
+        }
+    }
+
+    @Test
+    fun settingsScreenPairingError() {
+        snapshotOnSurface {
+            SettingsScreen(
+                pairing = DesktopPairingState("482913", PairingFeedback.Done(PairingResult.ExpiredCode)),
+                wsTokenOverride = "5gnywzFu",
+                deviceAddressOverride = "192.168.0.24:7788",
+                desktopConnectedOverride = false,
+            )
+        }
+    }
+
+    @Test
+    fun settingsScreenPairingConnecting() {
+        snapshotOnSurface {
+            SettingsScreen(
+                pairing = DesktopPairingState("482913", PairingFeedback.Connecting),
+                wsTokenOverride = "5gnywzFu",
+                deviceAddressOverride = "192.168.0.24:7788",
+                desktopConnectedOverride = false,
+            )
+        }
+    }
+
+    @Test
+    fun settingsScreenPaired() {
+        snapshotOnSurface {
+            SettingsScreen(
+                pairing = DesktopPairingState("", PairingFeedback.Done(PairingResult.Success("MacBook Pro"))),
+                wsTokenOverride = "5gnywzFu",
+                deviceAddressOverride = "192.168.0.24:7788",
+                desktopConnectedOverride = false,
+            )
+        }
+    }
+
+    @Test
+    fun qrScanScreen() {
+        paparazzi.snapshot {
+            BugsyTheme {
+                Box(Modifier.fillMaxWidth().height(OverlayContainerHeight)) {
+                    // No camera in a unit test: a flat stand-in for the live preview.
+                    QrScanScreen(
+                        onBack = {},
+                        onEnterCodeManually = {},
+                        onQrScanned = {},
+                        camera = { m, _, _, _ -> Box(m.background(Color(0xFF2A2622))) },
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun connectRequestCard() {
+        paparazzi.snapshot {
+            BugsyTheme {
+                Box(Modifier.fillMaxWidth().height(OverlayContainerHeight).background(BugsyColors.Surface)) {
+                    ConnectRequestCard(desktopName = "MacBook Pro", onAllow = {}, onDeny = {})
+                }
+            }
+        }
     }
 
     @Test

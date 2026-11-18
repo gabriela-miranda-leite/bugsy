@@ -4,5 +4,6 @@ data class DebugFlag(
     val key: String,
     val label: String,
     val value: Any,
-    val isOverridden: Boolean
+    val isOverridden: Boolean,
+    val defaultValue: Any = value,
 )

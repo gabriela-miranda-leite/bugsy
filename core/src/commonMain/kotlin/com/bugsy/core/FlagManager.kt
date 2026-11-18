@@ -74,7 +74,7 @@ class FlagManager(private val flagsProvider: () -> List<DebugFlag>) {
     private fun effectiveFlags(): List<DebugFlag> =
         flagsProvider().map { flag ->
             val override = overrides[flag.key]
-            if (override == null) flag.copy(isOverridden = false)
-            else flag.copy(value = override, isOverridden = true)
+            if (override == null) flag.copy(defaultValue = flag.value, isOverridden = false)
+            else flag.copy(value = override, defaultValue = flag.value, isOverridden = true)
         }
 }

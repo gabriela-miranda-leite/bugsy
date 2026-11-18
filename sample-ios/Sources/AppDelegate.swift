@@ -18,9 +18,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 // do provedor de feature flags de verdade (remote config, etc).
                 flagsProvider: {
                     [
-                        DebugFlag(key: "darkModeEnabled", label: "darkModeEnabled", value: false, isOverridden: false),
-                        DebugFlag(key: "featureNewCheckout", label: "featureNewCheckout", value: true, isOverridden: false),
-                        DebugFlag(key: "apiEnvironment", label: "apiEnvironment", value: "sandbox", isOverridden: false),
+                        DebugFlag(key: "darkModeEnabled", label: "darkModeEnabled", value: false, isOverridden: false, defaultValue: false),
+                        DebugFlag(key: "featureNewCheckout", label: "featureNewCheckout", value: true, isOverridden: false, defaultValue: true),
+                        DebugFlag(key: "apiEnvironment", label: "apiEnvironment", value: "sandbox", isOverridden: false, defaultValue: "sandbox"),
                     ]
                 },
                 allowRevealingSecrets: true,

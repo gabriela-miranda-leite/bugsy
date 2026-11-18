@@ -21,7 +21,14 @@ data class DebugFlag(
     val key: String,
     val label: String,
     @Serializable(with = FlagValueSerializer::class) val value: Any,
-    val isOverridden: Boolean
+    val isOverridden: Boolean,
+    /**
+     * The value `flagsProvider` would return with no override applied (DEB-60) — lets a UI show both the
+     * current and default value, and offer a reset. Defaults to [value] so an app's own `flagsProvider()`
+     * construction (which never overrides anything) doesn't need to pass it explicitly; [FlagManager] always
+     * sets it to the provider's raw value when computing the effective flag list.
+     */
+    @Serializable(with = FlagValueSerializer::class) val defaultValue: Any = value,
 )
 
 /**

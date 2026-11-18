@@ -2,6 +2,7 @@ package com.bugsy.core.ws
 
 import com.bugsy.core.model.DebugFlag
 import com.bugsy.core.model.DebugRequest
+import com.bugsy.core.model.DeviceInfo
 import com.bugsy.core.model.MockRule
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -20,6 +21,7 @@ sealed class BugsyEvent {
         val requests: List<DebugRequest>,
         val mockRules: List<MockRule>,
         val flags: List<DebugFlag>,
+        val deviceInfo: DeviceInfo,
     ) : BugsyEvent()
 
     @Serializable
@@ -29,6 +31,14 @@ sealed class BugsyEvent {
     @Serializable
     @SerialName("mock_rule_changed")
     data class MockRuleChanged(val rule: MockRule, val action: String) : BugsyEvent()
+
+    /** A one-shot [MockRule] firing and getting removed, mirroring mobile's own toast trigger
+     * (`MockEngine.oneShotConsumedEvents`). Separate from [MockRuleChanged]'s "deleted" action, which also
+     * fires for this same removal — a desktop client wants both: the rule-list update, and the "used up"
+     * notice, which `MockRuleChanged` alone can't distinguish from a manual delete. */
+    @Serializable
+    @SerialName("mock_rule_consumed")
+    data class MockRuleConsumed(val rule: MockRule) : BugsyEvent()
 
     @Serializable
     @SerialName("flag_changed")
@@ -53,6 +63,14 @@ sealed class BugsyCommand {
     @Serializable
     @SerialName("toggle_flag")
     data class ToggleFlag(val key: String, val enabled: Boolean) : BugsyCommand()
+
+    @Serializable
+    @SerialName("reset_flag")
+    data class ResetFlag(val key: String) : BugsyCommand()
+
+    @Serializable
+    @SerialName("reset_all_flags")
+    object ResetAllFlags : BugsyCommand()
 
     @Serializable
     @SerialName("clear_requests")

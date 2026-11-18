@@ -98,6 +98,7 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
             merge(
                 com.bugsy.core.DebugRepository.added.map { BugsyEvent.RequestRecorded(it) },
                 com.bugsy.core.MockEngine.ruleChanges.map { BugsyEvent.MockRuleChanged(it.rule, it.action.name.lowercase()) },
+                com.bugsy.core.MockEngine.oneShotConsumedEvents.map { BugsyEvent.MockRuleConsumed(it) },
                 com.bugsy.core.Bugsy.flagManager.flagChanges.map { BugsyEvent.FlagChanged(it) },
             ).collect { event -> connections.broadcast(encodeFrame(OPCODE_TEXT, encodeEvent(event))) }
         }

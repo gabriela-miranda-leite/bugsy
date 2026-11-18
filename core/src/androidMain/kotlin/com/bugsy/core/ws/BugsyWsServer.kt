@@ -61,6 +61,7 @@ internal fun Application.bugsyModule(sessionToken: String) {
                 merge(
                     DebugRepository.added.map { BugsyEvent.RequestRecorded(it) },
                     MockEngine.ruleChanges.map { BugsyEvent.MockRuleChanged(it.rule, it.action.name.lowercase()) },
+                    MockEngine.oneShotConsumedEvents.map { BugsyEvent.MockRuleConsumed(it) },
                     Bugsy.flagManager.flagChanges.map { BugsyEvent.FlagChanged(it) },
                 ).collect { event -> send(Frame.Text(json.encodeToString(BugsyEvent.serializer(), event))) }
             }

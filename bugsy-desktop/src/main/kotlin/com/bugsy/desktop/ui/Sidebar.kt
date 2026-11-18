@@ -25,7 +25,6 @@ import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
 private val TabIcons = mapOf(
     DesktopTab.REQUESTS to "☰",
     DesktopTab.MOCKS to "▣",
-    DesktopTab.TIMELINE to "◷",
     DesktopTab.FLAGS to "⚑",
     DesktopTab.DEVICE to "▭",
 )

@@ -2,6 +2,7 @@ package com.bugsy.core.ws
 
 import com.bugsy.core.model.DebugFlag
 import com.bugsy.core.model.DebugRequest
+import com.bugsy.core.model.DeviceInfo
 import com.bugsy.core.model.MockRule
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -20,6 +21,7 @@ sealed class BugsyEvent {
         val requests: List<DebugRequest>,
         val mockRules: List<MockRule>,
         val flags: List<DebugFlag>,
+        val deviceInfo: DeviceInfo,
     ) : BugsyEvent()
 
     @Serializable

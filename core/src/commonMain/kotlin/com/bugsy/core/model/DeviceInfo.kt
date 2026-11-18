@@ -1,5 +1,8 @@
 package com.bugsy.core.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class DeviceInfo(
     val appVersionName: String,
     val appVersionCode: String,

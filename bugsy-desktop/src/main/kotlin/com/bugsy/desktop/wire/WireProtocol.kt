@@ -142,11 +142,29 @@ internal object WireFlagValueSerializer : KSerializer<Any> {
     }
 }
 
+/** Mirrors `core`'s `DeviceInfo` (DEB-60). Not an event on its own — only arrives as part of `snapshot`, mobile
+ * doesn't broadcast a standalone "device info changed". */
+@Serializable
+data class WireDeviceInfo(
+    val appVersionName: String,
+    val appVersionCode: String,
+    val environment: String,
+    val buildType: String,
+    val deviceModel: String,
+    val osName: String,
+    val osVersion: String,
+    val locale: String,
+    val bugsyVersion: String,
+    val kotlinVersion: String,
+    val composeVersion: String,
+)
+
 sealed class WireEvent {
     data class Snapshot(
         val requests: List<WireDebugRequest>,
         val mockRules: List<WireMockRule>,
         val flags: List<WireDebugFlag>,
+        val deviceInfo: WireDeviceInfo?,
     ) : WireEvent()
     data class RequestRecorded(val request: WireDebugRequest) : WireEvent()
     data class MockRuleChanged(val rule: WireMockRule, val action: String) : WireEvent()
@@ -216,7 +234,9 @@ fun parseWireEvent(text: String): WireEvent {
             val flags = (root["flags"] as? JsonArray).orEmpty().mapNotNull { element ->
                 runCatching { wireJson.decodeFromJsonElement(WireDebugFlag.serializer(), element) }.getOrNull()
             }
-            WireEvent.Snapshot(requests, mockRules, flags)
+            val deviceInfo = root["deviceInfo"]
+                ?.let { runCatching { wireJson.decodeFromJsonElement(WireDeviceInfo.serializer(), it) }.getOrNull() }
+            WireEvent.Snapshot(requests, mockRules, flags, deviceInfo)
         }
         "request_recorded" -> root["request"]
             ?.let { runCatching { wireJson.decodeFromJsonElement(WireDebugRequest.serializer(), it) }.getOrNull() }

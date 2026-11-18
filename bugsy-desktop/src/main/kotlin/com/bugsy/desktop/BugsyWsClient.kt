@@ -2,6 +2,7 @@ package com.bugsy.desktop
 
 import com.bugsy.desktop.wire.WireDebugFlag
 import com.bugsy.desktop.wire.WireDebugRequest
+import com.bugsy.desktop.wire.WireDeviceInfo
 import com.bugsy.desktop.wire.WireEvent
 import com.bugsy.desktop.wire.WireMockRule
 import com.bugsy.desktop.wire.encodeAddMockRule
@@ -50,6 +51,9 @@ class BugsyWsClient(private val scope: CoroutineScope) {
     private val _flags = MutableStateFlow<List<WireDebugFlag>>(emptyList())
     val flags: StateFlow<List<WireDebugFlag>> = _flags
 
+    private val _deviceInfo = MutableStateFlow<WireDeviceInfo?>(null)
+    val deviceInfo: StateFlow<WireDeviceInfo?> = _deviceInfo
+
     private var job: Job? = null
 
     /** Set while the handshake has completed, so [sendAddOrUpdateMockRule]/etc. have somewhere to write; `null`
@@ -61,6 +65,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
         _requests.value = emptyList()
         _mockRules.value = emptyList()
         _flags.value = emptyList()
+        _deviceInfo.value = null
         job = scope.launch {
             var backoffMs = INITIAL_BACKOFF_MS
             var firstAttempt = true
@@ -81,6 +86,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                                         _requests.value = event.requests
                                         _mockRules.value = event.mockRules
                                         _flags.value = event.flags
+                                        _deviceInfo.value = event.deviceInfo
                                     }
                                     is WireEvent.RequestRecorded -> _requests.update { listOf(event.request) + it }
                                     is WireEvent.MockRuleChanged -> _mockRules.update { rules ->

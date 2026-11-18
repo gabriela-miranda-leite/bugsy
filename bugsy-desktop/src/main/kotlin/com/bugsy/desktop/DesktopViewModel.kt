@@ -5,6 +5,7 @@ import com.bugsy.desktop.export.buildHar
 import com.bugsy.desktop.export.saveHarToFile
 import com.bugsy.desktop.wire.WireDebugFlag
 import com.bugsy.desktop.wire.WireDebugRequest
+import com.bugsy.desktop.wire.WireDeviceInfo
 import com.bugsy.desktop.wire.WireMockRule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /** Matches the reference design's quick filter chips (All/Errors/Slow/Mocked) — a different axis from the
@@ -158,6 +160,24 @@ class DesktopViewModel {
     fun resetFlag(key: String) = client.sendResetFlag(key)
 
     fun resetAllFlags() = client.sendResetAllFlags()
+
+    val deviceInfo: StateFlow<WireDeviceInfo?> = client.deviceInfo
+
+    /** Set the moment [connectionState] first becomes [ConnectionState.CONNECTED] after a [connect] call, `null`
+     * once disconnected — a purely local fact (mobile doesn't report a connection time), shown in the Device tab. */
+    private val _connectedAtEpochMs = MutableStateFlow<Long?>(null)
+    val connectedAtEpochMs: StateFlow<Long?> = _connectedAtEpochMs
+
+    init {
+        scope.launch {
+            var wasConnected = false
+            connectionState.collect { state ->
+                if (state == ConnectionState.CONNECTED && !wasConnected) _connectedAtEpochMs.value = System.currentTimeMillis()
+                if (state == ConnectionState.DISCONNECTED) _connectedAtEpochMs.value = null
+                wasConnected = state == ConnectionState.CONNECTED
+            }
+        }
+    }
 
     /** Unfiltered — HAR export uses this, same as mobile's `onExportHar(requests)` (the raw list, not what's
      * currently filtered on screen). */

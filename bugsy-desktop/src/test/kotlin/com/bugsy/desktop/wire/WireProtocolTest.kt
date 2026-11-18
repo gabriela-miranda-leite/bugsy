@@ -17,6 +17,25 @@ class WireProtocolTest {
     }
 
     @Test
+    fun `parses a snapshot's device info`() {
+        val text = """{"type":"snapshot","requests":[],"mockRules":[],"flags":[],"deviceInfo":{
+            "appVersionName":"2.1.4","appVersionCode":"241","environment":"staging","buildType":"debug",
+            "deviceModel":"Pixel 7 Pro","osName":"Android","osVersion":"14","locale":"pt-BR",
+            "bugsyVersion":"0.1.0-alpha","kotlinVersion":"2.0.21","composeVersion":"1.7.0"
+        }}"""
+        val event = assertIs<WireEvent.Snapshot>(parseWireEvent(text))
+        assertEquals("Pixel 7 Pro", event.deviceInfo?.deviceModel)
+        assertEquals("0.1.0-alpha", event.deviceInfo?.bugsyVersion)
+    }
+
+    @Test
+    fun `a snapshot with no device info field parses with a null one`() {
+        val text = """{"type":"snapshot","requests":[],"mockRules":[],"flags":[]}"""
+        val event = assertIs<WireEvent.Snapshot>(parseWireEvent(text))
+        assertEquals(null, event.deviceInfo)
+    }
+
+    @Test
     fun `parses a snapshot with no requests yet`() {
         val text = """{"type":"snapshot","requests":[],"mockRules":[],"flags":[]}"""
         val event = assertIs<WireEvent.Snapshot>(parseWireEvent(text))

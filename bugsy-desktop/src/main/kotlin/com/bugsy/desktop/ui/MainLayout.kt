@@ -47,6 +47,8 @@ fun MainLayout(viewModel: DesktopViewModel) {
     val flags by viewModel.flags.collectAsState()
     val flagSearchQuery by viewModel.flagSearchQuery.collectAsState()
     val selectedFlag by viewModel.selectedFlag.collectAsState()
+    val deviceInfo by viewModel.deviceInfo.collectAsState()
+    val connectedAtEpochMs by viewModel.connectedAtEpochMs.collectAsState()
 
     Row(Modifier.fillMaxSize().background(BugsyDesktopColors.Background)) {
         Sidebar(selectedTab = selectedTab, onSelectTab = viewModel::selectTab)
@@ -102,7 +104,6 @@ fun MainLayout(viewModel: DesktopViewModel) {
                             )
                         }
                     }
-                    DesktopTab.TIMELINE -> PlaceholderScreen("Timeline", Modifier.weight(1f))
                     DesktopTab.FLAGS -> Row(Modifier.weight(1f).fillMaxWidth()) {
                         FlagsScreen(
                             flags = flags,
@@ -122,7 +123,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
                             modifier = Modifier.weight(0.4f).fillMaxHeight(),
                         )
                     }
-                    DesktopTab.DEVICE -> PlaceholderScreen("Device", Modifier.weight(1f))
+                    DesktopTab.DEVICE -> DeviceScreen(info = deviceInfo, connectedAtEpochMs = connectedAtEpochMs, modifier = Modifier.weight(1f))
                 }
             }
         }

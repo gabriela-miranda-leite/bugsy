@@ -51,13 +51,23 @@ object MockRuleFile {
         put("body", bodyToJson(rule.responseBody))
     }
 
-    /** `null` for malformed JSON, an unknown version, or an entry missing `urlPattern`. */
-    fun deserialize(text: String): List<WireMockRule>? {
-        val root = runCatching { Json.parseToJsonElement(text).jsonObject }.getOrNull() ?: return null
-        val version = root["version"]?.jsonPrimitive?.intOrNull ?: return null
-        if (version != CURRENT_VERSION) return null
-        val rulesJson = root["rules"] as? JsonArray ?: return null
-        return runCatching { rulesJson.map { entryFromJson(it.jsonObject) } }.getOrNull()
+    sealed class ImportResult {
+        data class Success(val rules: List<WireMockRule>) : ImportResult()
+        object Cancelled : ImportResult()
+        data class Invalid(val reason: String) : ImportResult()
+    }
+
+    /** `Invalid` for malformed JSON, an unknown version, or an entry missing `urlPattern` — named reasons so a
+     * failed import says why instead of silently doing nothing. */
+    fun deserialize(text: String): ImportResult {
+        val root = runCatching { Json.parseToJsonElement(text).jsonObject }.getOrNull()
+            ?: return ImportResult.Invalid("not valid JSON")
+        val version = root["version"]?.jsonPrimitive?.intOrNull
+            ?: return ImportResult.Invalid("missing or non-numeric \"version\" field")
+        if (version != CURRENT_VERSION) return ImportResult.Invalid("unsupported version $version (expected $CURRENT_VERSION)")
+        val rulesJson = root["rules"] as? JsonArray ?: return ImportResult.Invalid("missing \"rules\" array")
+        return runCatching { ImportResult.Success(rulesJson.map { entryFromJson(it.jsonObject) }) }
+            .getOrElse { ImportResult.Invalid(it.message ?: "malformed rule entry") }
     }
 
     private fun entryFromJson(entry: JsonObject): WireMockRule {
@@ -96,11 +106,11 @@ object MockRuleFile {
         return file
     }
 
-    fun importFromFile(): List<WireMockRule>? {
+    fun importFromFile(): ImportResult {
         val dialog = FileDialog(null as Frame?, "Import mock rules", FileDialog.LOAD)
         dialog.isVisible = true
-        val directory = dialog.directory ?: return null
-        val name = dialog.file ?: return null
+        val directory = dialog.directory ?: return ImportResult.Cancelled
+        val name = dialog.file ?: return ImportResult.Cancelled
         return deserialize(File(directory, name).readText())
     }
 }

@@ -44,6 +44,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
     val editingMockRule by viewModel.editingMockRule.collectAsState()
     val isMockFormOpen by viewModel.isMockFormOpen.collectAsState()
     val mockPrefillSourceLabel by viewModel.mockPrefillSourceLabel.collectAsState()
+    val mockImportMessage by viewModel.mockImportMessage.collectAsState()
     val flags by viewModel.flags.collectAsState()
     val flagSearchQuery by viewModel.flagSearchQuery.collectAsState()
     val selectedFlag by viewModel.selectedFlag.collectAsState()
@@ -90,6 +91,8 @@ fun MainLayout(viewModel: DesktopViewModel) {
                             onDeleteRule = viewModel::deleteMockRule,
                             onImport = viewModel::importMockRules,
                             onExport = viewModel::exportMockRules,
+                            importMessage = mockImportMessage,
+                            onImportMessageConsumed = viewModel::consumeMockImportMessage,
                             modifier = Modifier.weight(0.5f).fillMaxHeight(),
                         )
                         if (isMockFormOpen) {

@@ -103,14 +103,33 @@ class DesktopViewModel {
         if (_selectedMockRuleId.value == id) closeMockForm()
     }
 
+    private val _mockImportMessage = MutableStateFlow<String?>(null)
+    val mockImportMessage: StateFlow<String?> = _mockImportMessage
+
     fun exportMockRules() {
         MockRuleFile.exportToFile(mockRules.value)
     }
 
     /** Always merges — upserts each imported rule as its own `add_mock_rule` command. Unlike mobile, there's no
-     * merge/replace choice dialog here. */
+     * merge/replace choice dialog here. Sets [mockImportMessage] either way, so a failed/empty import says so
+     * instead of silently doing nothing. */
     fun importMockRules() {
-        MockRuleFile.importFromFile()?.forEach { client.sendAddOrUpdateMockRule(it) }
+        when (val result = MockRuleFile.importFromFile()) {
+            is MockRuleFile.ImportResult.Success -> {
+                result.rules.forEach { client.sendAddOrUpdateMockRule(it) }
+                _mockImportMessage.value = when (result.rules.size) {
+                    0 -> "The file had no rules to import."
+                    1 -> "Imported 1 rule."
+                    else -> "Imported ${result.rules.size} rules."
+                }
+            }
+            is MockRuleFile.ImportResult.Invalid -> _mockImportMessage.value = "Import failed: ${result.reason}."
+            MockRuleFile.ImportResult.Cancelled -> Unit
+        }
+    }
+
+    fun consumeMockImportMessage() {
+        _mockImportMessage.value = null
     }
 
     /** Mirrors mobile's `DebugRequest.toMockRulePrefill()`: an exact-match pattern for the request's path, its

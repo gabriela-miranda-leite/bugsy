@@ -3,7 +3,7 @@ package com.bugsy.desktop.export
 import com.bugsy.desktop.wire.WireMockRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import kotlin.test.assertIs
 
 class MockRuleFileTest {
 
@@ -21,10 +21,10 @@ class MockRuleFileTest {
             isOneShot = true,
         )
 
-        val rules = MockRuleFile.deserialize(MockRuleFile.serialize(listOf(rule)))
+        val result = assertIs<MockRuleFile.ImportResult.Success>(MockRuleFile.deserialize(MockRuleFile.serialize(listOf(rule))))
 
-        assertEquals(1, rules?.size)
-        val parsed = rules!!.first()
+        assertEquals(1, result.rules.size)
+        val parsed = result.rules.first()
         assertEquals(rule.urlPattern, parsed.urlPattern)
         assertEquals(rule.name, parsed.name)
         assertEquals(rule.method, parsed.method)
@@ -40,23 +40,29 @@ class MockRuleFileTest {
             WireMockRule(id = "1", urlPattern = "/a", isActive = true),
             WireMockRule(id = "2", urlPattern = "/b", isActive = false),
         )
-        val parsed = MockRuleFile.deserialize(MockRuleFile.serialize(rules))
-        assertEquals(1, parsed?.size)
-        assertEquals("/a", parsed!!.first().urlPattern)
+        val result = assertIs<MockRuleFile.ImportResult.Success>(MockRuleFile.deserialize(MockRuleFile.serialize(rules)))
+        assertEquals(1, result.rules.size)
+        assertEquals("/a", result.rules.first().urlPattern)
     }
 
     @Test
     fun `rejects malformed json`() {
-        assertNull(MockRuleFile.deserialize("not json"))
+        assertIs<MockRuleFile.ImportResult.Invalid>(MockRuleFile.deserialize("not json"))
     }
 
     @Test
     fun `rejects an unknown version`() {
-        assertNull(MockRuleFile.deserialize("""{"version":99,"rules":[]}"""))
+        assertIs<MockRuleFile.ImportResult.Invalid>(MockRuleFile.deserialize("""{"version":99,"rules":[]}"""))
     }
 
     @Test
     fun `rejects an entry missing urlPattern`() {
-        assertNull(MockRuleFile.deserialize("""{"version":1,"rules":[{"statusCode":200}]}"""))
+        assertIs<MockRuleFile.ImportResult.Invalid>(MockRuleFile.deserialize("""{"version":1,"rules":[{"statusCode":200}]}"""))
+    }
+
+    @Test
+    fun `an empty rules array is a success with zero rules, not an error`() {
+        val result = assertIs<MockRuleFile.ImportResult.Success>(MockRuleFile.deserialize("""{"version":1,"rules":[]}"""))
+        assertEquals(0, result.rules.size)
     }
 }

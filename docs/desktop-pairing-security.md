@@ -1,5 +1,7 @@
 # Desktop pairing: what is protected and what is not
 
+_[Também disponível em português](seguranca-do-pareamento-desktop.md)._
+
 Bugsy Desktop and the phone talk over the local network (DEB-64). This page says what an attacker on the same
 Wi-Fi can and cannot do (DEB-67).
 

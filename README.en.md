@@ -166,6 +166,12 @@ In release, `bugsy-noop` replaces `ui`/`core` with an artifact that has no behav
 actual gate, though, is that the interceptor/`NSURLProtocol` is only activated if the host is
 debuggable, even when the full artifact is on the classpath.
 
+The connection between the phone and Bugsy Desktop (Android) uses TLS with a pinned certificate,
+and pairing by QR code encrypts the token. iOS and the code and list pairing flows do not have
+that protection yet. What is and is not protected is described in
+[`docs/desktop-pairing-security.md`](docs/desktop-pairing-security.md)
+([versão em português](docs/seguranca-do-pareamento-desktop.md)).
+
 ## About development
 
 This project was developed with AI assistance ([Claude Code](https://claude.com/claude-code)),

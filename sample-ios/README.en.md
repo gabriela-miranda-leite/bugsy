@@ -19,6 +19,41 @@ Sample app in **pure Swift** (no KMP) that integrates Bugsy via `Bugsy.xcframewo
 2. Open `sample-ios/BugsySample.xcodeproj` in Xcode and run on the simulator.
 3. Tap **Fazer request (URLSession.shared)** and then **Abrir Bugsy** (or shake the device: *Device > Shake* in the simulator). The request shows up in the Requests tab, with `Authorization` masked as `***`.
 
+## Running on a real iPhone
+
+The simulator needs no signing. For an iPhone Xcode requires an account, but **a free Apple ID is enough** (the same one
+you use for iCloud); the paid Developer Program is not needed. You do this once:
+
+1. **Xcode > Settings > Accounts > "+" > Apple ID** and sign in.
+2. In the **BugsySample > Signing & Capabilities** target, pick **Team: Your Name (Personal Team)**.
+3. Change the **Bundle Identifier** (`dev.bugsy.sample`) to one of your own, for example `dev.bugsy.sample.yourname`. With
+   a free account Xcode usually refuses an identifier that is not yours.
+4. Build the framework **for a device** (the simulator one does not work):
+
+   ```sh
+   ./gradlew :ui:linkDebugFrameworkIosArm64 :ui:iosArm64AggregateResources
+   ```
+
+5. On the iPhone, turn on **Developer Mode** (Settings > Privacy & Security; the device restarts).
+6. Run from Xcode. The first time, the iPhone says the certificate is not trusted: go to **Settings > General > VPN &
+   Device Management**, tap your Apple ID under "Developer App" and then **Trust**. Run again.
+7. Accept the **camera** (to read the QR code) and **Local Network** (for pairing) requests.
+
+With a free Apple ID the installed app **expires after 7 days**; just run it again from Xcode.
+
+Xcode writes your team and identifier into `project.pbxproj`: **do not include those changes in a commit**.
+
+### Common errors
+
+| Message | Cause and fix |
+|---|---|
+| `Signing for "BugsySample" requires a development team` | No team picked: steps 1 and 2. |
+| `Unable to resolve module dependency: 'Bugsy'` | The framework for the chosen destination is missing: a device uses `...IosArm64` and the simulator uses `...IosSimulatorArm64`. Build the one for your destination. |
+| `The Developer App Certificate is not trusted` | The certificate is not trusted on the iPhone: step 6. |
+
+In the **simulator** the camera and broadcast are limited: pairing by QR code and by code does not work. Use the manual
+connection to the desktop.
+
 ## Shake
 
 The `Shake` trigger works on a real device (accelerometer and iOS's shake gesture) and also in the Simulator, via **Device > Shake** (Ctrl+Cmd+Z): Bugsy listens to UIKit's motion event in addition to the accelerometer, which doesn't exist in the Simulator. The Simulator only delivers the gesture if the app is in the foreground.

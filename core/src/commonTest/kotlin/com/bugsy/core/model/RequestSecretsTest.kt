@@ -27,7 +27,7 @@ class RequestSecretsTest {
     }
 
     @Test
-    fun `equals compares by field values, not identity`() {
+    fun `equals compares by field value not identity`() {
         val a = secrets()
         val b = secrets()
 

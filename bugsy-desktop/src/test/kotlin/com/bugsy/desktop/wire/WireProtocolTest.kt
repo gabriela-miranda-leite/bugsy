@@ -36,6 +36,21 @@ class WireProtocolTest {
     }
 
     @Test
+    fun `parses a snapshot's custom info rows`() {
+        val text = """{"type":"snapshot","requests":[],"mockRules":[],"flags":[],
+            "customInfo":[{"label":"user_id","value":"u_42"},{"label":"email","value":"dev@app.com"}]}"""
+        val event = assertIs<WireEvent.Snapshot>(parseWireEvent(text))
+        assertEquals(listOf(WireCustomInfo("user_id", "u_42"), WireCustomInfo("email", "dev@app.com")), event.customInfo)
+    }
+
+    @Test
+    fun `a snapshot from an older phone with no custom info parses with an empty list`() {
+        val text = """{"type":"snapshot","requests":[],"mockRules":[],"flags":[]}"""
+        val event = assertIs<WireEvent.Snapshot>(parseWireEvent(text))
+        assertEquals(emptyList(), event.customInfo)
+    }
+
+    @Test
     fun `parses a snapshot with no requests yet`() {
         val text = """{"type":"snapshot","requests":[],"mockRules":[],"flags":[]}"""
         val event = assertIs<WireEvent.Snapshot>(parseWireEvent(text))

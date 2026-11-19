@@ -66,6 +66,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
     val flagSearchQuery by viewModel.flagSearchQuery.collectAsState()
     val selectedFlag by viewModel.selectedFlag.collectAsState()
     val deviceInfo by viewModel.deviceInfo.collectAsState()
+    val customInfo by viewModel.customInfo.collectAsState()
     val connectedAtEpochMs by viewModel.connectedAtEpochMs.collectAsState()
 
     Box(Modifier.fillMaxSize()) {
@@ -142,7 +143,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
                             modifier = Modifier.weight(0.4f).fillMaxHeight(),
                         )
                     }
-                    DesktopTab.DEVICE -> DeviceScreen(info = deviceInfo, connectedAtEpochMs = connectedAtEpochMs, modifier = Modifier.weight(1f))
+                    DesktopTab.DEVICE -> DeviceScreen(info = deviceInfo, customInfo = customInfo, connectedAtEpochMs = connectedAtEpochMs, modifier = Modifier.weight(1f))
                 }
             }
         }

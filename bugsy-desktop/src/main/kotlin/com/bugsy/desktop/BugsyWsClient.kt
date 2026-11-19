@@ -2,6 +2,7 @@ package com.bugsy.desktop
 
 import com.bugsy.desktop.wire.WireDebugFlag
 import com.bugsy.desktop.wire.WireDebugRequest
+import com.bugsy.desktop.wire.WireCustomInfo
 import com.bugsy.desktop.wire.WireDeviceInfo
 import com.bugsy.desktop.wire.WireEvent
 import com.bugsy.desktop.wire.WireMockRule
@@ -56,6 +57,9 @@ class BugsyWsClient(private val scope: CoroutineScope) {
     private val _deviceInfo = MutableStateFlow<WireDeviceInfo?>(null)
     val deviceInfo: StateFlow<WireDeviceInfo?> = _deviceInfo
 
+    private val _customInfo = MutableStateFlow<List<WireCustomInfo>>(emptyList())
+    val customInfo: StateFlow<List<WireCustomInfo>> = _customInfo
+
     /** A one-shot event stream (not state) — a toast fires once per consumption, it isn't "the current
      * consumed rule" the way [mockRules] is "the current rule list". `replay = 0` so a late subscriber doesn't
      * get a stale one. */
@@ -74,6 +78,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
         _mockRules.value = emptyList()
         _flags.value = emptyList()
         _deviceInfo.value = null
+        _customInfo.value = emptyList()
         job = scope.launch {
             var backoffMs = INITIAL_BACKOFF_MS
             var firstAttempt = true
@@ -95,6 +100,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                                         _mockRules.value = event.mockRules
                                         _flags.value = event.flags
                                         _deviceInfo.value = event.deviceInfo
+                                        _customInfo.value = event.customInfo
                                     }
                                     is WireEvent.RequestRecorded -> _requests.update { listOf(event.request) + it }
                                     is WireEvent.MockRuleChanged -> _mockRules.update { rules ->

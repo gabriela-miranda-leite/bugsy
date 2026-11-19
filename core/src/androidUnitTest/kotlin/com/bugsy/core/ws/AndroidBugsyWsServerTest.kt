@@ -1,6 +1,7 @@
 package com.bugsy.core.ws
 
 import com.bugsy.core.Bugsy
+import com.bugsy.core.BugsyConfig
 import com.bugsy.core.DebugRepository
 import com.bugsy.core.MockEngine
 import com.bugsy.core.model.DebugRequest
@@ -52,6 +53,27 @@ class AndroidBugsyWsServerTest {
                 assertEquals(1, snapshot.requests.size)
                 assertEquals("1", snapshot.requests.first().id)
             }
+        }
+    }
+
+    @Test
+    fun `the snapshot carries the app's custom info`() {
+        Bugsy.initialize(BugsyConfig(customInfoProvider = { listOf("user_id" to "u_42") }))
+        try {
+            testApplication {
+                application { bugsyModule(token) }
+                val client = createClient { install(ClientWebSockets) }
+
+                client.webSocket("/bugsy") {
+                    send(Frame.Text(json.encodeToString(HandshakeMessage.serializer(), HandshakeMessage(token))))
+
+                    val event = json.decodeFromString(BugsyEvent.serializer(), (incoming.receive() as Frame.Text).readText())
+                    val snapshot = assertIs<BugsyEvent.Snapshot>(event)
+                    assertEquals(listOf(CustomInfoEntry("user_id", "u_42")), snapshot.customInfo)
+                }
+            }
+        } finally {
+            Bugsy.destroy()
         }
     }
 

@@ -15,11 +15,13 @@ import com.bugsy.desktop.wire.encodeToggleFlag
 import com.bugsy.desktop.wire.encodeToggleMockRule
 import com.bugsy.desktop.wire.parseWireEvent
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.websocket.Frame
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -40,7 +42,7 @@ private const val MAX_BACKOFF_MS = 30_000L
 
 /** Connects to a mobile app's BugsyWsServer (DEB-58), reconnecting with exponential backoff until [disconnect]. */
 class BugsyWsClient(private val scope: CoroutineScope) {
-    private val client = HttpClient(CIO) { install(WebSockets) }
+    private val client = HttpClient(OkHttp) { install(WebSockets) }
 
     private val _state = MutableStateFlow(ConnectionState.DISCONNECTED)
     val state: StateFlow<ConnectionState> = _state
@@ -189,11 +191,17 @@ class BugsyWsClient(private val scope: CoroutineScope) {
             is Route.Pinned -> PinnedTrustManager(route.fingerprint)
             else -> LearningTrustManager { learned.set(it) }
         }
-        val tlsClient = HttpClient(CIO) {
+        // The pinned (or learned) fingerprint decides trust, so OkHttp's own hostname check is turned off: a phone is reached
+        // at a LAN address no certificate it makes could name.
+        val sslContext = SSLContext.getInstance("TLS").apply { init(null, arrayOf<TrustManager>(trust), null) }
+        val tlsClient = HttpClient(OkHttp) {
             install(WebSockets)
-            // The phone's certificate names `bugsy.local` and nothing else (its LAN address cannot be in it), so that is the
-            // name asked for; what actually decides whether to trust it is the pinned fingerprint.
-            engine { https { serverName = BUGSY_TLS_SERVER_NAME; trustManager = trust } }
+            engine {
+                config {
+                    sslSocketFactory(sslContext.socketFactory, trust)
+                    hostnameVerifier { _, _ -> true }
+                }
+            }
         }
         try {
             tlsClient.webSocket(urlString = "wss://$host:$port/bugsy", block = block)
@@ -264,8 +272,6 @@ internal fun describeConnectionFailure(error: Throwable): String {
     return when {
         "pinned fingerprint" in text ->
             "The phone's certificate is not the one it reported when pairing. Pair again, and be careful if you did not expect this."
-        "No server host" in text ->
-            "The phone's certificate does not name the host this desktop asks for. Update Bugsy on the phone."
         "TLSException" in text || "SSL" in text || "handshake" in text.lowercase() ->
             "Could not set up a secure connection with the phone (${chain.last().message ?: chain.last()::class.simpleName})."
         "ConnectException" in text || "Connection refused" in text || "timed out" in text.lowercase() || "TimeoutCancellation" in text ->

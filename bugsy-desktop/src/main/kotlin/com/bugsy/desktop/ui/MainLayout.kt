@@ -43,6 +43,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
         val isScanning by viewModel.isScanningDevices.collectAsState()
         val pendingDevice by viewModel.pendingDeviceRequest.collectAsState()
         val verification by viewModel.verification.collectAsState()
+        val pendingFingerprint by viewModel.pendingFingerprint.collectAsState()
         LaunchedEffect(Unit) { viewModel.refreshDevices() }
         ConnectionScreen(
             pairingCode = pairingCode,
@@ -56,6 +57,13 @@ fun MainLayout(viewModel: DesktopViewModel) {
             onConnect = viewModel::connect,
             verificationCode = verification?.code,
         )
+        pendingFingerprint?.let { pending ->
+            TrustFingerprintDialog(
+                fingerprint = pending.fingerprint,
+                onTrust = { viewModel.resolvePendingFingerprint(true) },
+                onReject = { viewModel.resolvePendingFingerprint(false) },
+            )
+        }
         return
     }
 

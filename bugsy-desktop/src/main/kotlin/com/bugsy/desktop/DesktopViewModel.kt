@@ -1,42 +1,26 @@
 package com.bugsy.desktop
 
-import com.bugsy.desktop.export.MockRuleFile
-import com.bugsy.desktop.export.buildHar
-import com.bugsy.desktop.export.saveHarToFile
-import com.bugsy.desktop.ui.DesktopToastAction
+import com.bugsy.desktop.pairing.DesktopVerification
+import com.bugsy.desktop.pairing.DiscoveredDevice
+import com.bugsy.desktop.pairing.PairedDevice
+import com.bugsy.desktop.pairing.PairingCode
 import com.bugsy.desktop.ui.DesktopToastData
 import com.bugsy.desktop.ui.DesktopToastHost
 import com.bugsy.desktop.ui.DesktopToastType
-import com.bugsy.desktop.pairing.DesktopPairingServer
-import com.bugsy.desktop.pairing.DeviceDiscovery
-import com.bugsy.desktop.pairing.DiscoveredDevice
-import com.bugsy.desktop.pairing.PAIRING_DESKTOP_UDP_PORT
-import com.bugsy.desktop.pairing.DesktopVerification
-import com.bugsy.desktop.pairing.PairedDevice
-import com.bugsy.desktop.pairing.PairingCode
-import com.bugsy.desktop.pairing.PairingCodeManager
-import com.bugsy.desktop.pairing.PairingHandler
-import com.bugsy.desktop.pairing.desktopDisplayName
-import com.bugsy.desktop.pairing.localIpv4Address
-import com.bugsy.desktop.pairing.pairingQrText
+import com.bugsy.desktop.wire.WireCustomInfo
 import com.bugsy.desktop.wire.WireDebugFlag
 import com.bugsy.desktop.wire.WireDebugRequest
-import com.bugsy.desktop.wire.WireCustomInfo
 import com.bugsy.desktop.wire.WireDeviceInfo
 import com.bugsy.desktop.wire.WireMockRule
-import com.bugsy.desktop.wire.displayName
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 
 /** Matches the reference design's quick filter chips (All/Errors/Slow/Mocked) — a different axis from the
  * search field, which filters by URL/method text (DEB-60's own ticket text asked for that one). */
@@ -46,11 +30,17 @@ enum class RequestQuickFilter { ALL, ERRORS, SLOW, MOCKED }
  * local approximation, not necessarily what the connected app is actually configured with. */
 const val SLOW_REQUEST_THRESHOLD_MS = 2_000L
 
-private const val PENDING_REQUEST_TIMEOUT_MS = 60_000L
+/** A TLS certificate seen for the first time on a manual connection (DEB-74): [fingerprint] is its SHA-256 hex. */
+class PendingFingerprint(val fingerprint: String, internal val decision: CompletableDeferred<Boolean>)
 
 /**
  * Plain class, not `androidx.lifecycle.ViewModel` — this is a desktop JVM app, no Android lifecycle to hook
  * into. Owns the coroutine scope for the whole window's lifetime; [onCloseWindow] tears it down.
+ *
+ * Delegates each concern to its own controller ([PairingController], [MockRulesController], [FlagsController],
+ * [RequestsController]) and re-exposes their state/actions under the same names as before the split (DEB-74),
+ * so this is the one place the UI layer talks to; connection lifecycle (connect/disconnect/fingerprint trust)
+ * is small enough to stay here directly, next to [client].
  */
 class DesktopViewModel {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -63,70 +53,27 @@ class DesktopViewModel {
 
     // --- Pairing with a phone (DEB-64) -------------------------------------------------------------------
 
-    private val codeManager = PairingCodeManager()
-    private val pairingHandler = PairingHandler(codeManager, desktopName = ::desktopDisplayName, onPaired = ::onDevicePaired)
-    private val pairingServer = DesktopPairingServer(scope, pairingHandler)
-    private val discovery = DeviceDiscovery(scope)
+    private val pairingController = PairingController(scope, onPaired = ::onDevicePaired)
 
-    /** `false` when UDP port [PAIRING_DESKTOP_UDP_PORT] is taken (another Bugsy Desktop is open): the QR code and
-     * 6-digit code then can't work, but "Manual connection" still does. */
-    val isPairingAvailable: Boolean = pairingServer.start()
+    val isPairingAvailable: Boolean get() = pairingController.isPairingAvailable
+    val pairingCode: StateFlow<PairingCode> get() = pairingController.pairingCode
+    val verification: StateFlow<DesktopVerification?> get() = pairingController.verification
+    val pairingQrText: StateFlow<String?> get() = pairingController.pairingQrText
+    val devices: StateFlow<List<DiscoveredDevice>> get() = pairingController.devices
+    val isScanningDevices: StateFlow<Boolean> get() = pairingController.isScanningDevices
+    val pendingDeviceRequest: StateFlow<DiscoveredDevice?> get() = pairingController.pendingDeviceRequest
 
-    val pairingCode: StateFlow<PairingCode> = codeManager.current
+    fun refreshDevices() = pairingController.refreshDevices()
 
-    /** The short code to compare with the phone's screen while a pairing waits for the person (DEB-67). */
-    val verification: StateFlow<DesktopVerification?> = pairingHandler.verification
-
-    private val _localIp = MutableStateFlow(localIpv4Address())
-
-    /** What the QR code encodes, or `null` when this machine isn't on a network. */
-    val pairingQrText: StateFlow<String?> = combine(codeManager.current, _localIp) { code, ip ->
-        ip?.let { pairingQrText(it, PAIRING_DESKTOP_UDP_PORT, code.code, code.secret) }
-    }.stateIn(scope, SharingStarted.Eagerly, null)
-
-    val devices: StateFlow<List<DiscoveredDevice>> = discovery.devices
-    val isScanningDevices: StateFlow<Boolean> = discovery.isScanning
-
-    private val _pendingDeviceRequest = MutableStateFlow<DiscoveredDevice?>(null)
-
-    /** The device that was asked to approve this desktop and hasn't answered yet. */
-    val pendingDeviceRequest: StateFlow<DiscoveredDevice?> = _pendingDeviceRequest
-
-    fun refreshDevices() {
-        _localIp.value = localIpv4Address()
-        discovery.refresh()
-    }
-
-    /** "Connect" on a discovered device: the phone can't just hand out its token to anyone on the network who
-     * asks, so the user has to approve this desktop in the phone's overlay first. */
-    fun connectToDevice(device: DiscoveredDevice) {
-        val nonce = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
-        val publicKey = pairingHandler.expectNonce(nonce, device.host)
-        _pendingDeviceRequest.value = device
-        scope.launch {
-            if (!discovery.requestConnect(device, nonce, desktopDisplayName(), publicKey)) {
-                _pendingDeviceRequest.value = null
-                DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Error, title = "Could not reach ${device.name}", subtitle = "Check that it is on the same network"))
-                return@launch
-            }
-            delay(PENDING_REQUEST_TIMEOUT_MS)
-            if (_pendingDeviceRequest.value == device) _pendingDeviceRequest.value = null
-        }
-    }
+    fun connectToDevice(device: DiscoveredDevice) = pairingController.connectToDevice(device)
 
     private fun onDevicePaired(device: PairedDevice) {
-        _pendingDeviceRequest.value = null
+        pairingController.clearPendingDeviceRequest()
         client.connect(device.host, device.port, device.token, device.fingerprint)
         DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "Paired with ${device.name ?: device.host}", subtitle = listOfNotNull(device.os, device.host).joinToString(" · ")))
     }
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery
-
-    private val _quickFilter = MutableStateFlow(RequestQuickFilter.ALL)
-    val quickFilter: StateFlow<RequestQuickFilter> = _quickFilter
-
-    private val _selectedRequestId = MutableStateFlow<String?>(null)
+    // --- Tabs ---------------------------------------------------------------------------------------------
 
     private val _selectedTab = MutableStateFlow(DesktopTab.REQUESTS)
     val selectedTab: StateFlow<DesktopTab> = _selectedTab
@@ -135,156 +82,58 @@ class DesktopViewModel {
         _selectedTab.value = tab
     }
 
-    val mockRules: StateFlow<List<WireMockRule>> = client.mockRules
+    // --- Mock rules (DEB-61) -------------------------------------------------------------------------------
 
-    private val _mockPrefill = MutableStateFlow<WireMockRule?>(null)
-    private val _mockPrefillSourceLabel = MutableStateFlow<String?>(null)
-    val mockPrefillSourceLabel: StateFlow<String?> = _mockPrefillSourceLabel
+    private val mockRulesController = MockRulesController(scope, client, onSwitchToMocksTab = { _selectedTab.value = DesktopTab.MOCKS })
 
-    private val _selectedMockRuleId = MutableStateFlow<String?>(null)
+    val mockRules: StateFlow<List<WireMockRule>> get() = mockRulesController.mockRules
+    val mockPrefillSourceLabel: StateFlow<String?> get() = mockRulesController.mockPrefillSourceLabel
+    val editingMockRule: StateFlow<WireMockRule?> get() = mockRulesController.editingMockRule
+    val isMockFormOpen: StateFlow<Boolean> get() = mockRulesController.isMockFormOpen
 
-    private val _isCreatingMockRule = MutableStateFlow(false)
+    fun selectMockRule(id: String) = mockRulesController.selectMockRule(id)
+    fun startNewMockRule() = mockRulesController.startNewMockRule()
+    fun closeMockForm() = mockRulesController.closeMockForm()
+    fun addOrUpdateMockRule(rule: WireMockRule) = mockRulesController.addOrUpdateMockRule(rule)
+    fun toggleMockRule(id: String, enabled: Boolean) = mockRulesController.toggleMockRule(id, enabled)
+    fun deleteMockRule(id: String) = mockRulesController.deleteMockRule(id)
+    fun exportMockRules() = mockRulesController.exportMockRules()
+    fun importMockRules() = mockRulesController.importMockRules()
+    fun createMockFromRequest(request: WireDebugRequest) = mockRulesController.createMockFromRequest(request)
 
-    /** The rule being edited in the form panel: the prefill (if any), else a persisted rule by id, else `null`
-     * (list-only, no panel) — unless [_isCreatingMockRule] is set, in which case `null` itself means "blank new
-     * rule form", distinguished by [isMockFormOpen]. */
-    val editingMockRule: StateFlow<WireMockRule?> =
-        combine(mockRules, _selectedMockRuleId, _mockPrefill) { rules, id, prefill ->
-            prefill ?: rules.firstOrNull { it.id == id }
-        }.stateIn(scope, SharingStarted.Eagerly, null)
+    // --- Feature flags --------------------------------------------------------------------------------------
 
-    val isMockFormOpen: StateFlow<Boolean> =
-        combine(_selectedMockRuleId, _mockPrefill, _isCreatingMockRule) { id, prefill, creating ->
-            id != null || prefill != null || creating
-        }.stateIn(scope, SharingStarted.Eagerly, false)
+    private val flagsController = FlagsController(scope, client)
 
-    fun selectMockRule(id: String) {
-        _isCreatingMockRule.value = false
-        _selectedMockRuleId.value = id
-    }
+    val flags: StateFlow<List<WireDebugFlag>> get() = flagsController.flags
+    val flagSearchQuery: StateFlow<String> get() = flagsController.flagSearchQuery
+    val selectedFlag: StateFlow<WireDebugFlag?> get() = flagsController.selectedFlag
 
-    fun startNewMockRule() {
-        _selectedMockRuleId.value = null
-        _isCreatingMockRule.value = true
-    }
+    fun setFlagSearchQuery(query: String) = flagsController.setFlagSearchQuery(query)
+    fun selectFlag(key: String?) = flagsController.selectFlag(key)
+    fun toggleFlag(key: String, enabled: Boolean) = flagsController.toggleFlag(key, enabled)
+    fun resetFlag(key: String) = flagsController.resetFlag(key)
+    fun resetAllFlags() = flagsController.resetAllFlags()
 
-    fun closeMockForm() {
-        _selectedMockRuleId.value = null
-        _isCreatingMockRule.value = false
-        consumeMockPrefill()
-    }
+    // --- Requests --------------------------------------------------------------------------------------------
 
-    /** Mirrors mobile's `addMockRuleWithToast` in `DebugOverlay.kt`: same toast title/subtitle shape, whether
-     * this is a new rule or an edit of an existing one. */
-    fun addOrUpdateMockRule(rule: WireMockRule) {
-        client.sendAddOrUpdateMockRule(rule)
-        closeMockForm()
-        DesktopToastHost.show(
-            DesktopToastData(type = DesktopToastType.Success, title = "Mock rule saved", subtitle = "${rule.method ?: "ANY"} ${rule.displayName} → ${rule.statusCode}"),
-        )
-    }
+    private val requestsController = RequestsController(scope, client)
 
-    /** Mirrors mobile's `setMockActiveWithToast`: only toasts when disabling, not when (re-)enabling. */
-    fun toggleMockRule(id: String, enabled: Boolean) {
-        val rule = mockRules.value.firstOrNull { it.id == id }
-        client.sendToggleMockRule(id, enabled)
-        if (!enabled && rule != null) {
-            DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Info, title = "Mock disabled", subtitle = rule.displayName))
-        }
-    }
+    /** Unfiltered — HAR export uses this, same as mobile's `onExportHar(requests)` (the raw list, not what's
+     * currently filtered on screen). */
+    val allRequests: StateFlow<List<WireDebugRequest>> get() = requestsController.allRequests
+    val requests: StateFlow<List<WireDebugRequest>> get() = requestsController.requests
+    val selectedRequest: StateFlow<WireDebugRequest?> get() = requestsController.selectedRequest
+    val searchQuery: StateFlow<String> get() = requestsController.searchQuery
+    val quickFilter: StateFlow<RequestQuickFilter> get() = requestsController.quickFilter
 
-    /** Mirrors mobile's `removeMockRuleWithToast`: a Destructive toast with a 5s Undo window that re-sends the
-     * exact same rule (same id) as a fresh `add_mock_rule` if clicked. */
-    fun deleteMockRule(id: String) {
-        val removed = mockRules.value.firstOrNull { it.id == id }
-        client.sendDeleteMockRule(id)
-        if (_selectedMockRuleId.value == id) closeMockForm()
-        if (removed != null) {
-            DesktopToastHost.show(
-                DesktopToastData(
-                    type = DesktopToastType.Destructive,
-                    title = "Mock rule deleted",
-                    subtitle = "${removed.method ?: "ANY"} ${removed.displayName}",
-                    action = DesktopToastAction("Undo") { client.sendAddOrUpdateMockRule(removed) },
-                    durationMs = 5_000L,
-                ),
-            )
-        }
-    }
+    fun selectRequest(id: String?) = requestsController.selectRequest(id)
+    fun setSearchQuery(query: String) = requestsController.setSearchQuery(query)
+    fun setQuickFilter(filter: RequestQuickFilter) = requestsController.setQuickFilter(filter)
+    fun clearRequests() = requestsController.clearRequests()
+    fun exportHar() = requestsController.exportHar()
 
-    fun exportMockRules() {
-        val file = MockRuleFile.exportToFile(mockRules.value) ?: return
-        DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "Mock rules exported", subtitle = file.name))
-    }
-
-    /** Always merges — upserts each imported rule as its own `add_mock_rule` command. Unlike mobile, there's no
-     * merge/replace choice dialog here. Toasts either way, so a failed/empty import says so instead of silently
-     * doing nothing. */
-    fun importMockRules() {
-        when (val result = MockRuleFile.importFromFile()) {
-            is MockRuleFile.ImportResult.Success -> {
-                result.rules.forEach { client.sendAddOrUpdateMockRule(it) }
-                val subtitle = when (result.rules.size) {
-                    0 -> "The file had no rules to import"
-                    1 -> "Imported 1 rule"
-                    else -> "Imported ${result.rules.size} rules"
-                }
-                DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "Mock rules imported", subtitle = subtitle))
-            }
-            is MockRuleFile.ImportResult.Invalid -> DesktopToastHost.show(
-                DesktopToastData(type = DesktopToastType.Error, title = "Import failed", subtitle = result.reason),
-            )
-            MockRuleFile.ImportResult.Cancelled -> Unit
-        }
-    }
-
-    /** Mirrors mobile's `DebugRequest.toMockRulePrefill()`: an exact-match pattern for the request's path, its
-     * method and status, pre-filled as a one-shot rule — then switches to the Mocks tab to show it. */
-    fun createMockFromRequest(request: WireDebugRequest) {
-        _mockPrefill.value = WireMockRule(
-            id = "mock-${Random.nextLong()}",
-            urlPattern = "^${request.url.pathOnly().escapeRegexLiterally()}$",
-            method = request.method,
-            statusCode = request.statusCode ?: 200,
-            responseHeaders = request.responseHeaders.ifEmpty { mapOf("Content-Type" to "application/json") },
-            responseBody = request.responseBody.orEmpty(),
-            isOneShot = true,
-        )
-        _mockPrefillSourceLabel.value = "Pre-filled from ${request.method} ${request.url.pathOnly()} · ${request.statusCode ?: "—"}"
-        _selectedTab.value = DesktopTab.MOCKS
-    }
-
-    private fun consumeMockPrefill() {
-        _mockPrefill.value = null
-        _mockPrefillSourceLabel.value = null
-    }
-
-    val flags: StateFlow<List<WireDebugFlag>> = client.flags
-
-    private val _flagSearchQuery = MutableStateFlow("")
-    val flagSearchQuery: StateFlow<String> = _flagSearchQuery
-
-    fun setFlagSearchQuery(query: String) {
-        _flagSearchQuery.value = query
-    }
-
-    private val _selectedFlagKey = MutableStateFlow<String?>(null)
-
-    val selectedFlag: StateFlow<WireDebugFlag?> =
-        combine(flags, _selectedFlagKey) { all, key -> all.firstOrNull { it.key == key } }
-            .stateIn(scope, SharingStarted.Eagerly, null)
-
-    fun selectFlag(key: String?) {
-        _selectedFlagKey.value = key
-    }
-
-    /** Boolean-only, same as mobile's own `FlagsScreen` — other types are read-only in the UI even though
-     * `FlagManager.override` itself accepts `Any`. */
-    fun toggleFlag(key: String, enabled: Boolean) = client.sendToggleFlag(key, enabled)
-
-    fun resetFlag(key: String) = client.sendResetFlag(key)
-
-    fun resetAllFlags() = client.sendResetAllFlags()
+    // --- Connection lifecycle --------------------------------------------------------------------------------
 
     val deviceInfo: StateFlow<WireDeviceInfo?> = client.deviceInfo
     val customInfo: StateFlow<List<WireCustomInfo>> = client.customInfo
@@ -296,13 +145,6 @@ class DesktopViewModel {
 
     init {
         scope.launch {
-            while (true) {
-                delay(1_000)
-                codeManager.rotateIfExpired()
-                pairingHandler.clearExpiredVerification()
-            }
-        }
-        scope.launch {
             var wasConnected = false
             connectionState.collect { state ->
                 if (state == ConnectionState.CONNECTED && !wasConnected) _connectedAtEpochMs.value = System.currentTimeMillis()
@@ -310,73 +152,42 @@ class DesktopViewModel {
                 wasConnected = state == ConnectionState.CONNECTED
             }
         }
-        // Mirrors mobile's own toast trigger off `MockEngine.oneShotConsumedEvents` (DebugOverlay.kt).
-        scope.launch {
-            client.mockRuleConsumed.collect { rule ->
-                DesktopToastHost.show(
-                    DesktopToastData(type = DesktopToastType.Warning, title = "Mock used up (ONCE)", subtitle = "${rule.displayName} · ${rule.statusCode}"),
-                )
-            }
-        }
     }
 
-    /** Unfiltered — HAR export uses this, same as mobile's `onExportHar(requests)` (the raw list, not what's
-     * currently filtered on screen). */
-    val allRequests: StateFlow<List<WireDebugRequest>> = client.requests
+    private val _pendingFingerprint = MutableStateFlow<PendingFingerprint?>(null)
 
-    val requests: StateFlow<List<WireDebugRequest>> = combine(client.requests, _searchQuery, _quickFilter) { all, query, filter ->
-        all.filter { request ->
-            matchesQuickFilter(request, filter) &&
-                (query.isBlank() || request.url.contains(query, ignoreCase = true) || request.method.contains(query, ignoreCase = true))
-        }
-    }.stateIn(scope, SharingStarted.Eagerly, emptyList())
+    /** A certificate learned trust-on-first-use from a manual connection, awaiting the person's approval. */
+    val pendingFingerprint: StateFlow<PendingFingerprint?> = _pendingFingerprint
 
-    val selectedRequest: StateFlow<WireDebugRequest?> =
-        combine(client.requests, _selectedRequestId) { all, id -> all.firstOrNull { it.id == id } }
-            .stateIn(scope, SharingStarted.Eagerly, null)
-
-    private fun matchesQuickFilter(request: WireDebugRequest, filter: RequestQuickFilter): Boolean = when (filter) {
-        RequestQuickFilter.ALL -> true
-        RequestQuickFilter.ERRORS -> (request.statusCode ?: 0) >= 400
-        RequestQuickFilter.SLOW -> request.durationMs >= SLOW_REQUEST_THRESHOLD_MS
-        RequestQuickFilter.MOCKED -> request.isMocked
+    fun connect(host: String, port: Int, token: String) {
+        client.connect(host, port, token, confirmFingerprint = { fingerprint ->
+            val decision = CompletableDeferred<Boolean>()
+            _pendingFingerprint.value = PendingFingerprint(fingerprint, decision)
+            decision.await()
+        })
     }
 
-    fun connect(host: String, port: Int, token: String) = client.connect(host, port, token)
+    /** Answers the [pendingFingerprint] prompt: `true` trusts the certificate and lets the handshake continue. */
+    fun resolvePendingFingerprint(trust: Boolean) {
+        _pendingFingerprint.value?.decision?.complete(trust)
+        _pendingFingerprint.value = null
+    }
 
     fun disconnect() {
         client.disconnect()
-        _selectedRequestId.value = null
-    }
-
-    fun selectRequest(id: String?) {
-        _selectedRequestId.value = id
-    }
-
-    fun setSearchQuery(query: String) {
-        _searchQuery.value = query
-    }
-
-    fun setQuickFilter(filter: RequestQuickFilter) {
-        _quickFilter.value = filter
-    }
-
-    fun clearRequests() = client.clearLocal()
-
-    fun exportHar() {
-        val file = saveHarToFile(buildHar(allRequests.value)) ?: return
-        DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "HAR exported", subtitle = "${file.name} · ${allRequests.value.size} requests"))
+        requestsController.clearSelection()
     }
 
     fun onCloseWindow() {
-        pairingServer.stop()
+        pairingController.stop()
         client.close()
         scope.cancel()
     }
 }
 
-/** Mirrors `:ui`'s `String.pathOnly()`: "https://api.bugsy.dev/v1/users/42?x=1" -> "/v1/users/42". */
-private fun String.pathOnly(): String {
+/** Mirrors `:ui`'s `String.pathOnly()`: "https://api.bugsy.dev/v1/users/42?x=1" -> "/v1/users/42". Internal, not
+ * private, so [com.bugsy.desktop.DesktopViewModelParityTest] can check it stays in sync with the `:ui` copy. */
+internal fun String.pathOnly(): String {
     val afterScheme = substringAfter("://", missingDelimiterValue = this)
     val withoutHost = afterScheme.substringAfter('/', missingDelimiterValue = "").let { if (it.isEmpty()) "/" else "/$it" }
     return withoutHost.substringBefore('?')
@@ -384,7 +195,7 @@ private fun String.pathOnly(): String {
 
 /** Mirrors `:ui`'s `String.escapeRegexLiterally()`: backslash-escapes regex metacharacters one by one, so the
  * generated pattern reads as the plain route with light escaping, not `Regex.escape`'s unreadable `\Q...\E`. */
-private fun String.escapeRegexLiterally(): String = buildString {
+internal fun String.escapeRegexLiterally(): String = buildString {
     for (c in this@escapeRegexLiterally) {
         if (c in "\\^$.|?*+()[]{}") append('\\')
         append(c)

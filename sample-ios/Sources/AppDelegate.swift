@@ -33,6 +33,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                         KotlinPair(first: "document", second: "123.456.789-00"),
                     ]
                 },
+                environment: "development",
                 slowRequestThresholdMs: BugsyConfig.companion.DEFAULT_SLOW_REQUEST_THRESHOLD_MS
             )
         )

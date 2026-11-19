@@ -71,33 +71,70 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
     private var broadcastJob: Job? = null
     private val connections = ConnectionRegistry()
 
-    fun start() {
-        val fd = socket(AF_INET, SOCK_STREAM, 0)
-        if (fd < 0) return
-        listenFd = fd
+    private var identity: IosTlsIdentity? = null
+    private var terminator: IosTlsTerminator? = null
+    private val internalSecret = com.bugsy.core.secureRandomBytes(24).joinToString("") { it.toUByte().toString(16).padStart(2, '0') }
+    private val guard = IosHandshakeGuard()
 
-        memScoped {
+    override val certFingerprint: String? get() = identity?.fingerprint
+
+    /**
+     * With a TLS identity (the normal case), the WebSocket server listens on loopback only and an
+     * [IosTlsTerminator] on the public port is the one way in (DEB-67). Without one (no Keychain, as in a test
+     * process), it keeps serving plain `ws://` on the public port, as before, and reports no fingerprint.
+     */
+    fun start() {
+        val tlsIdentity = createIosTlsIdentity()
+        if (tlsIdentity == null) {
+            if (listenOn(loopbackOnly = false, requestedPort = port) == null) return
+            beginServing()
+            return
+        }
+        val backendPort = listenOn(loopbackOnly = true, requestedPort = 0)
+        if (backendPort == null) {
+            tlsIdentity.destroy()
+            return
+        }
+        val newTerminator = IosTlsTerminator(tlsIdentity, port, backendPort, internalSecret)
+        if (!newTerminator.start()) {
+            close(listenFd)
+            listenFd = -1
+            tlsIdentity.destroy()
+            return
+        }
+        identity = tlsIdentity
+        terminator = newTerminator
+        beginServing()
+    }
+
+    /** Binds and listens; returns the port actually bound (useful with port 0), or `null` on failure. */
+    private fun listenOn(loopbackOnly: Boolean, requestedPort: Int): Int? {
+        val fd = socket(AF_INET, SOCK_STREAM, 0)
+        if (fd < 0) return null
+        val boundPort = memScoped {
             val reuse = alloc<IntVar>()
             reuse.value = 1
             setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, reuse.ptr, sizeOf<IntVar>().convert())
 
             val address = alloc<sockaddr_in>()
             address.sin_family = AF_INET.convert()
-            address.sin_port = port.toUShort().toNetworkByteOrder()
-            address.sin_addr.s_addr = INADDR_ANY
-            if (bind(fd, address.ptr.reinterpret(), sizeOf<sockaddr_in>().convert()) != 0) {
-                close(fd)
-                listenFd = -1
-                return
-            }
+            address.sin_port = requestedPort.toUShort().toNetworkByteOrder()
+            address.sin_addr.s_addr = if (loopbackOnly) 0x0100007Fu else INADDR_ANY
+            if (bind(fd, address.ptr.reinterpret(), sizeOf<sockaddr_in>().convert()) != 0) return@memScoped null
+            val length = alloc<platform.posix.socklen_tVar>().also { it.value = sizeOf<sockaddr_in>().convert() }
+            platform.posix.getsockname(fd, address.ptr.reinterpret(), length.ptr)
+            address.sin_port.toNetworkByteOrder().toInt()
         }
-
-        if (listen(fd, 8) != 0) {
+        if (boundPort == null || listen(fd, 8) != 0) {
             close(fd)
-            listenFd = -1
-            return
+            return null
         }
+        listenFd = fd
+        return boundPort
+    }
 
+    private fun beginServing() {
+        val fd = listenFd
         running = true
 
         broadcastJob = GlobalScope.launch(Dispatchers.Default) {
@@ -106,7 +143,7 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
                 com.bugsy.core.MockEngine.ruleChanges.map { BugsyEvent.MockRuleChanged(it.rule, it.action.name.lowercase()) },
                 com.bugsy.core.MockEngine.oneShotConsumedEvents.map { BugsyEvent.MockRuleConsumed(it) },
                 com.bugsy.core.Bugsy.flagManager.flagChanges.map { BugsyEvent.FlagChanged(it) },
-            ).collect { event -> connections.broadcast(encodeFrame(OPCODE_TEXT, encodeEvent(event.withoutSecrets()))) }
+            ).collect { event -> connections.broadcast(encodeFrame(OPCODE_TEXT, encodeEvent(if (identity == null) event.withoutSecrets() else event))) }
         }
 
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.convert(), 0u)) {
@@ -117,6 +154,10 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
     override fun stop() {
         running = false
         broadcastJob?.cancel()
+        terminator?.stop()
+        terminator = null
+        identity?.destroy()
+        identity = null
         if (listenFd >= 0) close(listenFd)
         listenFd = -1
         connections.closeAll()
@@ -138,6 +179,14 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
     private fun handleConnection(fd: Int) {
         val reader = SocketReader(fd)
         val headers = reader.readHttpHeaders() ?: run { close(fd); return }
+        // Behind the TLS terminator only requests carrying its secret are served (another app on the phone that
+        // connects to the loopback port directly is turned away), and its client address feeds the guess limit.
+        if (identity != null) {
+            val internal = parseHeaderValue(headers, IOS_INTERNAL_HEADER)
+            if (internal == null || !constantTimeEquals(internal, internalSecret)) run { close(fd); return }
+        }
+        val peer = parseHeaderValue(headers, IOS_PEER_HEADER).orEmpty()
+        if (guard.isLocked(peer)) run { close(fd); return }
         val key = parseHeaderValue(headers, "Sec-WebSocket-Key") ?: run { close(fd); return }
         val accept = Base64.encode(Sha1.hash((key + WS_GUID).encodeToByteArray()))
         val response = "HTTP/1.1 101 Switching Protocols\r\n" +
@@ -148,13 +197,18 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
 
         val handshakePayload = readIncomingFrame(fd, reader) ?: run { close(fd); return }
         val handshake = runCatching { json.decodeFromString(HandshakeMessage.serializer(), handshakePayload.decodeToString()) }.getOrNull()
-        if (handshake?.value == null || !constantTimeEquals(handshake.value, sessionToken)) run { close(fd); return }
+        if (handshake?.value == null || !constantTimeEquals(handshake.value, sessionToken)) run {
+            guard.recordFailure(peer)
+            close(fd)
+            return
+        }
+        guard.recordSuccess(peer)
 
         // Registered before the snapshot is sent, or a change right after it could be broadcast (missing this
         // connection) before this connection is registered to receive broadcasts at all (DEB-58).
         connections.add(fd)
         _connectedClients.update { it + 1 }
-        if (!sendAll(fd, encodeFrame(OPCODE_TEXT, encodeEvent(currentBugsySnapshot().withoutSecrets())))) run {
+        if (!sendAll(fd, encodeFrame(OPCODE_TEXT, encodeEvent(currentBugsySnapshot().let { if (identity == null) it.withoutSecrets() else it })))) run {
             connections.remove(fd)
             _connectedClients.update { it - 1 }
             close(fd)

@@ -3,8 +3,11 @@ package com.bugsy.core.pairing
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+/** The value of `PairingMessage.alg` for AES-CBC with HMAC-SHA256 (encrypt-then-MAC), used where AES-GCM is not available (iOS). */
+internal const val ALG_CBC_HMAC = "cbc-hmac"
+
 /** AES-GCM output: a fresh 12-byte [iv] and the [ciphertext] with its authentication tag appended. */
-internal class SealedPayload(val iv: ByteArray, val ciphertext: ByteArray)
+internal class SealedPayload(val iv: ByteArray, val ciphertext: ByteArray, val alg: String? = null)
 
 /**
  * Encrypts [plaintext] with a key derived from [secret] (the random value in the desktop's QR code), binding
@@ -14,7 +17,7 @@ internal class SealedPayload(val iv: ByteArray, val ciphertext: ByteArray)
 internal expect fun sealPairingPayload(secret: ByteArray, aad: ByteArray, plaintext: ByteArray): SealedPayload?
 
 /** [publicKey] is the phone's one-time ECDH key the desktop needs to derive the same AES key. */
-internal class PeerSealed(val publicKey: ByteArray, val iv: ByteArray, val ciphertext: ByteArray)
+internal class PeerSealed(val publicKey: ByteArray, val iv: ByteArray, val ciphertext: ByteArray, val alg: String? = null)
 
 /**
  * Encrypts [plaintext] to the desktop's one-time ECDH [peerPublicKey] (P-256, X.509 encoded) with a fresh key pair

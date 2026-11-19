@@ -36,6 +36,8 @@ data class PairingMessage(
     val pk: String? = null,
     /** The phone's one-time ECDH public key (base64), the other half of the shared secret. */
     val cpk: String? = null,
+    /** How [enc] was sealed: absent means AES-256-GCM, `cbc-hmac` means AES-256-CBC then HMAC-SHA256 (iOS). */
+    val alg: String? = null,
 ) {
     companion object {
         const val DISCOVER = "discover"

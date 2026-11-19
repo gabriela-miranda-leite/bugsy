@@ -84,13 +84,13 @@ class PairingHandler(
             val opened = when {
                 // QR flow: sealed with the secret only the screen shows.
                 message.cpk == null && secret != null && message.code != null && message.iv != null ->
-                    openPairSecret(secret, message.code, message.iv, message.enc)
+                    openPairSecret(secret, message.code, message.iv, message.enc, message.alg)
                 // List flow: sealed to the one-time key this request carried.
                 message.cpk != null && pendingNonce != null && message.nonce != null && message.iv != null ->
-                    openPeerSealed(pendingNonce.keys, message.cpk, message.nonce, message.iv, message.enc)
+                    openPeerSealed(pendingNonce.keys, message.cpk, message.nonce, message.iv, message.enc, message.alg)
                 // Code flow: sealed to the one-time key `desktop_here` carried.
                 message.cpk != null && message.code != null && message.iv != null ->
-                    codes.ecdhFor(message.code)?.let { openPeerSealed(it, message.cpk, message.code, message.iv, message.enc) }
+                    codes.ecdhFor(message.code)?.let { openPeerSealed(it, message.cpk, message.code, message.iv, message.enc, message.alg) }
                 else -> null
             }
             if (opened == null) return failure(CodeCheck.INVALID)

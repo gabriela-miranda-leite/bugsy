@@ -223,7 +223,7 @@ internal class PairingService(
         val qrKey = secret?.let(::decodeUrlSafeBase64)
         if (qrKey != null && code != null) {
             sealPairingPayload(qrKey, code.encodeToByteArray(), plaintext)?.let { sealed ->
-                return PairingMessage(PairingMessage.PAIR, code = code, port = wsPort, name = deviceName(), os = osName(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64())
+                return PairingMessage(PairingMessage.PAIR, code = code, port = wsPort, name = deviceName(), os = osName(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64(), alg = sealed.alg)
             }
         }
         val peerKey = desktopPk?.let(::decodeBase64)
@@ -231,7 +231,7 @@ internal class PairingService(
             sealForPeer(peerKey, aad, plaintext)?.let { sealed ->
                 return PairingMessage(
                     PairingMessage.PAIR, code = code, nonce = nonce, port = wsPort, name = deviceName(), os = osName(),
-                    cpk = sealed.publicKey.toBase64(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64(),
+                    cpk = sealed.publicKey.toBase64(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64(), alg = sealed.alg,
                 )
             }
         }

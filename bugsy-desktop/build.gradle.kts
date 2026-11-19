@@ -54,11 +54,16 @@ compose.desktop {
         mainClass = "com.bugsy.desktop.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "BugsyDesktop"
+            // What a person sees once it is installed: the app name in the Dock, Launchpad and Start menu, and the
+            // installer's file name. The window title stays "Bugsy Desktop", which says what it is.
+            packageName = "Bugsy"
             packageVersion = "1.0.0"
             description = "Remote debug client for apps embedding Bugsy."
             // The app icon of each platform, generated from assets/brand/bugsy-mark.svg (`generateBrandAssets`).
-            macOS { iconFile.set(project.file("packaging/icon.icns")) }
+            macOS {
+                dockName = "Bugsy"
+                iconFile.set(project.file("packaging/icon.icns"))
+            }
             windows { iconFile.set(project.file("packaging/icon.ico")) }
             linux { iconFile.set(project.file("packaging/icon.png")) }
         }

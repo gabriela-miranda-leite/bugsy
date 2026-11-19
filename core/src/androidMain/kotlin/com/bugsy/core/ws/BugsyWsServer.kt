@@ -98,18 +98,20 @@ internal fun Application.bugsyModule(
 
             connectedClients.update { it + 1 }
             try {
-                // UNDISPATCHED, and started before the snapshot is sent: must subscribe to the merged flows before
-                // the client can possibly react to anything (even the snapshot arriving), or a change processed
-                // right after could emit its event before this collector exists to see it — SharedFlow's default
-                // replay = 0 means that emission would just be lost (DEB-58).
-                val job = launch(start = CoroutineStart.UNDISPATCHED) {
-                    merge(
-                        DebugRepository.added.map { BugsyEvent.RequestRecorded(it) },
-                        MockEngine.ruleChanges.map { BugsyEvent.MockRuleChanged(it.rule, it.action.name.lowercase()) },
-                        MockEngine.oneShotConsumedEvents.map { BugsyEvent.MockRuleConsumed(it) },
-                        Bugsy.flagManager.flagChanges.map { BugsyEvent.FlagChanged(it) },
-                    ).collect { event -> send(Frame.Text(json.encodeToString(BugsyEvent.serializer(), event))) }
-                }
+                // One collector per flow, each UNDISPATCHED and all started before the snapshot is sent: collecting a
+                // SharedFlow registers the subscriber before the first suspension, so by the time the client can react
+                // to anything (even the snapshot arriving) none of these can miss an event, and SharedFlow's default
+                // replay = 0 would otherwise drop it. `merge(...)` is not enough: it starts its collectors in child
+                // coroutines that are dispatched, so an event in that gap was lost (DEB-58).
+                suspend fun forward(event: BugsyEvent) = send(Frame.Text(json.encodeToString(BugsyEvent.serializer(), event)))
+                val forwarders = listOf(
+                    launch(start = CoroutineStart.UNDISPATCHED) { DebugRepository.added.collect { forward(BugsyEvent.RequestRecorded(it)) } },
+                    launch(start = CoroutineStart.UNDISPATCHED) {
+                        MockEngine.ruleChanges.collect { forward(BugsyEvent.MockRuleChanged(it.rule, it.action.name.lowercase())) }
+                    },
+                    launch(start = CoroutineStart.UNDISPATCHED) { MockEngine.oneShotConsumedEvents.collect { forward(BugsyEvent.MockRuleConsumed(it)) } },
+                    launch(start = CoroutineStart.UNDISPATCHED) { Bugsy.flagManager.flagChanges.collect { forward(BugsyEvent.FlagChanged(it)) } },
+                )
 
                 send(Frame.Text(json.encodeToString(BugsyEvent.serializer(), currentBugsySnapshot())))
 
@@ -122,7 +124,7 @@ internal fun Application.bugsyModule(
                     }
                 }
 
-                job.cancel()
+                forwarders.forEach { it.cancel() }
             } finally {
                 connectedClients.update { it - 1 }
             }

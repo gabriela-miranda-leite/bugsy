@@ -89,6 +89,10 @@ Bugsy.shared.initialize(
 BugsyIosOverlayKt.startBugsyIosOverlay()
 ```
 
+Para o app reagir na hora quando uma flag mudar (no overlay ou no Bugsy Desktop), observe a notificação
+`BugsyIosOverlayKt.BUGSY_FLAGS_DID_CHANGE_NOTIFICATION` e leia a flag de novo com
+`Bugsy.shared.flagManager.value(key:)`; o `userInfo` traz a `key`. Ela começa com `startBugsyIosOverlay()`.
+
 `Bugsy.initialize` precisa rodar **antes** de qualquer `URLSession` ser criada (ele registra o
 `NSURLProtocol` do Bugsy). Em release, linke o framework de `:bugsy-noop`, não o de `:ui` — ele
 não contém o interceptor. Veja [`sample-ios/README.md`](sample-ios/README.md) para o passo a

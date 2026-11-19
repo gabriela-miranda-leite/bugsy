@@ -13,7 +13,6 @@ import kotlin.concurrent.thread
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /** The only way into the BugsyWsServer from the network is TLS, with a certificate whose fingerprint the desktop pins (DEB-67). */
@@ -120,9 +119,17 @@ class TlsTerminatorTest {
         val terminator = TlsTerminator(identity.keyStore, identity.password, port, startEchoBackend())
         terminator.close()
 
-        assertFailsWith<java.io.IOException> {
-            connectTls(port, mutableListOf()).startHandshake()
+        // "Stops answering", not "stops in the same instant": on Linux, closing a listening socket that another thread is
+        // blocked in accept() on can leave the kernel taking connections for a moment, which a slow runner shows. So try
+        // until a connection fails (refused, reset or no answer within a second), and fail only if one never does.
+        val stopped = (1..100).any {
+            val failed = runCatching {
+                connectTls(port, mutableListOf()).apply { soTimeout = 1_000 }.startHandshake()
+            }.isFailure
+            if (!failed) Thread.sleep(50)
+            failed
         }
+        assertTrue(stopped, "the terminator still answers TLS 5 seconds after it was closed")
     }
 
     @Test

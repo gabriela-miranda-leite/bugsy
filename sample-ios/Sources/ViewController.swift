@@ -44,6 +44,14 @@ final class ViewController: UIViewController {
             object: nil
         )
 
+        // A flag changed in the overlay or on Bugsy Desktop: read it again right away, with no need to close the overlay.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshDarkMode),
+            name: NSNotification.Name(BugsyIosOverlayKt.BUGSY_FLAGS_DID_CHANGE_NOTIFICATION),
+            object: nil
+        )
+
         let stack = UIStackView(arrangedSubviews: [getButton, postButton, putButton, deleteButton, showButton, statusLabel, flagsLabel])
         stack.axis = .vertical
         stack.spacing = 16

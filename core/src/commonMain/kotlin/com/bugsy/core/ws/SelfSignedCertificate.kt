@@ -1,7 +1,14 @@
 package com.bugsy.core.ws
 
 /**
- * Builds a minimal self-signed X.509 certificate (v1, ECDSA P-256 with SHA-256) as DER bytes (DEB-67).
+ * The name every Bugsy phone certificate carries and the desktop connects as. It is not a real host: the desktop
+ * pins the certificate's fingerprint, and this name only has to agree on both sides so the TLS client's own
+ * hostname check passes whatever address the phone has on the network.
+ */
+const val BUGSY_TLS_SERVER_NAME: String = "bugsy.local"
+
+/**
+ * Builds a minimal self-signed X.509 certificate (v3, ECDSA P-256 with SHA-256) as DER bytes (DEB-67).
  *
  * iOS has no public API to make a certificate, and the BugsyWsServer needs one for TLS, so the few DER structures
  * are assembled here and the signature is delegated to [sign] (the platform's `SecKey`). Pure Kotlin so the result
@@ -13,6 +20,7 @@ internal fun buildSelfSignedCertificate(
     notBeforeEpochSeconds: Long,
     notAfterEpochSeconds: Long,
     commonName: String = "Bugsy",
+    dnsName: String = BUGSY_TLS_SERVER_NAME,
     sign: (ByteArray) -> ByteArray,
 ): ByteArray {
     require(publicKeyPoint.size == 65 && publicKeyPoint[0] == 0x04.toByte()) { "expected an uncompressed P-256 point" }
@@ -23,7 +31,12 @@ internal fun buildSelfSignedCertificate(
         0x30,
         der(0x30, OID_EC_PUBLIC_KEY + OID_P256) + der(0x03, byteArrayOf(0) + publicKeyPoint),
     )
-    val tbs = der(0x30, derInteger(serial) + signatureAlgorithm + name + validity + name + subjectPublicKeyInfo)
+    // v3, with the one name the desktop connects as (see BUGSY_TLS_SERVER_NAME): the desktop's TLS client checks the
+    // certificate against the name it asked for, and a phone is reached at an address no certificate it makes can name.
+    val version = der(0xA0, der(0x02, byteArrayOf(2)))
+    val subjectAltName = der(0x30, OID_SUBJECT_ALT_NAME + der(0x04, der(0x30, der(0x82, dnsName.encodeToByteArray()))))
+    val extensions = der(0xA3, der(0x30, subjectAltName))
+    val tbs = der(0x30, version + derInteger(serial) + signatureAlgorithm + name + validity + name + subjectPublicKeyInfo + extensions)
     val signature = sign(tbs)
     return der(0x30, tbs + signatureAlgorithm + der(0x03, byteArrayOf(0) + signature))
 }
@@ -31,6 +44,7 @@ internal fun buildSelfSignedCertificate(
 private val OID_ECDSA_SHA256 = byteArrayOf(0x06, 0x08, 0x2A, 0x86.toByte(), 0x48, 0xCE.toByte(), 0x3D, 0x04, 0x03, 0x02)
 private val OID_EC_PUBLIC_KEY = byteArrayOf(0x06, 0x07, 0x2A, 0x86.toByte(), 0x48, 0xCE.toByte(), 0x3D, 0x02, 0x01)
 private val OID_P256 = byteArrayOf(0x06, 0x08, 0x2A, 0x86.toByte(), 0x48, 0xCE.toByte(), 0x3D, 0x03, 0x01, 0x07)
+private val OID_SUBJECT_ALT_NAME = byteArrayOf(0x06, 0x03, 0x55, 0x1D, 0x11)
 private val OID_COMMON_NAME = byteArrayOf(0x06, 0x03, 0x55, 0x04, 0x03)
 
 private fun der(tag: Int, content: ByteArray): ByteArray {

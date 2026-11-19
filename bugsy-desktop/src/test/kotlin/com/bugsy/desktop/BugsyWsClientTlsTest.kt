@@ -29,6 +29,7 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 /** The phone serves `wss://` with a self-signed certificate and the desktop pins its fingerprint (DEB-67). */
 class BugsyWsClientTlsTest {
@@ -42,13 +43,16 @@ class BugsyWsClientTlsTest {
 
     private class Tls(val keyStore: KeyStore, val fingerprint: String)
 
-    private fun newTls(): Tls {
+    /** [domains] and [ips] are what the certificate names: a phone's certificate does not name the LAN address it is reached at. */
+    private fun newTls(domains: List<String>? = listOf(BUGSY_TLS_SERVER_NAME), ips: List<java.net.InetAddress>? = emptyList()): Tls {
         val keyStore = buildKeyStore {
             certificate("bugsy-ws") {
                 hash = HashAlgorithm.SHA256
                 sign = SignatureAlgorithm.ECDSA
                 password = "secret"
                 keySizeInBits = 256
+                if (domains != null) this.domains = domains
+                if (ips != null) this.ipAddresses = ips
             }
         }
         return Tls(keyStore, certificateFingerprint(keyStore.getCertificate("bugsy-ws") as X509Certificate))
@@ -147,5 +151,47 @@ class BugsyWsClientTlsTest {
         val cert = tls.keyStore.getCertificate("bugsy-ws") as X509Certificate
 
         PinnedTrustManager(tls.fingerprint.uppercase()).checkServerTrusted(arrayOf(cert), "ECDHE_ECDSA")
+    }
+
+    @Test
+    fun `connects over wss when the certificate does not name the address it is reached at`() {
+        // The phone is reached at its LAN address (192.168.x.y), which no certificate it makes can name.
+        val tls = newTls()
+        val port = ServerSocket(0).use { it.localPort }
+        startTlsServer(tls, port)
+
+        withClient { client ->
+            client.connect("127.0.0.1", port, "tok3n", fingerprint = tls.fingerprint)
+            withTimeout(10_000) { client.requests.first { it.isNotEmpty() } }
+            assertEquals(ConnectionState.CONNECTED, client.state.value)
+        }
+    }
+}
+
+class ConnectionFailureTextTest {
+    @Test
+    fun `a pinned certificate that does not match says so and is not treated as a network problem`() {
+        val text = describeConnectionFailure(java.security.cert.CertificateException("server certificate does not match the pinned fingerprint"))
+
+        assertTrue("not the one it reported" in text, text)
+    }
+
+    @Test
+    fun `a certificate that does not name the expected host says the phone needs an update`() {
+        val text = describeConnectionFailure(io.ktor.network.tls.TLSException("No server host: x in the server certificate. Provided in certificate: y"))
+
+        assertTrue("Update Bugsy" in text, text)
+    }
+
+    @Test
+    fun `a refused connection points at the network`() {
+        assertTrue("same Wi-Fi" in describeConnectionFailure(java.net.ConnectException("Connection refused")))
+    }
+
+    @Test
+    fun `a failure wrapped in another is still told apart`() {
+        val text = describeConnectionFailure(RuntimeException("outer", java.security.cert.CertificateException("does not match the pinned fingerprint")))
+
+        assertTrue("not the one it reported" in text, text)
     }
 }

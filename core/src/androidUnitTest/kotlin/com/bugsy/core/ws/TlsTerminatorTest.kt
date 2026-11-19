@@ -168,3 +168,13 @@ class TlsTerminatorTest {
         assertTrue(runCatching { socket.getInputStream().read() }.getOrDefault(-1) == -1)
     }
 }
+
+class WsTlsIdentityTest {
+    @Test
+    fun `the Android certificate names bugsy_local so the desktop's TLS client accepts it at any address`() {
+        val certificate = generateWsTlsIdentity().keyStore.getCertificate(WS_TLS_KEY_ALIAS) as X509Certificate
+
+        val names = certificate.subjectAlternativeNames.map { it[1] as String }
+        assertEquals(listOf(BUGSY_TLS_SERVER_NAME), names)
+    }
+}

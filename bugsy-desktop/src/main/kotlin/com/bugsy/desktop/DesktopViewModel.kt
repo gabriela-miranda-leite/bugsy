@@ -58,6 +58,9 @@ class DesktopViewModel {
 
     val connectionState: StateFlow<ConnectionState> = client.state
 
+    /** Why the connection to the phone is failing, while it is. */
+    val connectionError: StateFlow<String?> = client.lastError
+
     // --- Pairing with a phone (DEB-64) -------------------------------------------------------------------
 
     private val codeManager = PairingCodeManager()

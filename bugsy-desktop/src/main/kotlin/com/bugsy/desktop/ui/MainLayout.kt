@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,6 +34,7 @@ import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
 @Composable
 fun MainLayout(viewModel: DesktopViewModel) {
     val connectionState by viewModel.connectionState.collectAsState()
+    val connectionError by viewModel.connectionError.collectAsState()
 
     if (connectionState == ConnectionState.DISCONNECTED) {
         val pairingCode by viewModel.pairingCode.collectAsState()
@@ -77,7 +81,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
         VerticalDivider(modifier = Modifier.width(BugsyDesktopSpacing.dividerThickness), color = BugsyDesktopColors.BorderHeader)
 
         Scaffold(
-            topBar = { ConnectionToolbar(connectionState, onDisconnect = viewModel::disconnect) },
+            topBar = { ConnectionToolbar(connectionState, connectionError, onDisconnect = viewModel::disconnect) },
             bottomBar = { StatusBar(connectionState, requests.size) },
         ) { padding ->
             Column(Modifier.padding(padding).fillMaxSize()) {
@@ -155,7 +159,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
 }
 
 @Composable
-private fun ConnectionToolbar(state: ConnectionState, onDisconnect: () -> Unit) {
+private fun ConnectionToolbar(state: ConnectionState, error: String?, onDisconnect: () -> Unit) {
     TopAppBar(
         title = { Text("Bugsy Desktop", style = BugsyDesktopTypography.Heading) },
         actions = {
@@ -165,7 +169,13 @@ private fun ConnectionToolbar(state: ConnectionState, onDisconnect: () -> Unit) 
                 ConnectionState.CONNECTED -> "Connected" to BugsyDesktopColors.Status2xx
                 ConnectionState.RECONNECTING -> "Reconnecting..." to BugsyDesktopColors.Status3xx
             }
-            Text(label, style = BugsyDesktopTypography.Body, color = color, modifier = Modifier.padding(end = BugsyDesktopSpacing.sm))
+            Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = BugsyDesktopSpacing.sm).widthIn(max = 520.dp)) {
+                Text(label, style = BugsyDesktopTypography.Body, color = color)
+                // The reason it is not connecting, so "Reconnecting..." never sits there with no explanation.
+                if (error != null && state != ConnectionState.CONNECTED) {
+                    Text(error, style = BugsyDesktopTypography.Body, color = BugsyDesktopColors.TextDisabled, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                }
+            }
             TextButton(onClick = onDisconnect) { Text("Disconnect", style = BugsyDesktopTypography.Body) }
         },
     )

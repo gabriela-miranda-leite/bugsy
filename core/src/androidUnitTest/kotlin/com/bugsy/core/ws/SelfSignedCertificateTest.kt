@@ -41,6 +41,13 @@ class SelfSignedCertificateTest {
     }
 
     @Test
+    fun `it names the one host the desktop connects as, and nothing else`() {
+        val names = build().subjectAlternativeNames.map { it[0] as Int to it[1] as String }
+
+        assertEquals(listOf(2 to BUGSY_TLS_SERVER_NAME), names)
+    }
+
+    @Test
     fun `the validity dates and the serial come out as given`() {
         val certificate = build(serial = byteArrayOf(0x00, 0x00, 0xFF.toByte(), 0x10))
 

@@ -45,6 +45,11 @@ class BugsyWsClient(private val scope: CoroutineScope) {
     private val _state = MutableStateFlow(ConnectionState.DISCONNECTED)
     val state: StateFlow<ConnectionState> = _state
 
+    private val _lastError = MutableStateFlow<String?>(null)
+
+    /** Why the last attempt to reach the phone failed, in words a person can act on; `null` while connected or before any failure. */
+    val lastError: StateFlow<String?> = _lastError
+
     private val _requests = MutableStateFlow<List<WireDebugRequest>>(emptyList())
     val requests: StateFlow<List<WireDebugRequest>> = _requests
 
@@ -85,6 +90,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
         _flags.value = emptyList()
         _deviceInfo.value = null
         _customInfo.value = emptyList()
+        _lastError.value = null
         job = scope.launch {
             var backoffMs = INITIAL_BACKOFF_MS
             var firstAttempt = true
@@ -99,6 +105,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                 try {
                     openRoute(route, host, port, learned) {
                         connected = true
+                        _lastError.value = null
                         send(Frame.Text(encodeHandshake(token)))
                         session = this
                         _state.value = ConnectionState.CONNECTED
@@ -141,6 +148,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                     throw e
                 } catch (e: Exception) {
                     // Connection refused, dropped mid-session, or handshake rejected — fall through to retry.
+                    if (!connected) _lastError.value = describeConnectionFailure(e)
                 }
                 if (connected) {
                     known = if (route == Route.Discover) learned.get()?.let { Route.Pinned(it) } ?: Route.Discover else route
@@ -183,7 +191,9 @@ class BugsyWsClient(private val scope: CoroutineScope) {
         }
         val tlsClient = HttpClient(CIO) {
             install(WebSockets)
-            engine { https { trustManager = trust } }
+            // The phone's certificate names `bugsy.local` and nothing else (its LAN address cannot be in it), so that is the
+            // name asked for; what actually decides whether to trust it is the pinned fingerprint.
+            engine { https { serverName = BUGSY_TLS_SERVER_NAME; trustManager = trust } }
         }
         try {
             tlsClient.webSocket(urlString = "wss://$host:$port/bugsy", block = block)
@@ -241,5 +251,25 @@ class BugsyWsClient(private val scope: CoroutineScope) {
     fun close() {
         disconnect()
         Thread({ runCatching { client.close() } }, "BugsyWsClient-close").apply { isDaemon = true }.start()
+    }
+}
+
+/**
+ * What a failed attempt to reach the phone means, for the status bar. The reasons are told apart because they have
+ * different fixes: a pinned certificate that does not match is a security signal, not a network problem.
+ */
+internal fun describeConnectionFailure(error: Throwable): String {
+    val chain = generateSequence(error) { it.cause }.toList()
+    val text = chain.joinToString(" ") { "${it::class.simpleName} ${it.message.orEmpty()}" }
+    return when {
+        "pinned fingerprint" in text ->
+            "The phone's certificate is not the one it reported when pairing. Pair again, and be careful if you did not expect this."
+        "No server host" in text ->
+            "The phone's certificate does not name the host this desktop asks for. Update Bugsy on the phone."
+        "TLSException" in text || "SSL" in text || "handshake" in text.lowercase() ->
+            "Could not set up a secure connection with the phone (${chain.last().message ?: chain.last()::class.simpleName})."
+        "ConnectException" in text || "Connection refused" in text || "timed out" in text.lowercase() || "TimeoutCancellation" in text ->
+            "Could not reach the phone. Check that both are on the same Wi-Fi network and that the app is open."
+        else -> "Could not connect to the phone (${chain.last().message ?: chain.last()::class.simpleName})."
     }
 }

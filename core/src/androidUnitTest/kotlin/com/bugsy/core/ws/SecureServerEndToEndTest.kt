@@ -44,7 +44,7 @@ class SecureServerEndToEndTest {
 
     private fun client(fingerprint: String) = HttpClient(CIO) {
         install(WebSockets)
-        engine { https { trustManager = pinned(fingerprint) } }
+        engine { https { serverName = BUGSY_TLS_SERVER_NAME; trustManager = pinned(fingerprint) } }
     }
 
     @Test

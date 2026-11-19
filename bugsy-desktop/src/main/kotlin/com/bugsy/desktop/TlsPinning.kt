@@ -5,6 +5,9 @@ import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import javax.net.ssl.X509TrustManager
 
+/** The name every Bugsy phone certificate carries (same value as `:core`); the TLS client asks for it whatever the phone's address. */
+const val BUGSY_TLS_SERVER_NAME = "bugsy.local"
+
 /** SHA-256 of a certificate's DER encoding, lowercase hex: the same value the phone reports as its fingerprint. */
 fun certificateFingerprint(certificate: X509Certificate): String =
     MessageDigest.getInstance("SHA-256").digest(certificate.encoded).joinToString("") { "%02x".format(it) }

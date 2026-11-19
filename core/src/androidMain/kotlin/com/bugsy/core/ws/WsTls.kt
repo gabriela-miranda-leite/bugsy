@@ -23,6 +23,9 @@ internal fun generateWsTlsIdentity(): WsTlsIdentity {
             sign = io.ktor.network.tls.extensions.SignatureAlgorithm.ECDSA
             keySizeInBits = 256
             this.password = String(password)
+            // Only the name the desktop connects as; no addresses (a phone's LAN address cannot be known here).
+            domains = listOf(BUGSY_TLS_SERVER_NAME)
+            ipAddresses = emptyList()
         }
     }
     val encoded = keyStore.getCertificate(WS_TLS_KEY_ALIAS).encoded

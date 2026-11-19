@@ -78,16 +78,6 @@ class AndroidBugsyWsServerTest {
     }
 
     @Test
-    fun `the app can keep its custom info off the desktop`() {
-        Bugsy.initialize(BugsyConfig(customInfoProvider = { listOf("user_id" to "u_42") }, shareCustomInfoWithDesktop = false))
-        try {
-            assertEquals(emptyList(), currentBugsySnapshot().customInfo)
-        } finally {
-            Bugsy.destroy()
-        }
-    }
-
-    @Test
     fun `closes the connection when the handshake token is wrong`() {
         testApplication {
             application { bugsyModule(token) }

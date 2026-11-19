@@ -25,8 +25,6 @@ Wi-Fi consegue e não consegue fazer (DEB-67).
   o código da tela.
 - **O servidor local.** O servidor por trás do TLS escuta só em `127.0.0.1` e só atende pedidos que passam pelo
   terminador TLS, que acrescenta um segredo interno. Outro app do celular que conectar direto é recusado.
-- **Dados do Account.** O app pode desligar o envio do Account (nome, e-mail etc.) ao desktop com
-  `BugsyConfig(shareCustomInfoWithDesktop = false)`. O padrão é enviar, para o desktop mostrar o mesmo que o celular.
 - **Desconectar.** "Disconnect (generates a new token)" reinicia o servidor, então também cria um token e um
   certificado novos.
 

@@ -23,9 +23,6 @@ Wi-Fi can and cannot do (DEB-67).
   codes from one address block only that address, without rotating the code on screen.
 - **The local server.** The server behind TLS listens on `127.0.0.1` only and only serves requests that went through
   the TLS terminator, which adds an internal secret. Another app on the phone that connects directly is refused.
-- **Account data.** The app can stop sending the Account rows (name, e-mail and so on) to the desktop with
-  `BugsyConfig(shareCustomInfoWithDesktop = false)`. The default is to send them, so the desktop shows what the
-  phone shows.
 - **Disconnect.** "Disconnect (generates a new token)" restarts the server, so it also creates a new token and a
   new certificate.
 

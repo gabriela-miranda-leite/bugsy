@@ -13,6 +13,19 @@ internal class SealedPayload(val iv: ByteArray, val ciphertext: ByteArray)
  */
 internal expect fun sealPairingPayload(secret: ByteArray, aad: ByteArray, plaintext: ByteArray): SealedPayload?
 
+/** [publicKey] is the phone's one-time ECDH key the desktop needs to derive the same AES key. */
+internal class PeerSealed(val publicKey: ByteArray, val iv: ByteArray, val ciphertext: ByteArray)
+
+/**
+ * Encrypts [plaintext] to the desktop's one-time ECDH [peerPublicKey] (P-256, X.509 encoded) with a fresh key pair
+ * of our own, binding [aad]. Protects the token against someone who only listens to the network, in the flows that
+ * have no QR secret (DEB-67). `null` where unsupported (iOS) or when the key is not a valid P-256 key.
+ */
+internal expect fun sealForPeer(peerPublicKey: ByteArray, aad: ByteArray, plaintext: ByteArray): PeerSealed?
+
+@OptIn(ExperimentalEncodingApi::class)
+internal fun decodeBase64(text: String): ByteArray? = runCatching { Base64.decode(text) }.getOrNull()
+
 @OptIn(ExperimentalEncodingApi::class)
 internal fun ByteArray.toBase64(): String = Base64.encode(this)
 

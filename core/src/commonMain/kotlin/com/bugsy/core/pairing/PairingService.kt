@@ -34,7 +34,14 @@ sealed class PairingResult {
 }
 
 /** A desktop that picked this device from its "Devices on your network" list and is waiting for approval. */
-data class ConnectRequest(val desktopName: String, val desktopHost: String, val desktopPort: Int, val nonce: String)
+data class ConnectRequest(
+    val desktopName: String,
+    val desktopHost: String,
+    val desktopPort: Int,
+    val nonce: String,
+    /** The desktop's one-time ECDH public key, so the token is sent sealed (DEB-67). */
+    val desktopPk: String? = null,
+)
 
 private const val CONNECT_REQUEST_TTL_MS = 60_000L
 private const val DISCOVER_ATTEMPTS = 3
@@ -102,6 +109,7 @@ internal class PairingService(
                     desktopHost = packet.fromHost,
                     desktopPort = message.port ?: PAIRING_DESKTOP_UDP_PORT,
                     nonce = nonce,
+                    desktopPk = message.pk,
                 )
                 _pendingConnectRequest.value = request
                 expiryJob?.cancel()
@@ -123,7 +131,7 @@ internal class PairingService(
         withContext(Dispatchers.Default) {
             val transport = openTransport(null) ?: return@withContext
             try {
-                transport.send(request.desktopHost, request.desktopPort, pairMessage(token, nonce = request.nonce).encode())
+                transport.send(request.desktopHost, request.desktopPort, pairMessage(token, nonce = request.nonce, desktopPk = request.desktopPk).encode())
             } finally {
                 transport.close()
             }
@@ -147,7 +155,7 @@ internal class PairingService(
                 if (reply != null) {
                     val (packet, message) = reply
                     return@withContext when (message.type) {
-                        PairingMessage.DESKTOP_HERE -> pairAt(transport, packet.fromHost, packet.fromPort, code, token, message.name, secret = null)
+                        PairingMessage.DESKTOP_HERE -> pairAt(transport, packet.fromHost, packet.fromPort, code, token, message.name, secret = null, desktopPk = message.pk)
                         else -> message.toFailure()
                     }
                 }
@@ -164,7 +172,7 @@ internal class PairingService(
         val token = tokenProvider() ?: return@withContext PairingResult.ServerUnavailable
         val transport = openTransport(null) ?: return@withContext PairingResult.NoNetwork
         try {
-            pairAt(transport, qr.host, qr.port, qr.code, token, desktopName = null, secret = qr.secret)
+            pairAt(transport, qr.host, qr.port, qr.code, token, desktopName = null, secret = qr.secret, desktopPk = null)
         } finally {
             transport.close()
         }
@@ -178,8 +186,9 @@ internal class PairingService(
         token: String,
         desktopName: String?,
         secret: String?,
+        desktopPk: String?,
     ): PairingResult {
-        val payload = pairMessage(token, code = code, secret = secret).encode()
+        val payload = pairMessage(token, code = code, secret = secret, desktopPk = desktopPk).encode()
         // UDP can drop a datagram: one retry halfway through the wait costs nothing, and the desktop treats a
         // repeated `pair` for an already-used code as invalid, which is why it only retries while still silent.
         if (!transport.send(host, port, payload)) return PairingResult.NoNetwork
@@ -200,23 +209,33 @@ internal class PairingService(
     }
 
     /**
-     * With the QR [secret] (and a platform that can encrypt), the token and the certificate fingerprint travel
-     * sealed, so a sniffer sees neither. Otherwise they go in clear, as before (code and list flows, iOS).
+     * What goes in the `pair`. The token and the certificate fingerprint are sealed whenever the platform can:
+     *  1. with the QR [secret], the strongest: only the desktop's screen has it;
+     *  2. otherwise to the desktop's one-time ECDH key [desktopPk] (code and list flows), which keeps them from
+     *     anyone who only listens. It does not stop someone who actively answers in the desktop's place;
+     *  3. otherwise (an iOS phone, or an older desktop) they go in clear, as before.
      */
-    private fun pairMessage(token: String, code: String? = null, nonce: String? = null, secret: String? = null): PairingMessage {
+    private fun pairMessage(token: String, code: String? = null, nonce: String? = null, secret: String? = null, desktopPk: String? = null): PairingMessage {
         val fingerprint = fingerprintProvider()
-        val key = secret?.let(::decodeUrlSafeBase64)
-        val sealed = if (key != null && code != null) {
-            val plaintext = pairingJson.encodeToString(PairSecret.serializer(), PairSecret(token, fingerprint)).encodeToByteArray()
-            sealPairingPayload(key, code.encodeToByteArray(), plaintext)
-        } else {
-            null
+        val plaintext = pairingJson.encodeToString(PairSecret.serializer(), PairSecret(token, fingerprint)).encodeToByteArray()
+        val aad = (code ?: nonce)?.encodeToByteArray()
+
+        val qrKey = secret?.let(::decodeUrlSafeBase64)
+        if (qrKey != null && code != null) {
+            sealPairingPayload(qrKey, code.encodeToByteArray(), plaintext)?.let { sealed ->
+                return PairingMessage(PairingMessage.PAIR, code = code, port = wsPort, name = deviceName(), os = osName(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64())
+            }
         }
-        return if (sealed != null) {
-            PairingMessage(PairingMessage.PAIR, code = code, port = wsPort, name = deviceName(), os = osName(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64())
-        } else {
-            PairingMessage(PairingMessage.PAIR, code = code, nonce = nonce, port = wsPort, token = token, name = deviceName(), os = osName(), fp = fingerprint)
+        val peerKey = desktopPk?.let(::decodeBase64)
+        if (peerKey != null && aad != null) {
+            sealForPeer(peerKey, aad, plaintext)?.let { sealed ->
+                return PairingMessage(
+                    PairingMessage.PAIR, code = code, nonce = nonce, port = wsPort, name = deviceName(), os = osName(),
+                    cpk = sealed.publicKey.toBase64(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64(),
+                )
+            }
         }
+        return PairingMessage(PairingMessage.PAIR, code = code, nonce = nonce, port = wsPort, token = token, name = deviceName(), os = osName(), fp = fingerprint)
     }
 
     private fun PairingMessage.toFailure(): PairingResult = when (reason) {

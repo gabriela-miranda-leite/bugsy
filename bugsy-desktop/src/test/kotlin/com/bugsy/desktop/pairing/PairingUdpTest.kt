@@ -47,7 +47,8 @@ class PairingUdpTest {
         val code = codes.current.value.code
 
         val here = exchange(PairingMessage(PairingMessage.DISCOVER, code = code))
-        assertEquals(PairingMessage(PairingMessage.DESKTOP_HERE, name = "MacBook"), here)
+        assertEquals(PairingMessage.DESKTOP_HERE, here?.type)
+        assertEquals("MacBook", here?.name)
 
         val result = exchange(PairingMessage(PairingMessage.PAIR, code = code, port = 7788, token = "tok3n", name = "Pixel", os = "Android 14"))
         assertEquals(true, result?.ok)

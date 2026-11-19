@@ -45,6 +45,10 @@ data class PairingMessage(
     val iv: String? = null,
     /** AES-GCM of `{"token","fp"}` (base64), keyed by the secret in the QR code and bound to [code]. */
     val enc: String? = null,
+    /** The desktop's one-time ECDH public key (base64), in `desktop_here` and `connect_request`. */
+    val pk: String? = null,
+    /** The phone's one-time ECDH public key (base64), in a sealed `pair` of the code and list flows. */
+    val cpk: String? = null,
 ) {
     companion object {
         const val DISCOVER = "discover"

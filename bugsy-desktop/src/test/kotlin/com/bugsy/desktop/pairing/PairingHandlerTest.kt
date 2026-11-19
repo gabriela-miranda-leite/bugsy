@@ -18,7 +18,9 @@ class PairingHandlerTest {
     @Test
     fun `discover with the right code is answered with the desktop's name`() {
         val reply = handler.handle(PairingMessage(PairingMessage.DISCOVER, code = "482913"), "192.168.0.24")
-        assertEquals(PairingMessage(PairingMessage.DESKTOP_HERE, name = "MacBook"), reply)
+        assertEquals(PairingMessage.DESKTOP_HERE, reply?.type)
+        assertEquals("MacBook", reply?.name)
+        assertTrue(!reply?.pk.isNullOrEmpty(), "carries the one-time public key")
         assertTrue(paired.isEmpty())
     }
 

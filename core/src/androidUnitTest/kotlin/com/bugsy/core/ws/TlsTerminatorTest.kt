@@ -12,7 +12,6 @@ import javax.net.ssl.X509TrustManager
 import kotlin.concurrent.thread
 import kotlin.test.AfterTest
 import kotlin.test.Test
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -53,6 +52,19 @@ class TlsTerminatorTest {
         return (context.socketFactory.createSocket("127.0.0.1", port) as SSLSocket).also { closeables += it }
     }
 
+    /** Reads what the echo backend sends back until [marker] shows up. */
+    private fun readUntil(socket: SSLSocket, marker: String): String {
+        socket.soTimeout = 5_000
+        val out = StringBuilder()
+        val buffer = ByteArray(1024)
+        while (marker !in out) {
+            val read = socket.getInputStream().read(buffer)
+            if (read < 0) break
+            out.append(buffer.decodeToString(0, read))
+        }
+        return out.toString()
+    }
+
     @Test
     fun `serves the generated certificate and relays bytes to the backend`() {
         val identity = generateWsTlsIdentity()
@@ -64,11 +76,9 @@ class TlsTerminatorTest {
         socket.startHandshake()
 
         assertEquals(identity.fingerprint, sha256Hex(seen.single().encoded))
-        socket.getOutputStream().apply { write("hello bugsy".encodeToByteArray()); flush() }
-        val reply = ByteArray(11)
-        var read = 0
-        while (read < reply.size) read += socket.getInputStream().read(reply, read, reply.size - read)
-        assertContentEquals("hello bugsy".encodeToByteArray(), reply)
+        socket.getOutputStream().apply { write("GET /bugsy HTTP/1.1\r\nHost: x\r\n\r\nhello bugsy".encodeToByteArray()); flush() }
+        val echoed = readUntil(socket, "hello bugsy")
+        assertTrue(echoed.endsWith("\r\n\r\nhello bugsy"), echoed)
     }
 
     @Test
@@ -125,5 +135,36 @@ class TlsTerminatorTest {
         connectTls(port, seen).startHandshake()
 
         assertEquals(server.certFingerprint, sha256Hex(seen.single().encoded))
+    }
+
+    @Test
+    fun `adds the internal secret and the peer address, and drops any the client sent`() {
+        val identity = generateWsTlsIdentity()
+        val port = freePort()
+        closeables += TlsTerminator(identity.keyStore, identity.password, port, startEchoBackend(), internalSecret = "real-secret")
+
+        val socket = connectTls(port, mutableListOf())
+        socket.startHandshake()
+        val request = "GET /bugsy HTTP/1.1\r\nHost: x\r\nx-bugsy-internal: forged\r\nX-Bugsy-Peer: 6.6.6.6\r\n\r\nEND"
+        socket.getOutputStream().apply { write(request.encodeToByteArray()); flush() }
+        val seen = readUntil(socket, "END")
+
+        assertTrue("X-Bugsy-Internal: real-secret" in seen, seen)
+        assertTrue("X-Bugsy-Peer: 127.0.0.1" in seen, seen)
+        assertTrue("forged" !in seen && "6.6.6.6" !in seen, seen)
+    }
+
+    @Test
+    fun `a connection that never sends a request head is closed`() {
+        val identity = generateWsTlsIdentity()
+        val port = freePort()
+        closeables += TlsTerminator(identity.keyStore, identity.password, port, startEchoBackend())
+
+        val socket = connectTls(port, mutableListOf())
+        socket.startHandshake()
+        socket.getOutputStream().apply { write("x".repeat(20_000).encodeToByteArray()); flush() }
+        socket.soTimeout = 5_000
+
+        assertTrue(runCatching { socket.getInputStream().read() }.getOrDefault(-1) == -1)
     }
 }

@@ -106,7 +106,7 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
                 com.bugsy.core.MockEngine.ruleChanges.map { BugsyEvent.MockRuleChanged(it.rule, it.action.name.lowercase()) },
                 com.bugsy.core.MockEngine.oneShotConsumedEvents.map { BugsyEvent.MockRuleConsumed(it) },
                 com.bugsy.core.Bugsy.flagManager.flagChanges.map { BugsyEvent.FlagChanged(it) },
-            ).collect { event -> connections.broadcast(encodeFrame(OPCODE_TEXT, encodeEvent(event))) }
+            ).collect { event -> connections.broadcast(encodeFrame(OPCODE_TEXT, encodeEvent(event.withoutSecrets()))) }
         }
 
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.convert(), 0u)) {
@@ -148,13 +148,13 @@ internal class IosBugsyWsServer(private val port: Int) : BugsyWsServerHandle {
 
         val handshakePayload = readIncomingFrame(fd, reader) ?: run { close(fd); return }
         val handshake = runCatching { json.decodeFromString(HandshakeMessage.serializer(), handshakePayload.decodeToString()) }.getOrNull()
-        if (handshake?.value != sessionToken) run { close(fd); return }
+        if (handshake?.value == null || !constantTimeEquals(handshake.value, sessionToken)) run { close(fd); return }
 
         // Registered before the snapshot is sent, or a change right after it could be broadcast (missing this
         // connection) before this connection is registered to receive broadcasts at all (DEB-58).
         connections.add(fd)
         _connectedClients.update { it + 1 }
-        if (!sendAll(fd, encodeFrame(OPCODE_TEXT, encodeEvent(currentBugsySnapshot())))) run {
+        if (!sendAll(fd, encodeFrame(OPCODE_TEXT, encodeEvent(currentBugsySnapshot().withoutSecrets())))) run {
             connections.remove(fd)
             _connectedClients.update { it - 1 }
             close(fd)

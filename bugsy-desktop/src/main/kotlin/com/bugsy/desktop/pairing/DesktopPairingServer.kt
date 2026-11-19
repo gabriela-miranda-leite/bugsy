@@ -33,23 +33,31 @@ class PairingHandler(
     private val nowMs: () -> Long = System::currentTimeMillis,
 ) {
     private val lock = Any()
-    private val pendingNonces = mutableMapOf<String, Pair<String, Long>>()
+    private class PendingNonce(val host: String, val expiresAtMs: Long, val keys: java.security.KeyPair)
 
-    /** The user picked [host] from the device list: its next `pair` may authenticate with [nonce] instead of the code. */
-    fun expectNonce(nonce: String, host: String, ttlMs: Long = NONCE_TTL_MS) = synchronized(lock) {
-        pendingNonces.entries.removeAll { it.value.second <= nowMs() }
-        pendingNonces[nonce] = host to nowMs() + ttlMs
+    private val pendingNonces = mutableMapOf<String, PendingNonce>()
+
+    /**
+     * The user picked [host] from the device list: its next `pair` may authenticate with [nonce] instead of the code.
+     * Returns the one-time ECDH public key (base64) to put in the `connect_request`, so the phone can seal its token to it.
+     */
+    fun expectNonce(nonce: String, host: String, ttlMs: Long = NONCE_TTL_MS): String = synchronized(lock) {
+        pendingNonces.entries.removeAll { it.value.expiresAtMs <= nowMs() }
+        val keys = newEcdhKeyPair()
+        pendingNonces[nonce] = PendingNonce(host, nowMs() + ttlMs, keys)
+        keys.publicKeyBase64()
     }
 
-    private fun consumeNonce(nonce: String, host: String): Boolean = synchronized(lock) {
-        val (expectedHost, expiresAt) = pendingNonces.remove(nonce) ?: return false
-        expectedHost == host && nowMs() < expiresAt
+    /** Single use: the nonce is gone after this, whether or not it matched. */
+    private fun consumeNonce(nonce: String, host: String): PendingNonce? = synchronized(lock) {
+        val pending = pendingNonces.remove(nonce) ?: return null
+        pending.takeIf { it.host == host && nowMs() < it.expiresAtMs }
     }
 
     /** The reply to send back to [fromHost], or `null` for datagrams that deserve silence. */
     fun handle(message: PairingMessage, fromHost: String): PairingMessage? = when (message.type) {
-        PairingMessage.DISCOVER -> when (val check = codes.check(message.code)) {
-            CodeCheck.VALID -> PairingMessage(PairingMessage.DESKTOP_HERE, name = desktopName())
+        PairingMessage.DISCOVER -> when (val check = codes.check(message.code, fromHost)) {
+            CodeCheck.VALID -> PairingMessage(PairingMessage.DESKTOP_HERE, name = desktopName(), pk = codes.current.value.publicKey.ifEmpty { null })
             else -> failure(check)
         }
         PairingMessage.PAIR -> handlePair(message, fromHost)
@@ -60,9 +68,10 @@ class PairingHandler(
         val port = message.port?.takeIf { it in 1..65535 }
         if (port == null) return failure(CodeCheck.INVALID)
 
+        val pendingNonce = message.nonce?.let { consumeNonce(it, fromHost) }
         val authorized = when {
-            message.nonce != null -> if (consumeNonce(message.nonce, fromHost)) CodeCheck.VALID else CodeCheck.INVALID
-            else -> codes.check(message.code)
+            message.nonce != null -> if (pendingNonce != null) CodeCheck.VALID else CodeCheck.INVALID
+            else -> codes.check(message.code, fromHost)
         }
         if (authorized != CodeCheck.VALID) return failure(authorized)
 
@@ -72,10 +81,17 @@ class PairingHandler(
         val token: String
         val fingerprint: String?
         if (message.enc != null) {
-            val opened = if (secret != null && message.code != null && message.iv != null) {
-                openPairSecret(secret, message.code, message.iv, message.enc)
-            } else {
-                null
+            val opened = when {
+                // QR flow: sealed with the secret only the screen shows.
+                message.cpk == null && secret != null && message.code != null && message.iv != null ->
+                    openPairSecret(secret, message.code, message.iv, message.enc)
+                // List flow: sealed to the one-time key this request carried.
+                message.cpk != null && pendingNonce != null && message.nonce != null && message.iv != null ->
+                    openPeerSealed(pendingNonce.keys, message.cpk, message.nonce, message.iv, message.enc)
+                // Code flow: sealed to the one-time key `desktop_here` carried.
+                message.cpk != null && message.code != null && message.iv != null ->
+                    codes.ecdhFor(message.code)?.let { openPeerSealed(it, message.cpk, message.code, message.iv, message.enc) }
+                else -> null
             }
             if (opened == null) return failure(CodeCheck.INVALID)
             token = opened.token

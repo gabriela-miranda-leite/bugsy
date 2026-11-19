@@ -88,6 +88,7 @@ kotlin {
             implementation(libs.okhttp.mockwebserver)
             implementation(libs.ktor.server.test.host)
             implementation(libs.ktor.client.websockets)
+            implementation(libs.ktor.client.cio)
         }
     }
 }

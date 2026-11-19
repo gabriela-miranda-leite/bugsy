@@ -22,6 +22,12 @@ data class BugsyConfig(
      * discover it, so it stays "—" unless the app provides it.
      */
     val environment: String? = null,
+    /**
+     * Whether the Account rows from [customInfoProvider] are also sent to a paired Bugsy Desktop. They can hold
+     * personal data (a user id, an e-mail); turn this off to keep them on the phone only. The mobile overlay shows
+     * them either way.
+     */
+    val shareCustomInfoWithDesktop: Boolean = true,
     /** Requests at or above this duration are highlighted as slow in the UI. `0` turns the highlight off. */
     val slowRequestThresholdMs: Long = DEFAULT_SLOW_REQUEST_THRESHOLD_MS,
 ) {

@@ -28,6 +28,7 @@ private fun apiSurface() {
             allowRevealingSecrets = true,
             customInfoProvider = { listOf("k" to "v") },
             environment = "staging",
+            shareCustomInfoWithDesktop = false,
         )
     )
     Trigger.entries.forEach { trigger -> BugsyConfig(trigger = trigger) }

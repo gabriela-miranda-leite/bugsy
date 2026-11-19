@@ -115,4 +115,84 @@ class PairingEncryptionTest {
         assertNotNull(codes.secretFor("482913"))
         assertNull(codes.secretFor("000000"))
     }
+
+    // --- code and list flows: sealed to a one-time ECDH key (DEB-67) ---
+
+    /** What `:core` does on the phone, written independently here. */
+    private fun sealToDesktop(desktopPublicKey: String, aad: String, json: String): PairingMessage {
+        val own = newEcdhKeyPair()
+        val peer = java.security.KeyFactory.getInstance("EC").generatePublic(
+            java.security.spec.X509EncodedKeySpec(Base64.getDecoder().decode(desktopPublicKey)),
+        )
+        val shared = javax.crypto.KeyAgreement.getInstance("ECDH").apply {
+            init(own.private)
+            doPhase(peer, true)
+        }.generateSecret()
+        val digest = MessageDigest.getInstance("SHA-256").apply { update("bugsy-pair-v2".encodeToByteArray()) }
+        val iv = ByteArray(12).also { SecureRandom().nextBytes(it) }
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply {
+            init(Cipher.ENCRYPT_MODE, SecretKeySpec(digest.digest(shared), "AES"), GCMParameterSpec(128, iv))
+            updateAAD(aad.encodeToByteArray())
+        }
+        return PairingMessage(
+            PairingMessage.PAIR, port = 7788, name = "Pixel", os = "Android 15",
+            cpk = own.publicKeyBase64(), iv = Base64.getEncoder().encodeToString(iv),
+            enc = Base64.getEncoder().encodeToString(cipher.doFinal(json.encodeToByteArray())),
+        )
+    }
+
+    @Test
+    fun `discover answers with the one-time public key`() {
+        val reply = handler.handle(PairingMessage(PairingMessage.DISCOVER, code = "482913"), "192.168.0.24")
+
+        assertEquals(codes.current.value.publicKey, reply?.pk)
+        assertTrue(!reply?.pk.isNullOrEmpty())
+    }
+
+    @Test
+    fun `the code flow opens a pair sealed to the key it answered with`() {
+        val sealed = sealToDesktop(codes.current.value.publicKey, aad = "482913", json = """{"token":"tok3n","fp":"ab12"}""").copy(code = "482913")
+        val reply = handler.handle(sealed, "192.168.0.24")
+
+        assertEquals(true, reply?.ok)
+        assertEquals(PairedDevice("192.168.0.24", 7788, "tok3n", "Pixel", "Android 15", fingerprint = "ab12"), paired.single())
+    }
+
+    @Test
+    fun `the code flow refuses a pair sealed with another code as authenticated data`() {
+        val sealed = sealToDesktop(codes.current.value.publicKey, aad = "000000", json = """{"token":"tok3n"}""").copy(code = "482913")
+
+        assertEquals(false, handler.handle(sealed, "192.168.0.24")?.ok)
+        assertTrue(paired.isEmpty())
+    }
+
+    @Test
+    fun `the code flow refuses a pair sealed to a key that is not the one on screen`() {
+        val stale = newEcdhKeyPair().publicKeyBase64()
+        val sealed = sealToDesktop(stale, aad = "482913", json = """{"token":"tok3n"}""").copy(code = "482913")
+
+        assertEquals(false, handler.handle(sealed, "192.168.0.24")?.ok)
+        assertTrue(paired.isEmpty())
+    }
+
+    @Test
+    fun `the list flow opens a pair sealed to the key its request carried, once`() {
+        val publicKey = handler.expectNonce("n0nce", "192.168.0.24")
+        val sealed = sealToDesktop(publicKey, aad = "n0nce", json = """{"token":"tok3n","fp":"cd34"}""").copy(nonce = "n0nce")
+
+        assertEquals(true, handler.handle(sealed, "192.168.0.24")?.ok)
+        assertEquals("cd34", paired.single().fingerprint)
+        // The nonce is gone: the same datagram, replayed, gets nothing.
+        assertEquals(false, handler.handle(sealed, "192.168.0.24")?.ok)
+        assertEquals(1, paired.size)
+    }
+
+    @Test
+    fun `the list flow refuses a sealed pair from another address`() {
+        val publicKey = handler.expectNonce("n0nce", "192.168.0.24")
+        val sealed = sealToDesktop(publicKey, aad = "n0nce", json = """{"token":"tok3n"}""").copy(nonce = "n0nce")
+
+        assertEquals(false, handler.handle(sealed, "192.168.0.99")?.ok)
+        assertTrue(paired.isEmpty())
+    }
 }

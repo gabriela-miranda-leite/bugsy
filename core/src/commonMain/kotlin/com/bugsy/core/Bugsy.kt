@@ -28,6 +28,10 @@ object Bugsy {
 
     private var environment: String? = null
 
+    /** Whether the Account rows go to a paired desktop. See [BugsyConfig.shareCustomInfoWithDesktop]. */
+    internal var shareCustomInfoWithDesktop: Boolean = true
+        private set
+
     /**
      * What the Device tab shows (and the BugsyWsServer sends to the desktop): read from the platform on every
      * call, so nothing here is cached or made up. Fields that can't be read stay "—".
@@ -83,6 +87,7 @@ object Bugsy {
         _flagManager = FlagManager(config.flagsProvider)
         customInfoProvider = config.customInfoProvider
         environment = config.environment
+        shareCustomInfoWithDesktop = config.shareCustomInfoWithDesktop
         CaptureSettings.configure(allowRevealingSecrets = config.allowRevealingSecrets)
         DebugRepository.slowRequestThresholdMs = config.slowRequestThresholdMs
         debugInterceptor = DebugInterceptor.create().also { it.attach() }

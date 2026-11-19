@@ -93,11 +93,11 @@ class DesktopViewModel {
     /** "Connect" on a discovered device: the phone can't just hand out its token to anyone on the network who
      * asks, so the user has to approve this desktop in the phone's overlay first. */
     fun connectToDevice(device: DiscoveredDevice) {
-        val nonce = (1..16).map { "0123456789abcdef"[Random.nextInt(16)] }.joinToString("")
-        pairingHandler.expectNonce(nonce, device.host)
+        val nonce = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
+        val publicKey = pairingHandler.expectNonce(nonce, device.host)
         _pendingDeviceRequest.value = device
         scope.launch {
-            if (!discovery.requestConnect(device, nonce, desktopDisplayName())) {
+            if (!discovery.requestConnect(device, nonce, desktopDisplayName(), publicKey)) {
                 _pendingDeviceRequest.value = null
                 DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Error, title = "Could not reach ${device.name}", subtitle = "Check that it is on the same network"))
                 return@launch

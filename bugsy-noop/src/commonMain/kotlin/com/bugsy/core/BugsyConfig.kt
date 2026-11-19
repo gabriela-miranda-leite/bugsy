@@ -9,6 +9,7 @@ data class BugsyConfig(
     val allowRevealingSecrets: Boolean = true,
     val customInfoProvider: () -> List<Pair<String, String>> = { emptyList() },
     val environment: String? = null,
+    val shareCustomInfoWithDesktop: Boolean = true,
     val slowRequestThresholdMs: Long = DEFAULT_SLOW_REQUEST_THRESHOLD_MS,
 ) {
     companion object {

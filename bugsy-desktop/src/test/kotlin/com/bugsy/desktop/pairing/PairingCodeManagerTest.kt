@@ -89,3 +89,42 @@ class PairingCodeManagerTest {
         repeat(10) { assertEquals(CodeCheck.VALID, manager.check("100000")) }
     }
 }
+
+class PairingCodeManagerSourceTest {
+    private var now = 0L
+    private var counter = 0
+    private val manager = PairingCodeManager(
+        nowMs = { now },
+        nextCode = { (111_111 + counter++).toString() },
+        maxFailedAttempts = 25,
+        maxFailedAttemptsPerSource = 3,
+        sourceLockMs = 1_000,
+    )
+
+    @Test
+    fun `one address that keeps guessing is turned away without rotating the code`() {
+        val shown = manager.current.value.code
+        repeat(3) { manager.check("000000", source = "10.0.0.66") }
+
+        assertEquals(CodeCheck.LOCKED, manager.check("000000", source = "10.0.0.66"))
+        assertEquals(CodeCheck.LOCKED, manager.check(shown, source = "10.0.0.66"), "even the right code, from the blocked address")
+        assertEquals(shown, manager.current.value.code, "the code on screen did not change")
+        assertEquals(CodeCheck.VALID, manager.check(shown, source = "10.0.0.24"), "another address still pairs")
+    }
+
+    @Test
+    fun `the address is let back in once the block runs out`() {
+        repeat(3) { manager.check("000000", source = "10.0.0.66") }
+        now = 1_001
+
+        assertEquals(CodeCheck.VALID, manager.check(manager.current.value.code, source = "10.0.0.66"))
+    }
+
+    @Test
+    fun `many addresses together still rotate the code`() {
+        val first = manager.current.value.code
+        repeat(25) { manager.check("000000", source = "10.0.0.$it") }
+
+        assertNotEquals(first, manager.current.value.code)
+    }
+}

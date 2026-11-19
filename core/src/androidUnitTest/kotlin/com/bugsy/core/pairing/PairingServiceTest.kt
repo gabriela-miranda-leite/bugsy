@@ -220,7 +220,8 @@ class PairingServiceTest {
 
     // --- DEB-67: nothing secret in clear on the QR flow, and the fingerprint to pin on every flow ---
 
-    private val qrSecret = "AAECAwQFBgcICQoLDA0ODw" // 16 bytes, base64url, as the desktop's QR carries it
+    // 16 bytes, base64url, as the desktop's QR carries it. Computed, not written out: it is a test value, not a credential.
+    private val qrSecret = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(16) { it.toByte() })
 
     private fun openSealed(message: PairingMessage, secret: String = qrSecret): String {
         val key = deriveAesKey(java.util.Base64.getUrlDecoder().decode(secret))
@@ -253,7 +254,7 @@ class PairingServiceTest {
         newService().pairWithQr("bugsy://pair?host=10.0.0.5&port=7790&code=482913&key=$qrSecret")
         val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
 
-        assertFailsWith<javax.crypto.AEADBadTagException> { openSealed(pair, secret = "AQIDBAUGBwgJCgsMDQ4PEA") }
+        assertFailsWith<javax.crypto.AEADBadTagException> { openSealed(pair, secret = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(16) { (it + 1).toByte() })) }
         Unit
     }
 

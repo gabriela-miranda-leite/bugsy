@@ -170,7 +170,7 @@ A conexão entre o celular e o Bugsy Desktop (Android) usa TLS com o certificado
 pareamento por QR code cifra o token. O iOS e os pareamentos por código e por lista ainda não têm
 essa proteção. O que é e o que não é protegido está em
 [`docs/seguranca-do-pareamento-desktop.md`](docs/seguranca-do-pareamento-desktop.md)
-([English version](docs/desktop-pairing-security.md)).
+([English version](docs/seguranca-do-pareamento-desktop.en.md)).
 
 ## Sobre o desenvolvimento
 

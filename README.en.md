@@ -169,7 +169,7 @@ debuggable, even when the full artifact is on the classpath.
 The connection between the phone and Bugsy Desktop (Android) uses TLS with a pinned certificate,
 and pairing by QR code encrypts the token. iOS and the code and list pairing flows do not have
 that protection yet. What is and is not protected is described in
-[`docs/desktop-pairing-security.md`](docs/desktop-pairing-security.md)
+[`docs/seguranca-do-pareamento-desktop.en.md`](docs/seguranca-do-pareamento-desktop.en.md)
 ([versão em português](docs/seguranca-do-pareamento-desktop.md)).
 
 ## About development

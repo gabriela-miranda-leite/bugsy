@@ -1,6 +1,6 @@
 # Pareamento com o Desktop: o que é protegido e o que não é
 
-_[Also available in English](desktop-pairing-security.md)._
+_[Also available in English](seguranca-do-pareamento-desktop.en.md)._
 
 O Bugsy Desktop e o celular conversam pela rede local (DEB-64). Esta página diz o que uma pessoa no mesmo
 Wi-Fi consegue e não consegue fazer (DEB-67).

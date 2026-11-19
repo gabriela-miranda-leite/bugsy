@@ -12,6 +12,7 @@ import bugsy.ui.generated.resources.pairing_error_expired_code
 import bugsy.ui.generated.resources.pairing_error_invalid_code
 import bugsy.ui.generated.resources.pairing_error_invalid_qr
 import bugsy.ui.generated.resources.pairing_error_no_network
+import bugsy.ui.generated.resources.pairing_error_not_verified
 import bugsy.ui.generated.resources.pairing_error_server_unavailable
 import bugsy.ui.generated.resources.pairing_error_too_many_attempts
 import bugsy.ui.generated.resources.pairing_paired
@@ -84,4 +85,5 @@ internal fun pairingFeedbackText(result: PairingResult): String = when (result) 
     PairingResult.InvalidQr -> stringResource(Res.string.pairing_error_invalid_qr)
     PairingResult.NoNetwork -> stringResource(Res.string.pairing_error_no_network)
     PairingResult.ServerUnavailable -> stringResource(Res.string.pairing_error_server_unavailable)
+    PairingResult.NotVerified -> stringResource(Res.string.pairing_error_not_verified)
 }

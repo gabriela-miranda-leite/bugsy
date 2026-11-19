@@ -97,3 +97,16 @@ private fun parsePairSecret(json: String): PairSecret? {
     val fp = (parsed["fp"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
     return PairSecret(token, fp)
 }
+
+/**
+ * The short code both screens show so a person can tell the phone and this desktop are talking to each other and not
+ * to someone in between (DEB-67). Must match `:core`'s `verificationCode`: a hash of both one-time public keys and of
+ * [context] (the pairing code or the request nonce), reduced to 4 digits.
+ */
+internal fun verificationCode(desktopPublicKey: ByteArray, phonePublicKey: ByteArray, context: String): String {
+    fun field(bytes: ByteArray) = byteArrayOf((bytes.size shr 8).toByte(), bytes.size.toByte()) + bytes
+    val digest = MessageDigest.getInstance("SHA-256")
+        .digest("bugsy-sas-v1".encodeToByteArray() + field(desktopPublicKey) + field(phonePublicKey) + field(context.encodeToByteArray()))
+    val value = ((digest[0].toLong() and 0xFF) shl 24) or ((digest[1].toLong() and 0xFF) shl 16) or ((digest[2].toLong() and 0xFF) shl 8) or (digest[3].toLong() and 0xFF)
+    return (value % 10_000).toString().padStart(4, '0')
+}

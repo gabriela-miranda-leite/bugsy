@@ -36,16 +36,25 @@ private fun deriveEcdhAesKey(shared: ByteArray): SecretKeySpec {
     return SecretKeySpec(digest.digest(shared), "AES")
 }
 
-internal actual fun sealForPeer(peerPublicKey: ByteArray, aad: ByteArray, plaintext: ByteArray): PeerSealed? = runCatching {
+internal actual fun pairingSha256(input: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").digest(input)
+
+internal actual fun openPeerSession(peerPublicKey: ByteArray): PeerSession? = runCatching {
     val peer = KeyFactory.getInstance("EC").generatePublic(X509EncodedKeySpec(peerPublicKey))
     val own = KeyPairGenerator.getInstance("EC").apply { initialize(ECGenParameterSpec("secp256r1")) }.generateKeyPair()
     val shared = KeyAgreement.getInstance("ECDH").apply {
         init(own.private)
         doPhase(peer, true)
     }.generateSecret()
-    val iv = ByteArray(GCM_IV_BYTES).also { SecureRandom().nextBytes(it) }
-    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-    cipher.init(Cipher.ENCRYPT_MODE, deriveEcdhAesKey(shared), GCMParameterSpec(GCM_TAG_BITS, iv))
-    cipher.updateAAD(aad)
-    PeerSealed(own.public.encoded, iv, cipher.doFinal(plaintext))
+    val key = deriveEcdhAesKey(shared)
+    object : PeerSession {
+        override val publicKey: ByteArray = own.public.encoded
+
+        override fun seal(aad: ByteArray, plaintext: ByteArray): PeerSealed? = runCatching {
+            val iv = ByteArray(GCM_IV_BYTES).also { SecureRandom().nextBytes(it) }
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, iv))
+            cipher.updateAAD(aad)
+            PeerSealed(publicKey, iv, cipher.doFinal(plaintext))
+        }.getOrNull()
+    }
 }.getOrNull()

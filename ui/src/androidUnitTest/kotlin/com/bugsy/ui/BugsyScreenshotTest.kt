@@ -27,6 +27,7 @@ import com.bugsy.ui.screens.MocksScreen
 import com.bugsy.ui.screens.RequestDetailScreen
 import com.bugsy.ui.screens.RequestListScreen
 import com.bugsy.ui.screens.ConnectRequestCard
+import com.bugsy.ui.screens.VerifyCodeCard
 import com.bugsy.ui.screens.QrScanScreen
 import com.bugsy.ui.screens.SettingsScreen
 import com.bugsy.ui.settings.DesktopPairingState
@@ -424,6 +425,28 @@ class BugsyScreenshotTest {
             BugsyTheme {
                 Box(Modifier.fillMaxWidth().height(OverlayContainerHeight).background(BugsyColors.Surface)) {
                     ConnectRequestCard(desktopName = "MacBook Pro", onAllow = {}, onDeny = {})
+                }
+            }
+        }
+    }
+
+    @Test
+    fun connectRequestCardWithVerificationCode() {
+        paparazzi.snapshot {
+            BugsyTheme {
+                Box(Modifier.fillMaxWidth().height(OverlayContainerHeight).background(BugsyColors.Surface)) {
+                    ConnectRequestCard(desktopName = "MacBook Pro", verificationCode = "4942", onAllow = {}, onDeny = {})
+                }
+            }
+        }
+    }
+
+    @Test
+    fun verifyCodeCard() {
+        paparazzi.snapshot {
+            BugsyTheme {
+                Box(Modifier.fillMaxWidth().height(OverlayContainerHeight).background(BugsyColors.Surface)) {
+                    VerifyCodeCard(code = "4942", onMatch = {}, onDifferent = {})
                 }
             }
         }

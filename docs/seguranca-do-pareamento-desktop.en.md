@@ -5,22 +5,32 @@ _[Também disponível em português](seguranca-do-pareamento-desktop.md)._
 Bugsy Desktop and the phone talk over the local network (DEB-64). This page says what an attacker on the same
 Wi-Fi can and cannot do (DEB-67).
 
-## What is protected (Android phone)
+## What is protected
 
-- **The connection.** The phone only accepts the desktop over TLS (1.3 where Android has it, 1.2 otherwise). The
-  certificate is self-signed, created in memory every time the Bugsy server starts, and never written to disk.
-  Someone listening to the Wi-Fi sees encrypted bytes, not the token or the captured requests.
+- **The connection.** The phone only accepts the desktop over TLS. The certificate is self-signed, created every time
+  the Bugsy server starts, and discarded when it stops. Someone listening to the Wi-Fi sees encrypted bytes, not the
+  token or the captured requests.
+  - **Android:** TLS 1.3 where the system has it, 1.2 otherwise. The certificate lives in memory only.
+  - **iOS:** TLS 1.2 (iOS's SecureTransport has no TLS 1.3) with a forward secret suite (ECDHE-ECDSA with AES-GCM).
+    The certificate is built in Kotlin and kept in the Keychain while the server runs; it is deleted when it stops.
 - **Certificate pinning.** The desktop does not trust a certificate authority. It accepts exactly one certificate:
   the one whose SHA-256 fingerprint the phone reported while pairing. A fake phone on the network is refused.
 - **Pairing by QR code.** The QR code carries a random 128-bit secret that only the desktop screen shows. The phone
-  uses it to encrypt the token and the fingerprint (AES-256-GCM, bound to the pairing code), so the pairing datagram
-  contains neither in clear. Replaying a copied datagram fails: the code is single use.
+  uses it to encrypt the token and the fingerprint, bound to the pairing code, so the pairing datagram contains
+  neither in clear. Replaying a copied datagram fails: the code is single use.
 - **Pairing by code and by device list.** The desktop sends a one-time public key (ECDH P-256) and the phone
-  encrypts the token and the fingerprint to it (AES-256-GCM). Someone who only listens to the network does not see
-  the token. Each code and each connection request has its own key, thrown away after use.
+  encrypts the token and the fingerprint to it. Someone who only listens to the network does not see the token. Each
+  code and each connection request has its own key, thrown away after use.
+- **Against someone in the middle, in the code and list flows.** Before any token is sent, the phone and the desktop
+  show the same 4-digit code, computed from both one-time public keys and the pairing code or nonce. Someone who
+  answers in the desktop's place has to use a key of their own on each side, and the two codes end up different. The
+  phone only sends the token once the person confirms they are the same ("Match" when pairing by code, "Allow" in the
+  list). This only protects if the person actually compares them.
+- **Ciphers.** Android and the desktop use AES-256-GCM. iOS has no public AES-GCM, so it uses AES-256-CBC with
+  HMAC-SHA256 (encrypt then authenticate), marked in the datagram. The desktop opens both formats.
 - **Guessing.** The session token has 12 characters (about 69 bits) from the system's secure random generator, and
-  is compared in constant time. After 5 wrong tokens an address is locked out for 1 minute. On the desktop, 5 wrong
-  codes from one address block only that address, without rotating the code on screen.
+  is compared in constant time. After 5 wrong tokens an address is locked out for 1 minute, on Android and iOS. On
+  the desktop, 5 wrong codes from one address block only that address, without rotating the code on screen.
 - **The local server.** The server behind TLS listens on `127.0.0.1` only and only serves requests that went through
   the TLS terminator, which adds an internal secret. Another app on the phone that connects directly is refused.
 - **Disconnect.** "Disconnect (generates a new token)" restarts the server, so it also creates a new token and a
@@ -28,13 +38,11 @@ Wi-Fi can and cannot do (DEB-67).
 
 ## What is not protected yet
 
-- **iOS phones have no TLS and no pairing encryption yet.** The iOS server is a hand-written WebSocket over POSIX
-  sockets. The desktop falls back to plain `ws://`: the token and the traffic cross the network in clear. To limit
-  the damage, iOS does not send the real values of secrets (only the already masked text) over that connection.
-- **Someone actively in the middle, in the code and list flows.** The encryption in these flows protects against
-  someone who only listens. Someone who can answer in the desktop's place on the network could hand over their own
-  public key and read the token. The QR code does not have this weakness, because the secret goes through the
-  screen. Use the QR code on networks you do not trust.
+- **Comparing the code depends on the person.** If they confirm without looking, or get used to tapping "Match" and
+  "Allow", the protection against someone in the middle is gone. The QR code does not have this weakness, because the
+  secret goes through the screen.
+- **Pairing with an older desktop or phone.** A side without the one-time key or the confirmation falls back to the
+  earlier pairing, with the token in clear in the datagram. Someone who can disturb the pairing could force that path.
 - **Manual connection.** The desktop has no fingerprint, so it trusts the certificate it sees the first time
   (trust on first use). That protects against listening, but not against someone actively impersonating the phone on
   that very first connection.
@@ -44,9 +52,12 @@ Wi-Fi can and cannot do (DEB-67).
   and OS. The desktop also shows what it receives.
 - **Disturbing pairing.** Someone on the network can still send attempts and make the code on screen rotate more
   often than normal (the per-address limit helps, but a source address on a local network can be forged).
-- **No external review.** The cryptography uses only JDK primitives (AES-GCM, ECDH, SHA-256), but the design of the
-  protocols has not been reviewed by a specialist.
+- **iOS verified in the simulator only.** The iOS TLS and encryption were tested in the simulator, on the real iOS
+  security stack, but not on a physical iPhone.
+- **No external review.** The cryptography uses only the system primitives (AES, ECDH, SHA-256, HMAC), but the design
+  of the protocols has not been reviewed by a specialist.
 
 ## Rule of thumb
 
-On a network you do not control, pair with the QR code from an Android phone. On your own network, any flow is fine.
+On a network you do not control, pair with the QR code. In the other flows, always compare the 4-digit code on both
+screens. On your own network, any flow is fine.

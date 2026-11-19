@@ -11,6 +11,9 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.SocketTimeoutException
 
+/** What the person compares with the phone's screen: [code] is shown until [expiresAtMs]. */
+data class DesktopVerification(val code: String, val expiresAtMs: Long, val context: String)
+
 /** A phone that completed pairing and is waiting for the desktop to connect to its BugsyWsServer. */
 data class PairedDevice(
     val host: String,
@@ -34,6 +37,24 @@ class PairingHandler(
 ) {
     private val lock = Any()
     private class PendingNonce(val host: String, val expiresAtMs: Long, val keys: java.security.KeyPair)
+
+    /** The phone's one-time public key from its `kex`, by pairing code or nonce: a sealed `pair` must use that same key. */
+    private val phoneKeys = mutableMapOf<String, String>()
+
+    private val _verification = kotlinx.coroutines.flow.MutableStateFlow<DesktopVerification?>(null)
+
+    /** The short code to compare with the phone's screen while a pairing waits for the person (DEB-67). */
+    val verification: kotlinx.coroutines.flow.StateFlow<DesktopVerification?> = _verification
+
+    /** Drops a code nobody confirmed in time. */
+    fun clearExpiredVerification() {
+        val current = _verification.value ?: return
+        if (nowMs() >= current.expiresAtMs) _verification.value = null
+    }
+
+    private fun peekNonce(nonce: String, host: String): PendingNonce? = synchronized(lock) {
+        pendingNonces[nonce]?.takeIf { it.host == host && nowMs() < it.expiresAtMs }
+    }
 
     private val pendingNonces = mutableMapOf<String, PendingNonce>()
 
@@ -61,7 +82,32 @@ class PairingHandler(
             else -> failure(check)
         }
         PairingMessage.PAIR -> handlePair(message, fromHost)
+        PairingMessage.KEX -> handleKex(message, fromHost)
         else -> null
+    }
+
+    /**
+     * The phone's one-time key, sent before its token. Shows the verification code both sides now derive, so the
+     * person can check it matches the phone's screen. Never answers: the phone does not wait on the desktop here.
+     */
+    private fun handleKex(message: PairingMessage, fromHost: String): PairingMessage? {
+        val phoneKey = message.cpk ?: return null
+        val phoneKeyBytes = runCatching { java.util.Base64.getDecoder().decode(phoneKey) }.getOrNull() ?: return null
+        val context: String
+        val ownPublicKey: ByteArray
+        if (message.nonce != null) {
+            val pending = peekNonce(message.nonce, fromHost) ?: return null
+            context = message.nonce
+            ownPublicKey = pending.keys.public.encoded
+        } else {
+            val code = message.code ?: return null
+            if (codes.check(code, fromHost) != CodeCheck.VALID) return null
+            context = code
+            ownPublicKey = codes.ecdhFor(code)?.public?.encoded ?: return null
+        }
+        synchronized(lock) { phoneKeys[context] = phoneKey }
+        _verification.value = DesktopVerification(verificationCode(ownPublicKey, phoneKeyBytes, context), nowMs() + VERIFICATION_TTL_MS, context)
+        return null
     }
 
     private fun handlePair(message: PairingMessage, fromHost: String): PairingMessage {
@@ -81,7 +127,9 @@ class PairingHandler(
         val token: String
         val fingerprint: String?
         if (message.enc != null) {
-            val opened = when {
+            // A sealed-to-key pair must come from the phone that sent the `kex` whose code the person compared.
+            val bound = message.cpk == null || synchronized(lock) { phoneKeys[message.nonce ?: message.code] } == message.cpk
+            val opened = if (!bound) null else when {
                 // QR flow: sealed with the secret only the screen shows.
                 message.cpk == null && secret != null && message.code != null && message.iv != null ->
                     openPairSecret(secret, message.code, message.iv, message.enc, message.alg)
@@ -102,6 +150,8 @@ class PairingHandler(
         }
 
         if (message.nonce == null) codes.consume()
+        synchronized(lock) { phoneKeys.remove(message.nonce ?: message.code) }
+        _verification.value = null
         onPaired(PairedDevice(fromHost, port, token, message.name, message.os, fingerprint))
         return PairingMessage(PairingMessage.PAIR_RESULT, ok = true)
     }
@@ -117,6 +167,7 @@ class PairingHandler(
     )
 
     private companion object {
+        const val VERIFICATION_TTL_MS = 60_000L
         const val NONCE_TTL_MS = 60_000L
     }
 }

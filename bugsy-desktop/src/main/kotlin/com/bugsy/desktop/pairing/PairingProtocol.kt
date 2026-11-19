@@ -48,6 +48,9 @@ data class PairingMessage(
         const val DEVICE = "device"
         const val CONNECT_REQUEST = "connect_request"
 
+        /** Phone to desktop, before any token: its one-time key. Both screens then show the same verification code. */
+        const val KEX = "kex"
+
         const val REASON_INVALID = "invalid"
         const val REASON_EXPIRED = "expired"
         const val REASON_LOCKED = "locked"

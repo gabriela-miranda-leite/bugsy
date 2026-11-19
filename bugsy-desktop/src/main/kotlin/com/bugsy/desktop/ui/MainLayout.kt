@@ -38,6 +38,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
         val devices by viewModel.devices.collectAsState()
         val isScanning by viewModel.isScanningDevices.collectAsState()
         val pendingDevice by viewModel.pendingDeviceRequest.collectAsState()
+        val verification by viewModel.verification.collectAsState()
         LaunchedEffect(Unit) { viewModel.refreshDevices() }
         ConnectionScreen(
             pairingCode = pairingCode,
@@ -49,6 +50,7 @@ fun MainLayout(viewModel: DesktopViewModel) {
             onRefreshDevices = viewModel::refreshDevices,
             onConnectDevice = viewModel::connectToDevice,
             onConnect = viewModel::connect,
+            verificationCode = verification?.code,
         )
         return
     }

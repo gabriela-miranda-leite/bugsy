@@ -11,6 +11,7 @@ import com.bugsy.desktop.pairing.DesktopPairingServer
 import com.bugsy.desktop.pairing.DeviceDiscovery
 import com.bugsy.desktop.pairing.DiscoveredDevice
 import com.bugsy.desktop.pairing.PAIRING_DESKTOP_UDP_PORT
+import com.bugsy.desktop.pairing.DesktopVerification
 import com.bugsy.desktop.pairing.PairedDevice
 import com.bugsy.desktop.pairing.PairingCode
 import com.bugsy.desktop.pairing.PairingCodeManager
@@ -69,6 +70,9 @@ class DesktopViewModel {
     val isPairingAvailable: Boolean = pairingServer.start()
 
     val pairingCode: StateFlow<PairingCode> = codeManager.current
+
+    /** The short code to compare with the phone's screen while a pairing waits for the person (DEB-67). */
+    val verification: StateFlow<DesktopVerification?> = pairingHandler.verification
 
     private val _localIp = MutableStateFlow(localIpv4Address())
 
@@ -292,6 +296,7 @@ class DesktopViewModel {
             while (true) {
                 delay(1_000)
                 codeManager.rotateIfExpired()
+                pairingHandler.clearExpiredVerification()
             }
         }
         scope.launch {

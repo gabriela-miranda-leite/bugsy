@@ -17,6 +17,19 @@ object BugsyPairing {
     /** A desktop asked to connect from its "Devices on your network" list; the overlay must ask the user. */
     val pendingConnectRequest: StateFlow<ConnectRequest?> get() = service?.pendingConnectRequest ?: _pendingConnectRequest
 
+    private val _pendingVerification = MutableStateFlow<PairingVerification?>(null)
+
+    /**
+     * Set while pairing by code waits for the person to compare a short code with the desktop's screen; the overlay
+     * must show it and call [confirmVerification] (DEB-67). Nothing secret is sent before that.
+     */
+    val pendingVerification: StateFlow<PairingVerification?> get() = service?.pendingVerification ?: _pendingVerification
+
+    /** The person's answer to [pendingVerification]: `true` if the codes on the phone and the desktop are the same. */
+    fun confirmVerification(match: Boolean) {
+        service?.confirmVerification(match)
+    }
+
     /** `192.168.0.24:7788`, or `null` when the server isn't running or the device isn't on a network. */
     fun deviceAddress(): String? {
         if (Bugsy.wsServerToken == null) return null

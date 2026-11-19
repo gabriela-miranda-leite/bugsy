@@ -141,6 +141,10 @@ class PairingEncryptionTest {
         )
     }
 
+    /** What the phone sends first in the code and list flows: its one-time key, before any token. */
+    private fun kexFor(sealed: PairingMessage, code: String? = null, nonce: String? = null) =
+        PairingMessage(PairingMessage.KEX, code = code, nonce = nonce, cpk = sealed.cpk)
+
     @Test
     fun `discover answers with the one-time public key`() {
         val reply = handler.handle(PairingMessage(PairingMessage.DISCOVER, code = "482913"), "192.168.0.24")
@@ -152,6 +156,7 @@ class PairingEncryptionTest {
     @Test
     fun `the code flow opens a pair sealed to the key it answered with`() {
         val sealed = sealToDesktop(codes.current.value.publicKey, aad = "482913", json = """{"token":"tok3n","fp":"ab12"}""").copy(code = "482913")
+        handler.handle(kexFor(sealed, code = "482913"), "192.168.0.24")
         val reply = handler.handle(sealed, "192.168.0.24")
 
         assertEquals(true, reply?.ok)
@@ -161,6 +166,7 @@ class PairingEncryptionTest {
     @Test
     fun `the code flow refuses a pair sealed with another code as authenticated data`() {
         val sealed = sealToDesktop(codes.current.value.publicKey, aad = "000000", json = """{"token":"tok3n"}""").copy(code = "482913")
+        handler.handle(kexFor(sealed, code = "482913"), "192.168.0.24")
 
         assertEquals(false, handler.handle(sealed, "192.168.0.24")?.ok)
         assertTrue(paired.isEmpty())
@@ -170,6 +176,7 @@ class PairingEncryptionTest {
     fun `the code flow refuses a pair sealed to a key that is not the one on screen`() {
         val stale = newEcdhKeyPair().publicKeyBase64()
         val sealed = sealToDesktop(stale, aad = "482913", json = """{"token":"tok3n"}""").copy(code = "482913")
+        handler.handle(kexFor(sealed, code = "482913"), "192.168.0.24")
 
         assertEquals(false, handler.handle(sealed, "192.168.0.24")?.ok)
         assertTrue(paired.isEmpty())
@@ -179,6 +186,7 @@ class PairingEncryptionTest {
     fun `the list flow opens a pair sealed to the key its request carried, once`() {
         val publicKey = handler.expectNonce("n0nce", "192.168.0.24")
         val sealed = sealToDesktop(publicKey, aad = "n0nce", json = """{"token":"tok3n","fp":"cd34"}""").copy(nonce = "n0nce")
+        handler.handle(kexFor(sealed, nonce = "n0nce"), "192.168.0.24")
 
         assertEquals(true, handler.handle(sealed, "192.168.0.24")?.ok)
         assertEquals("cd34", paired.single().fingerprint)
@@ -191,8 +199,87 @@ class PairingEncryptionTest {
     fun `the list flow refuses a sealed pair from another address`() {
         val publicKey = handler.expectNonce("n0nce", "192.168.0.24")
         val sealed = sealToDesktop(publicKey, aad = "n0nce", json = """{"token":"tok3n"}""").copy(nonce = "n0nce")
+        handler.handle(kexFor(sealed, nonce = "n0nce"), "192.168.0.99")
 
         assertEquals(false, handler.handle(sealed, "192.168.0.99")?.ok)
         assertTrue(paired.isEmpty())
+    }
+
+    // --- the short verification code (DEB-67) ---
+
+    @Test
+    fun `a kex shows the verification code the phone derives from the same two keys`() {
+        val sealed = sealToDesktop(codes.current.value.publicKey, aad = "482913", json = """{"token":"tok3n"}""")
+
+        assertNull(handler.handle(kexFor(sealed, code = "482913"), "192.168.0.24"), "the phone does not wait on a reply")
+
+        val shown = handler.verification.value
+        assertNotNull(shown)
+        val expected = verificationCode(
+            Base64.getDecoder().decode(codes.current.value.publicKey),
+            Base64.getDecoder().decode(sealed.cpk),
+            "482913",
+        )
+        assertEquals(expected, shown.code)
+        assertEquals(4, shown.code.length)
+    }
+
+    @Test
+    fun `a kex with a wrong code shows nothing`() {
+        val sealed = sealToDesktop(codes.current.value.publicKey, aad = "000000", json = """{"token":"tok3n"}""")
+        handler.handle(kexFor(sealed, code = "000000"), "192.168.0.24")
+
+        assertNull(handler.verification.value)
+    }
+
+    @Test
+    fun `a sealed pair with no kex before it is refused`() {
+        val sealed = sealToDesktop(codes.current.value.publicKey, aad = "482913", json = """{"token":"tok3n"}""").copy(code = "482913")
+
+        assertEquals(false, handler.handle(sealed, "192.168.0.24")?.ok)
+        assertTrue(paired.isEmpty())
+    }
+
+    @Test
+    fun `a sealed pair that uses another key than the kex is refused`() {
+        val first = sealToDesktop(codes.current.value.publicKey, aad = "482913", json = """{"token":"tok3n"}""")
+        val other = sealToDesktop(codes.current.value.publicKey, aad = "482913", json = """{"token":"evil"}""").copy(code = "482913")
+        handler.handle(kexFor(first, code = "482913"), "192.168.0.24")
+
+        assertEquals(false, handler.handle(other, "192.168.0.24")?.ok)
+        assertTrue(paired.isEmpty())
+    }
+
+    @Test
+    fun `the code goes away once the phone is paired`() {
+        val sealed = sealToDesktop(codes.current.value.publicKey, aad = "482913", json = """{"token":"tok3n"}""").copy(code = "482913")
+        handler.handle(kexFor(sealed, code = "482913"), "192.168.0.24")
+        assertNotNull(handler.verification.value)
+
+        handler.handle(sealed, "192.168.0.24")
+
+        assertNull(handler.verification.value)
+    }
+
+    @Test
+    fun `the list flow shows the code for the nonce and only to the address that asked`() {
+        val publicKey = handler.expectNonce("n0nce", "192.168.0.24")
+        val sealed = sealToDesktop(publicKey, aad = "n0nce", json = """{"token":"tok3n"}""")
+
+        handler.handle(kexFor(sealed, nonce = "n0nce"), "192.168.0.99")
+        assertNull(handler.verification.value, "another address cannot make this desktop show a code")
+
+        handler.handle(kexFor(sealed, nonce = "n0nce"), "192.168.0.24")
+        assertEquals(
+            verificationCode(Base64.getDecoder().decode(publicKey), Base64.getDecoder().decode(sealed.cpk), "n0nce"),
+            handler.verification.value?.code,
+        )
+    }
+
+    @Test
+    fun `the verification code matches the fixed vector the phone side asserts`() {
+        val code = verificationCode(ByteArray(91) { it.toByte() }, ByteArray(91) { (it + 1).toByte() }, "482913")
+
+        assertEquals("4942", code)
     }
 }

@@ -57,7 +57,9 @@ internal actual fun sealPairingPayload(secret: ByteArray, aad: ByteArray, plaint
     SealedPayload(iv, sealed, ALG_CBC_HMAC)
 }.getOrNull()
 
-internal actual fun sealForPeer(peerPublicKey: ByteArray, aad: ByteArray, plaintext: ByteArray): PeerSealed? = runCatching {
+internal actual fun pairingSha256(input: ByteArray): ByteArray = sha256(input)
+
+internal actual fun openPeerSession(peerPublicKey: ByteArray): PeerSession? = runCatching {
     if (peerPublicKey.size != SPKI_P256_PREFIX.size + 65 || !peerPublicKey.copyOfRange(0, SPKI_P256_PREFIX.size).contentEquals(SPKI_P256_PREFIX)) {
         return@runCatching null
     }
@@ -77,8 +79,15 @@ internal actual fun sealForPeer(peerPublicKey: ByteArray, aad: ByteArray, plaint
         val shared = SecKeyCopyKeyExchangeResult(ownPrivate, kSecKeyAlgorithmECDHKeyExchangeStandard, peer, dictionaryOf(), error.ptr)
             ?.toByteArray() ?: return@memScoped null
         val key = sha256("bugsy-pair-v2".encodeToByteArray() + shared)
-        val (iv, sealed) = sealCbcHmac(key, aad, plaintext)
-        PeerSealed(SPKI_P256_PREFIX + ownPoint, iv, sealed, ALG_CBC_HMAC)
+        val ownPublicKey = SPKI_P256_PREFIX + ownPoint
+        object : PeerSession {
+            override val publicKey: ByteArray = ownPublicKey
+
+            override fun seal(aad: ByteArray, plaintext: ByteArray): PeerSealed? = runCatching {
+                val (iv, sealed) = sealCbcHmac(key, aad, plaintext)
+                PeerSealed(ownPublicKey, iv, sealed, ALG_CBC_HMAC)
+            }.getOrNull()
+        }
     }
 }.getOrNull()
 

@@ -1,5 +1,8 @@
 package com.bugsy.core.pairing
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -305,16 +308,26 @@ class PairingServiceTest {
         return cipher.doFinal(java.util.Base64.getDecoder().decode(message.enc)).decodeToString()
     }
 
+    /** Runs [block] while a person compares the short codes: waits for the prompt, then answers [match]. */
+    private suspend fun pairConfirming(service: PairingService, code: String, match: Boolean): PairingResult = coroutineScope {
+        val result = async { service.pairWithCode(code) }
+        val deadline = System.currentTimeMillis() + 5_000
+        while (service.pendingVerification.value == null && System.currentTimeMillis() < deadline) delay(10)
+        service.confirmVerification(match)
+        result.await()
+    }
+
+    private val answeringWithKey = { message: PairingMessage, _: String ->
+        when (message.type) {
+            PairingMessage.DISCOVER -> listOf(PairingMessage(PairingMessage.DESKTOP_HERE, name = "MacBook", pk = desktopPk))
+            PairingMessage.PAIR -> listOf(PairingMessage(PairingMessage.PAIR_RESULT, ok = true))
+            else -> emptyList()
+        }
+    }
+
     @Test
     fun `pairing by code seals the token to the key the desktop answered with`() = runBlocking {
-        val withKey = { message: PairingMessage, _: String ->
-            when (message.type) {
-                PairingMessage.DISCOVER -> listOf(PairingMessage(PairingMessage.DESKTOP_HERE, name = "MacBook", pk = desktopPk))
-                PairingMessage.PAIR -> listOf(PairingMessage(PairingMessage.PAIR_RESULT, ok = true))
-                else -> emptyList()
-            }
-        }
-        val result = newService(withKey, fingerprint = "ab12cd").pairWithCode("482913")
+        val result = pairConfirming(newService(answeringWithKey, fingerprint = "ab12cd"), "482913", match = true)
 
         assertEquals(PairingResult.Success("MacBook"), result)
         val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
@@ -327,13 +340,7 @@ class PairingServiceTest {
 
     @Test
     fun `a sealed code flow pair cannot be opened with the wrong code as authenticated data`() = runBlocking {
-        val withKey = { message: PairingMessage, _: String ->
-            when (message.type) {
-                PairingMessage.DISCOVER -> listOf(PairingMessage(PairingMessage.DESKTOP_HERE, name = "MacBook", pk = desktopPk))
-                else -> listOf(PairingMessage(PairingMessage.PAIR_RESULT, ok = true))
-            }
-        }
-        newService(withKey).pairWithCode("482913")
+        pairConfirming(newService(answeringWithKey), "482913", match = true)
         val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
 
         assertFailsWith<javax.crypto.AEADBadTagException> { openForDesktop(pair, aad = "000000") }
@@ -362,5 +369,95 @@ class PairingServiceTest {
         newService().pairWithCode("482913")
 
         assertEquals("tok3n", sent.first { it.third.type == PairingMessage.PAIR }.third.token)
+    }
+
+    // --- DEB-67: nothing secret is sent before the person confirms the short codes match ---
+
+    @Test
+    fun `the phone sends its key first and no token until the person confirms the code`() = runBlocking {
+        val service = newService(answeringWithKey)
+        val result = async(kotlinx.coroutines.Dispatchers.Default) { service.pairWithCode("482913") }
+        val deadline = System.currentTimeMillis() + 5_000
+        while (service.pendingVerification.value == null && System.currentTimeMillis() < deadline) delay(10)
+
+        val prompt = service.pendingVerification.value
+        assertEquals("MacBook", prompt?.desktopName)
+        assertEquals(4, prompt?.code?.length)
+        val kex = sent.first { it.third.type == PairingMessage.KEX }.third
+        assertEquals("482913", kex.code)
+        assertTrue(!kex.cpk.isNullOrEmpty())
+        assertTrue(sent.none { it.third.type == PairingMessage.PAIR }, "no pair before the person confirms")
+
+        service.confirmVerification(true)
+        assertEquals(PairingResult.Success("MacBook"), result.await())
+        // The code the phone showed is the one the desktop would compute from the same two keys.
+        assertEquals(prompt?.code, verificationCode(java.util.Base64.getDecoder().decode(desktopPk), java.util.Base64.getDecoder().decode(kex.cpk), "482913"))
+    }
+
+    @Test
+    fun `saying the codes differ stops the pairing and nothing secret is sent`() = runBlocking {
+        val result = pairConfirming(newService(answeringWithKey), "482913", match = false)
+
+        assertEquals(PairingResult.NotVerified, result)
+        assertTrue(sent.none { it.third.type == PairingMessage.PAIR }, "no pair after a mismatch")
+        assertTrue(sent.none { "tok3n" in it.third.toString() })
+    }
+
+    @Test
+    fun `not answering in time counts as not verified`() = runBlocking {
+        val service = PairingService(
+            wsPort = 7788,
+            tokenProvider = { "tok3n" },
+            openTransport = { FakeTransport(answeringWithKey, sent).also { transports += it } },
+            broadcasts = { listOf("255.255.255.255") },
+            deviceName = { "Pixel 7 Pro" },
+            osName = { "Android 14" },
+            discoverWaitMs = 150,
+            pairWaitMs = 300,
+            verificationWaitMs = 200,
+        ).also { this@PairingServiceTest.service = it }
+
+        assertEquals(PairingResult.NotVerified, service.pairWithCode("482913"))
+        assertNull(service.pendingVerification.value)
+        assertTrue(sent.none { it.third.type == PairingMessage.PAIR })
+    }
+
+    @Test
+    fun `a connect request with a key sends kex right away and carries the code to compare`() = runBlocking {
+        val service = newService()
+        service.startResponder()
+        val request = PairingMessage(PairingMessage.CONNECT_REQUEST, nonce = "n0nce", name = "MacBook", port = PAIRING_DESKTOP_UDP_PORT, pk = desktopPk)
+        transports.single().inbox.add(UdpPacket(request.encode(), "10.0.0.5", 50000))
+
+        val pending = awaitPending(service)
+        val kex = awaitSent { it.third.type == PairingMessage.KEX }
+        assertEquals("n0nce", kex.third.nonce)
+        assertEquals("10.0.0.5", kex.first)
+        assertEquals(PAIRING_DESKTOP_UDP_PORT, kex.second)
+        assertEquals(verificationCode(java.util.Base64.getDecoder().decode(desktopPk), java.util.Base64.getDecoder().decode(kex.third.cpk), "n0nce"), pending.verificationCode)
+        assertTrue(sent.none { it.third.type == PairingMessage.PAIR }, "no pair before the person allows")
+    }
+
+    @Test
+    fun `a connect request from an older desktop has no code and sends no kex`() = runBlocking {
+        val service = newService()
+        service.startResponder()
+        val request = PairingMessage(PairingMessage.CONNECT_REQUEST, nonce = "n0nce", name = "MacBook", port = PAIRING_DESKTOP_UDP_PORT)
+        transports.single().inbox.add(UdpPacket(request.encode(), "10.0.0.5", 50000))
+
+        assertNull(awaitPending(service).verificationCode)
+        assertTrue(sent.none { it.third.type == PairingMessage.KEX })
+    }
+
+    @Test
+    fun `the verification code is the same on both sides and changes with any input`() {
+        val desktop = ByteArray(91) { it.toByte() }
+        val phone = ByteArray(91) { (it + 1).toByte() }
+
+        val code = verificationCode(desktop, phone, "482913")
+        assertEquals(code, verificationCode(desktop, phone, "482913"))
+        assertEquals("4942", code, "fixed vector: the desktop computes the same value")
+        assertTrue(code != verificationCode(desktop, phone, "482914"))
+        assertTrue(code != verificationCode(phone, desktop, "482913"))
     }
 }

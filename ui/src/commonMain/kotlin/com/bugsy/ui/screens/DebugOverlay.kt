@@ -90,6 +90,7 @@ fun DebugOverlay(
     var showQrScanner by remember { mutableStateOf(false) }
     val desktopPairing = remember { DesktopPairingState() }
     val connectRequest by BugsyPairing.pendingConnectRequest.collectAsState()
+    val verification by BugsyPairing.pendingVerification.collectAsState()
     val requests by viewModel.requests.collectAsState()
     val flags by viewModel.flags.collectAsState()
     val mockRules by MockEngine.rulesFlow.collectAsState()
@@ -302,8 +303,16 @@ fun DebugOverlay(
             connectRequest?.let { request ->
                 ConnectRequestCard(
                     desktopName = request.desktopName,
+                    verificationCode = request.verificationCode,
                     onAllow = { scope.launch { BugsyPairing.respondToConnectRequest(allow = true) } },
                     onDeny = { scope.launch { BugsyPairing.respondToConnectRequest(allow = false) } },
+                )
+            }
+            verification?.let { pending ->
+                VerifyCodeCard(
+                    code = pending.code,
+                    onMatch = { BugsyPairing.confirmVerification(match = true) },
+                    onDifferent = { BugsyPairing.confirmVerification(match = false) },
                 )
             }
         }

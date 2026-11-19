@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GENERATED from assets/brand/bugsy-mark.svg. Do not edit: change that file and run ./gradlew :bugsy-desktop:generateBrandAssets.
+     The mark in the brand colour, for Android views (the floating button). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="104dp"
+    android:height="104dp"
+    android:viewportWidth="104"
+    android:viewportHeight="104">
+    <group android:translateX="-76" android:translateY="-66">
+        <path
+            android:pathData="M128 100C141.255 100 152 110.745 152 124V132C152 145.255 141.255 156 128 156C114.745 156 104 145.255 104 132V124C104 110.745 114.745 100 128 100Z"
+            android:strokeColor="#FFFF710B"
+            android:strokeWidth="7.2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M116 100V92C116 88.8174 117.264 85.7652 119.515 83.5147C121.765 81.2643 124.817 80 128 80C131.183 80 134.235 81.2643 136.485 83.5147C138.736 85.7652 140 88.8174 140 92V100M128 104V156M88 92L104 104M152 104L168 92M84 124H104M152 124H172M88 156L108 144M148 144L168 156"
+            android:strokeColor="#FFFF710B"
+            android:strokeWidth="7.2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

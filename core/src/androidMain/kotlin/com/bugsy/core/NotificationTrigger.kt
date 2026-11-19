@@ -95,7 +95,7 @@ actual class NotificationTrigger private constructor(
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
             val notification = builder
-                .setSmallIcon(android.R.drawable.ic_menu_info_details)
+                .setSmallIcon(R.drawable.bugsy_notification)
                 .setContentTitle("Bugsy")
                 .setContentText("Tap to open the debug panel")
                 .setContentIntent(tap)

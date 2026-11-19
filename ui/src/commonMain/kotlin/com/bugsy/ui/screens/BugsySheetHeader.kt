@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
@@ -23,9 +22,9 @@ import androidx.compose.ui.Modifier
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.bugsy_title
-import bugsy.ui.generated.resources.cd_bugsy_icon
 import bugsy.ui.generated.resources.cd_close
 import bugsy.ui.generated.resources.cd_settings
+import com.bugsy.ui.components.BugsyLogo
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
@@ -40,12 +39,7 @@ fun BugsySheetHeader(onSettings: () -> Unit, onDismiss: () -> Unit, settingsActi
         modifier = Modifier.fillMaxWidth()
             .padding(horizontal = BugsySpacing.sheetHorizontal, vertical = BugsySpacing.headerPaddingVertical),
     ) {
-        Icon(
-            Icons.Outlined.BugReport,
-            contentDescription = stringResource(Res.string.cd_bugsy_icon),
-            tint = BugsyColors.Brand,
-            modifier = Modifier.size(BugsySpacing.iconSizeLarge),
-        )
+        BugsyLogo(Modifier.size(BugsySpacing.iconSizeLarge))
         Text(stringResource(Res.string.bugsy_title), style = BugsyTypography.Title, color = BugsyColors.TextPrimary)
         Spacer(Modifier.weight(1f))
         IconButton(

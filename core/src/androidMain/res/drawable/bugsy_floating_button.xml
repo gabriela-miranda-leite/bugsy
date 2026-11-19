@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The floating button: the Bugsy mark in orange on the overlay's dark surface, with a thin orange ring. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FF0C0C10" />
+            <stroke android:width="1.5dp" android:color="#FFFF710B" />
+        </shape>
+    </item>
+    <item
+        android:drawable="@drawable/bugsy_mark"
+        android:left="13dp"
+        android:top="13dp"
+        android:right="13dp"
+        android:bottom="13dp" />
+</layer-list>

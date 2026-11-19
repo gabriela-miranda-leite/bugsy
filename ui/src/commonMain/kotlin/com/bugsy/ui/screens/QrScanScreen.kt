@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.FlashlightOff
 import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material3.Icon
@@ -49,7 +48,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.cd_back
-import bugsy.ui.generated.resources.cd_bugsy_icon
 import bugsy.ui.generated.resources.cd_flashlight
 import bugsy.ui.generated.resources.qr_scan_cant_scan
 import bugsy.ui.generated.resources.qr_scan_enter_code
@@ -58,6 +56,7 @@ import bugsy.ui.generated.resources.qr_scan_permission_denied
 import bugsy.ui.generated.resources.qr_scan_title
 import com.bugsy.core.pairing.parsePairingQr
 import com.bugsy.ui.components.DragHandle
+import com.bugsy.ui.components.BugsyLogo
 import com.bugsy.ui.theme.BugsyColors
 import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
@@ -209,7 +208,7 @@ private fun CantScanSheet(onEnterCodeManually: () -> Unit) {
     ) {
         DragHandle()
         Spacer(Modifier.height(BugsySpacing.md))
-        Icon(Icons.Outlined.BugReport, contentDescription = stringResource(Res.string.cd_bugsy_icon), tint = BugsyColors.Brand, modifier = Modifier.size(BugsySpacing.iconSizeLarge + BugsySpacing.md))
+        BugsyLogo(Modifier.size(BugsySpacing.iconSizeLarge + BugsySpacing.md))
         Spacer(Modifier.height(BugsySpacing.sm))
         Text(stringResource(Res.string.qr_scan_cant_scan), style = BugsyTypography.Body, color = BugsyColors.TextPrimary)
         Spacer(Modifier.height(BugsySpacing.md))

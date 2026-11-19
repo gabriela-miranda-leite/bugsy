@@ -3,3 +3,7 @@
 # QR code carries. The test now computes them instead of spelling them out.
 e2fdfae63723017cfe2de24c7d1b6f2f596e536a:core/src/androidUnitTest/kotlin/com/bugsy/core/pairing/PairingServiceTest.kt:generic-api-key:220
 e2fdfae63723017cfe2de24c7d1b6f2f596e536a:core/src/androidUnitTest/kotlin/com/bugsy/core/pairing/PairingServiceTest.kt:generic-api-key:253
+
+# Fake curl command in RequestSecretsTest (DEB-74), flagged as "curl-auth-header". It is fixture data for a test
+# asserting that RequestSecrets.toString() never leaks such content, not a real credential.
+18ba54673ce47a41b403f68c4acd797ae914fb7d:core/src/commonTest/kotlin/com/bugsy/core/model/RequestSecretsTest.kt:curl-auth-header:10

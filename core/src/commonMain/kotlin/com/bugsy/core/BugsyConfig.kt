@@ -17,6 +17,11 @@ data class BugsyConfig(
      * opened — never cached or persisted between sessions.
      */
     val customInfoProvider: () -> List<Pair<String, String>> = { emptyList() },
+    /**
+     * Name of the environment the app runs against (e.g. `"staging"`), shown on the Device tab. Bugsy can't
+     * discover it, so it stays "—" unless the app provides it.
+     */
+    val environment: String? = null,
     /** Requests at or above this duration are highlighted as slow in the UI. `0` turns the highlight off. */
     val slowRequestThresholdMs: Long = DEFAULT_SLOW_REQUEST_THRESHOLD_MS,
 ) {

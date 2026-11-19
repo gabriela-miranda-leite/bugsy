@@ -1,5 +1,6 @@
 package com.bugsy.core
 
+import com.bugsy.core.model.DeviceInfo
 import com.bugsy.core.pairing.BugsyPairing
 import com.bugsy.core.ws.BugsyWsServerHandle
 import com.bugsy.core.ws.startBugsyWsServer
@@ -24,6 +25,14 @@ object Bugsy {
 
     /** Read again on every call — see [BugsyConfig.customInfoProvider]. */
     fun customInfo(): List<Pair<String, String>> = customInfoProvider()
+
+    private var environment: String? = null
+
+    /**
+     * What the Device tab shows (and the BugsyWsServer sends to the desktop): read from the platform on every
+     * call, so nothing here is cached or made up. Fields that can't be read stay "—".
+     */
+    fun deviceInfo(): DeviceInfo = buildDeviceInfo(readPlatformDeviceInfo(), environment)
 
     private var debugInterceptor: DebugInterceptor? = null
     private var shakeDetector: ShakeDetector? = null
@@ -70,6 +79,7 @@ object Bugsy {
         destroy()
         _flagManager = FlagManager(config.flagsProvider)
         customInfoProvider = config.customInfoProvider
+        environment = config.environment
         CaptureSettings.configure(allowRevealingSecrets = config.allowRevealingSecrets)
         DebugRepository.slowRequestThresholdMs = config.slowRequestThresholdMs
         debugInterceptor = DebugInterceptor.create().also { it.attach() }

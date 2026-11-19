@@ -316,7 +316,7 @@ private fun ConnectBottomBar(waitingForPhone: Boolean) {
             Box(Modifier.size(BugsyDesktopSpacing.statusDotSize).background(dot, androidx.compose.foundation.shape.CircleShape))
             Text(if (waitingForPhone) "Waiting for the phone" else "Disconnected", style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
         }
-        Text(BugsyDesktopVersion, style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
+        Text(BugsyDesktopVersion.label, style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
     }
 }
 

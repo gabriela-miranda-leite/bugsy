@@ -51,6 +51,27 @@ dependencies {
     testImplementation(libs.ktor.network.tls.certificates)
 }
 
+// The version of the packaged app is derived from the library's, so there is one place to bump (DEB-70). The rule is in
+// buildSrc/src/main/kotlin/DesktopVersion.kt, with its tests.
+val libraryVersion = project.property("VERSION_NAME") as String
+val desktopVersion: String = try {
+    desktopPackageVersion(libraryVersion)
+} catch (error: IllegalArgumentException) {
+    throw GradleException(error.message ?: "Can't derive the desktop package version from VERSION_NAME.", error)
+}
+
+// The app shows both versions (its own and the library's it follows), read from this file at runtime.
+val generateVersionProperties = tasks.register("generateVersionProperties") {
+    val outputDir = layout.buildDirectory.dir("generated/version")
+    inputs.property("library", libraryVersion)
+    inputs.property("app", desktopVersion)
+    outputs.dir(outputDir)
+    doLast {
+        outputDir.get().asFile.apply { mkdirs() }.resolve("bugsy-version.properties").writeText("app=$desktopVersion\nlibrary=$libraryVersion\n")
+    }
+}
+sourceSets.main { resources.srcDir(generateVersionProperties) }
+
 compose.desktop {
     application {
         mainClass = "com.bugsy.desktop.MainKt"
@@ -59,7 +80,7 @@ compose.desktop {
             // What a person sees once it is installed: the app name in the Dock, Launchpad and Start menu, and the
             // installer's file name. The window title stays "Bugsy Desktop", which says what it is.
             packageName = "Bugsy"
-            packageVersion = "1.0.0"
+            packageVersion = desktopVersion
             description = "Remote debug client for apps embedding Bugsy."
             // The app icon of each platform, generated from assets/brand/bugsy-mark.svg (`generateBrandAssets`).
             macOS {

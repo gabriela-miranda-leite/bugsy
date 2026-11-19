@@ -150,7 +150,8 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                     throw e
                 } catch (e: Exception) {
                     // Connection refused, dropped mid-session, or handshake rejected — fall through to retry.
-                    if (!connected) _lastError.value = describeConnectionFailure(e)
+                    // The first route is the expected one (TLS); the plain fallback is only for phones without TLS, and its error would hide the real one.
+                    if (!connected && route == routes.first()) _lastError.value = describeConnectionFailure(e, "$host:$port")
                 }
                 if (connected) {
                     known = if (route == Route.Discover) learned.get()?.let { Route.Pinned(it) } ?: Route.Discover else route
@@ -263,19 +264,29 @@ class BugsyWsClient(private val scope: CoroutineScope) {
 }
 
 /**
- * What a failed attempt to reach the phone means, for the status bar. The reasons are told apart because they have
- * different fixes: a pinned certificate that does not match is a security signal, not a network problem.
+ * What a failed attempt to reach the phone means, for the status bar (DEB-69). The reasons are told apart because they have
+ * different fixes: a pinned certificate that does not match is a security signal, "refused" means the phone answered but
+ * nothing is listening, "no route" and a silence are the network (or, on a Mac, the Local Network permission). [address] is
+ * what was tried (`192.168.0.24:7788`), so a person can see whether it is even the phone's address.
  */
-internal fun describeConnectionFailure(error: Throwable): String {
+internal fun describeConnectionFailure(error: Throwable, address: String? = null): String {
     val chain = generateSequence(error) { it.cause }.toList()
     val text = chain.joinToString(" ") { "${it::class.simpleName} ${it.message.orEmpty()}" }
+    val lower = text.lowercase()
+    val target = address ?: "the phone"
     return when {
         "pinned fingerprint" in text ->
             "The phone's certificate is not the one it reported when pairing. Pair again, and be careful if you did not expect this."
-        "TLSException" in text || "SSL" in text || "handshake" in text.lowercase() ->
-            "Could not set up a secure connection with the phone (${chain.last().message ?: chain.last()::class.simpleName})."
-        "ConnectException" in text || "Connection refused" in text || "timed out" in text.lowercase() || "TimeoutCancellation" in text ->
-            "Could not reach the phone. Check that both are on the same Wi-Fi network and that the app is open."
-        else -> "Could not connect to the phone (${chain.last().message ?: chain.last()::class.simpleName})."
+        "no route to host" in lower ->
+            "No route to $target. On a Mac, allow Bugsy under System Settings > Privacy & Security > Local Network. " +
+                "If it is already allowed, the Wi-Fi may keep devices from reaching each other (guest or office networks)."
+        "connection refused" in lower || "econnrefused" in lower ->
+            "$target refused the connection: the Bugsy app on the phone is closed or its server is not running. Open the app and pair again."
+        "timed out" in lower || "timeout" in lower ->
+            "$target did not answer. Check that both are on the same Wi-Fi network. Some networks (guest or office Wi-Fi) block devices " +
+                "from reaching each other: try another network or a phone hotspot."
+        "TLSException" in text || "SSL" in text || "handshake" in lower ->
+            "Could not set up a secure connection with $target (${chain.last().message ?: chain.last()::class.simpleName})."
+        else -> "Could not connect to $target (${chain.last().message ?: chain.last()::class.simpleName})."
     }
 }

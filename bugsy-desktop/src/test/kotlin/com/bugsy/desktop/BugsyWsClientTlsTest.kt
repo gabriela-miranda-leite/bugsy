@@ -177,8 +177,33 @@ class ConnectionFailureTextTest {
     }
 
     @Test
-    fun `a refused connection points at the network`() {
-        assertTrue("same Wi-Fi" in describeConnectionFailure(java.net.ConnectException("Connection refused")))
+    fun `a refused connection says the app on the phone is closed and names the address`() {
+        val text = describeConnectionFailure(java.net.ConnectException("Connection refused"), "192.168.0.24:7788")
+
+        assertTrue("192.168.0.24:7788 refused" in text && "app on the phone is closed" in text, text)
+    }
+
+    @Test
+    fun `no route to host points at the Mac's Local Network permission first and the network second`() {
+        val text = describeConnectionFailure(
+            java.net.ConnectException("Failed to connect to /192.168.0.24:7788").apply { initCause(java.net.NoRouteToHostException("No route to host")) },
+            "192.168.0.24:7788",
+        )
+
+        assertTrue("No route to 192.168.0.24:7788" in text, text)
+        assertTrue("Local Network" in text && "guest or office" in text, text)
+    }
+
+    @Test
+    fun `a silence names the address and suggests another network or a hotspot`() {
+        val text = describeConnectionFailure(java.net.SocketTimeoutException("connect timed out"), "192.168.0.24:7788")
+
+        assertTrue("192.168.0.24:7788 did not answer" in text && "hotspot" in text, text)
+    }
+
+    @Test
+    fun `without an address it still reads well`() {
+        assertTrue(describeConnectionFailure(java.net.ConnectException("Connection refused")).startsWith("the phone refused"))
     }
 
     @Test

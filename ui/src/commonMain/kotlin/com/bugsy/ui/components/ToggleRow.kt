@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import bugsy.ui.generated.resources.Res
@@ -45,6 +46,7 @@ fun ToggleRow(flag: DebugFlag, onToggle: (Boolean) -> Unit, modifier: Modifier =
             Switch(
                 checked = flag.value == true,
                 onCheckedChange = onToggle,
+                modifier = Modifier.testTag("toggleRow_switch"),
                 colors = SwitchDefaults.colors(
                     checkedTrackColor = BugsyColors.SwitchOn,
                     checkedThumbColor = BugsyColors.TextPrimary,

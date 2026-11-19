@@ -91,7 +91,7 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                                 if (frame !is Frame.Text) continue
                                 when (val event = parseWireEvent(frame.readText())) {
                                     is WireEvent.Snapshot -> {
-                                        _requests.value = event.requests
+                                        _requests.value = event.requests.reversed() // snapshot is oldest-first; the list is newest-first
                                         _mockRules.value = event.mockRules
                                         _flags.value = event.flags
                                         _deviceInfo.value = event.deviceInfo

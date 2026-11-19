@@ -141,7 +141,7 @@ fun RequestListScreen(
         return
     }
 
-    val filtered = remember(requests, filter, category) { filterRequests(requests, filter, category) }
+    val filtered = remember(requests, filter, category) { filterRequests(requests, filter, category).asReversed() }
 
     Column {
         if (activeMockCount > 0) {

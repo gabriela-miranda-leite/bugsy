@@ -27,6 +27,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -39,6 +40,9 @@ enum class ConnectionState { DISCONNECTED, CONNECTING, CONNECTED, RECONNECTING }
 
 private const val INITIAL_BACKOFF_MS = 1_000L
 private const val MAX_BACKOFF_MS = 30_000L
+
+/** Thrown to abort a connection attempt after the person declined to trust an unpinned TLS certificate. */
+private class FingerprintRejectedException : Exception()
 
 /** Connects to a mobile app's BugsyWsServer (DEB-58), reconnecting with exponential backoff until [disconnect]. */
 class BugsyWsClient(private val scope: CoroutineScope) {
@@ -84,8 +88,18 @@ class BugsyWsClient(private val scope: CoroutineScope) {
      * the connection is then `wss://` and accepts only that certificate. Without it (manual connection, or an
      * older/iOS phone) the client tries `wss://` first, remembers the certificate it saw, and only falls back to
      * plain `ws://` when the phone has no TLS.
+     * @param confirmFingerprint Called with the newly-learned certificate fingerprint when [fingerprint] isn't
+     * already known (manual connection, trust-on-first-use), before the handshake token is sent. Must resolve to
+     * `true` to proceed; `false` or an exception cancels the attempt without ever sending the token, so an
+     * on-path attacker who intercepts this first connection can't walk away with it (DEB-74).
      */
-    fun connect(host: String, port: Int, token: String, fingerprint: String? = null) {
+    fun connect(
+        host: String,
+        port: Int,
+        token: String,
+        fingerprint: String? = null,
+        confirmFingerprint: (suspend (String) -> Boolean)? = null,
+    ) {
         disconnect()
         _requests.value = emptyList()
         _mockRules.value = emptyList()
@@ -107,6 +121,10 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                 try {
                     openRoute(route, host, port, learned) {
                         connected = true
+                        if (route == Route.Discover && confirmFingerprint != null) {
+                            val fp = learned.get() ?: throw FingerprintRejectedException()
+                            if (!confirmFingerprint(fp)) throw FingerprintRejectedException()
+                        }
                         _lastError.value = null
                         send(Frame.Text(encodeHandshake(token)))
                         session = this
@@ -148,6 +166,11 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                     }
                 } catch (e: CancellationException) {
                     throw e
+                } catch (e: FingerprintRejectedException) {
+                    // The person declined to trust the certificate: stop here, don't retry behind their back.
+                    _lastError.value = "Connection cancelled: certificate not trusted"
+                    _state.value = ConnectionState.DISCONNECTED
+                    return@launch
                 } catch (e: Exception) {
                     // Connection refused, dropped mid-session, or handshake rejected — fall through to retry.
                     // The first route is the expected one (TLS); the plain fallback is only for phones without TLS, and its error would hide the real one.

@@ -53,6 +53,24 @@ data class ConnectRequest(
     val verificationCode: String? = null,
 )
 
+/** Where and how to send a `pair` message: the desktop's address plus everything [PairingService.pairMessage] needs. */
+private data class PairingDestination(
+    val host: String,
+    val port: Int,
+    val code: String,
+    val desktopName: String?,
+    val secret: String?,
+    val session: PeerSession?,
+)
+
+/** The code/nonce/secret/session combination that decides how [PairingService.pairMessage] seals its payload. */
+private data class PairingHandshake(
+    val code: String? = null,
+    val nonce: String? = null,
+    val secret: String? = null,
+    val session: PeerSession? = null,
+)
+
 private const val CONNECT_REQUEST_TTL_MS = 60_000L
 private const val DISCOVER_ATTEMPTS = 3
 private const val RECEIVE_SLICE_MS = 200L
@@ -183,7 +201,7 @@ internal class PairingService(
         withContext(Dispatchers.Default) {
             val transport = openTransport(null) ?: return@withContext
             try {
-                transport.send(request.desktopHost, request.desktopPort, pairMessage(token, nonce = request.nonce, session = session).encode())
+                transport.send(request.desktopHost, request.desktopPort, pairMessage(token, PairingHandshake(nonce = request.nonce, session = session)).encode())
             } finally {
                 transport.close()
             }
@@ -224,7 +242,7 @@ internal class PairingService(
         val token = tokenProvider() ?: return@withContext PairingResult.ServerUnavailable
         val transport = openTransport(null) ?: return@withContext PairingResult.NoNetwork
         try {
-            pairAt(transport, qr.host, qr.port, qr.code, token, desktopName = null, secret = qr.secret, session = null)
+            pairAt(transport, PairingDestination(qr.host, qr.port, qr.code, desktopName = null, secret = qr.secret, session = null), token)
         } finally {
             transport.close()
         }
@@ -242,34 +260,25 @@ internal class PairingService(
             transport.send(packet.fromHost, packet.fromPort, PairingMessage(PairingMessage.KEX, code = code, cpk = session.publicKey.toBase64()).encode())
             if (!awaitVerification(verificationCode(desktopPkBytes, session.publicKey, code), hello.name)) return PairingResult.NotVerified
         }
-        return pairAt(transport, packet.fromHost, packet.fromPort, code, token, hello.name, secret = null, session = session)
+        return pairAt(transport, PairingDestination(packet.fromHost, packet.fromPort, code, desktopName = hello.name, secret = null, session = session), token)
     }
 
-    private fun pairAt(
-        transport: UdpTransport,
-        host: String,
-        port: Int,
-        code: String,
-        token: String,
-        desktopName: String?,
-        secret: String?,
-        session: PeerSession?,
-    ): PairingResult {
-        val payload = pairMessage(token, code = code, secret = secret, session = session).encode()
+    private fun pairAt(transport: UdpTransport, destination: PairingDestination, token: String): PairingResult {
+        val payload = pairMessage(token, PairingHandshake(code = destination.code, secret = destination.secret, session = destination.session)).encode()
         // UDP can drop a datagram: one retry halfway through the wait costs nothing, and the desktop treats a
         // repeated `pair` for an already-used code as invalid, which is why it only retries while still silent.
-        if (!transport.send(host, port, payload)) return PairingResult.NoNetwork
+        if (!transport.send(destination.host, destination.port, payload)) return PairingResult.NoNetwork
         val deadline = nowMs() + pairWaitMs
         var resent = false
         while (nowMs() < deadline) {
             val reply = awaitMessage(transport, pairWaitMs / 2) { it.second.type == PairingMessage.PAIR_RESULT }
             if (reply != null) {
                 val message = reply.second
-                return if (message.ok == true) PairingResult.Success(desktopName ?: message.name) else message.toFailure()
+                return if (message.ok == true) PairingResult.Success(destination.desktopName ?: message.name) else message.toFailure()
             }
             if (!resent) {
                 resent = true
-                transport.send(host, port, payload)
+                transport.send(destination.host, destination.port, payload)
             }
         }
         return PairingResult.DesktopNotFound
@@ -283,7 +292,8 @@ internal class PairingService(
      *     exposes someone who answers in the desktop's place;
      *  3. otherwise (an iOS phone, or an older desktop) they go in clear, as before.
      */
-    private fun pairMessage(token: String, code: String? = null, nonce: String? = null, secret: String? = null, session: PeerSession? = null): PairingMessage {
+    private fun pairMessage(token: String, handshake: PairingHandshake = PairingHandshake()): PairingMessage {
+        val (code, nonce, secret, session) = handshake
         val fingerprint = fingerprintProvider()
         val plaintext = pairingJson.encodeToString(PairSecret.serializer(), PairSecret(token, fingerprint)).encodeToByteArray()
         val aad = (code ?: nonce)?.encodeToByteArray()

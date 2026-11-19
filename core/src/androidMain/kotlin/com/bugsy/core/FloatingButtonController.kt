@@ -116,7 +116,7 @@ actual class FloatingButtonController private constructor(
             ValueAnimator.ofInt(layoutParams.x, targetX).apply {
                 duration = SNAP_ANIMATION_DURATION_MS
                 addUpdateListener { animator ->
-                    layoutParams.x = animator.animatedValue as Int
+                    layoutParams.x = animator.animatedValue as? Int ?: return@addUpdateListener
                     if (isAttached) windowManager.updateViewLayout(buttonView, layoutParams)
                 }
                 start()

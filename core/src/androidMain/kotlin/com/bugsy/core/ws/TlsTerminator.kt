@@ -58,6 +58,15 @@ internal class TlsTerminator(
     }
 
     private fun relay(client: Socket) {
+        try {
+            relayUnguarded(client)
+        } catch (_: Throwable) {
+            // A connection miscommunicating or tearing down mid-relay must never take the host app down with it.
+            closeQuietly(client)
+        }
+    }
+
+    private fun relayUnguarded(client: Socket) {
         val backend = try {
             Socket(InetAddress.getByName("127.0.0.1"), backendPort)
         } catch (_: IOException) {

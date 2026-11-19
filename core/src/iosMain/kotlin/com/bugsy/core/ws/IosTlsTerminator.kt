@@ -39,6 +39,7 @@ import platform.Security.SSLSetProtocolVersionMin
 import platform.Security.SSLWrite
 import platform.Security.errSSLClosedAbort
 import platform.Security.errSSLClosedGraceful
+import platform.Security.errSSLInternal
 import platform.Security.errSSLWouldBlock
 import platform.Security.SSLConnectionType
 import platform.Security.SSLProtocolSide
@@ -343,9 +344,10 @@ internal fun UShort.swapBytes(): UShort {
 
 /** SSLReadFunc: hands SecureTransport bytes from the socket; reports "would block" when it has fewer than asked. */
 private val readCallback = staticCFunction { connection: platform.Security.SSLConnectionRef?, data: kotlinx.cinterop.COpaquePointer?, length: CPointer<platform.posix.size_tVar>? ->
+    if (length == null || data == null) return@staticCFunction errSSLInternal
     val fd = connection.toLong().toInt()
-    val requested = length!!.pointed.value.toInt()
-    val buffer = data!!.reinterpret<ByteVar>()
+    val requested = length.pointed.value.toInt()
+    val buffer = data.reinterpret<ByteVar>()
     var done = 0
     var status = 0
     while (done < requested) {
@@ -363,9 +365,10 @@ private val readCallback = staticCFunction { connection: platform.Security.SSLCo
 
 /** SSLWriteFunc: sends everything, waiting out a full socket buffer, so SecureTransport never sees a partial write. */
 private val writeCallback = staticCFunction { connection: platform.Security.SSLConnectionRef?, data: kotlinx.cinterop.COpaquePointer?, length: CPointer<platform.posix.size_tVar>? ->
+    if (length == null || data == null) return@staticCFunction errSSLInternal
     val fd = connection.toLong().toInt()
-    val total = length!!.pointed.value.toInt()
-    val buffer = data!!.reinterpret<ByteVar>()
+    val total = length.pointed.value.toInt()
+    val buffer = data.reinterpret<ByteVar>()
     var done = 0
     var status = 0
     while (done < total) {

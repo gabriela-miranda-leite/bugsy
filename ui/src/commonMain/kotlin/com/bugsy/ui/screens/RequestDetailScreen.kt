@@ -94,13 +94,14 @@ fun RequestDetailScreen(
 ) {
     val clipboard = LocalClipboardManager.current
     val secrets = request.secrets
-    val showReal = revealed && secrets != null
+    val revealedSecrets = secrets.takeIf { revealed }
+    val showReal = revealedSecrets != null
 
-    val requestHeaders = if (showReal) secrets!!.requestHeaders else request.requestHeaders
-    val responseHeaders = if (showReal) secrets!!.responseHeaders else request.responseHeaders
-    val requestBody = if (showReal) secrets!!.requestBody else request.requestBody
-    val responseBody = if (showReal) secrets!!.responseBody else request.responseBody
-    val curl = if (showReal) secrets!!.curlCommand else request.curlCommand
+    val requestHeaders = revealedSecrets?.requestHeaders ?: request.requestHeaders
+    val responseHeaders = revealedSecrets?.responseHeaders ?: request.responseHeaders
+    val requestBody = revealedSecrets?.requestBody ?: request.requestBody
+    val responseBody = revealedSecrets?.responseBody ?: request.responseBody
+    val curl = revealedSecrets?.curlCommand ?: request.curlCommand
     fun copy(text: String) = clipboard.setText(AnnotatedString(text))
 
     Column {

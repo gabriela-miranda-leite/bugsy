@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -318,6 +320,40 @@ private fun ConnectBottomBar(waitingForPhone: Boolean) {
         }
         Text(BugsyDesktopVersion.label, style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
     }
+}
+
+/**
+ * Shown the first time a manual (IP/port/token) connection sees a phone's TLS certificate (DEB-74): there is no
+ * pairing channel to verify it against, so the person has to decide whether to trust it themselves, the same way
+ * a browser or an SSH client asks about an unknown certificate. The handshake token is only sent after [onTrust].
+ */
+@Composable
+internal fun TrustFingerprintDialog(fingerprint: String, onTrust: () -> Unit, onReject: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onReject,
+        title = { Text("Unknown certificate", style = BugsyDesktopTypography.Heading, color = BugsyDesktopColors.TextPrimary) },
+        text = {
+            Column {
+                Text(
+                    "This manual connection's TLS certificate hasn't been seen before. Only trust it if you recognize " +
+                        "this device and network — accepting an unexpected certificate lets whoever presented it read " +
+                        "everything Bugsy captures, including unmasked secrets.",
+                    style = BugsyDesktopTypography.Body,
+                    color = BugsyDesktopColors.TextSecondary,
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.height(BugsyDesktopSpacing.md))
+                Text("Fingerprint (SHA-256)", style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
+                Text(
+                    fingerprint.chunked(2).joinToString(":"),
+                    style = BugsyDesktopTypography.Code,
+                    color = BugsyDesktopColors.TextPrimary,
+                )
+            }
+        },
+        confirmButton = { Button(onClick = onTrust) { Text("Trust this certificate") } },
+        dismissButton = { TextButton(onClick = onReject) { Text("Cancel") } },
+        containerColor = BugsyDesktopColors.SurfaceElevated,
+    )
 }
 
 /** Shown while a phone is pairing by code or from the device list: the same 4 digits must be on the phone. */

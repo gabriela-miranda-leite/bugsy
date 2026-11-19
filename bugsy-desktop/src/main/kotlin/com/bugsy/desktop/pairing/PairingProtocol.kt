@@ -26,6 +26,18 @@ data class PairingMessage(
     val os: String? = null,
     val ok: Boolean? = null,
     val reason: String? = null,
+    /** SHA-256 hex of the phone's TLS certificate. Mirrors `:core`'s `PairingMessage.fp`. */
+    val fp: String? = null,
+    /** AES-GCM nonce (base64) of [enc]. */
+    val iv: String? = null,
+    /** AES-GCM of `{"token","fp"}` (base64), keyed by the QR secret and bound to [code]. Replaces [token] and [fp]. */
+    val enc: String? = null,
+    /** This desktop's one-time ECDH public key (base64): the phone seals its token to it in the code and list flows. */
+    val pk: String? = null,
+    /** The phone's one-time ECDH public key (base64), the other half of the shared secret. */
+    val cpk: String? = null,
+    /** How [enc] was sealed: absent means AES-256-GCM, `cbc-hmac` means AES-256-CBC then HMAC-SHA256 (iOS). */
+    val alg: String? = null,
 ) {
     companion object {
         const val DISCOVER = "discover"
@@ -35,6 +47,9 @@ data class PairingMessage(
         const val WHO = "who"
         const val DEVICE = "device"
         const val CONNECT_REQUEST = "connect_request"
+
+        /** Phone to desktop, before any token: its one-time key. Both screens then show the same verification code. */
+        const val KEX = "kex"
 
         const val REASON_INVALID = "invalid"
         const val REASON_EXPIRED = "expired"
@@ -49,5 +64,9 @@ fun PairingMessage.encode(): ByteArray = pairingJson.encodeToString(PairingMessa
 fun decodePairingMessage(bytes: ByteArray): PairingMessage? =
     runCatching { pairingJson.decodeFromString(PairingMessage.serializer(), bytes.decodeToString()) }.getOrNull()
 
-/** What the QR code carries: `bugsy://pair?host=192.168.0.10&port=7790&code=482913`. */
-fun pairingQrText(host: String, port: Int, code: String): String = "bugsy://pair?host=$host&port=$port&code=$code"
+/**
+ * What the QR code carries: `bugsy://pair?host=192.168.0.10&port=7790&code=482913&key=<secret>`. The secret never
+ * leaves the screen, and the phone uses it to encrypt the token (DEB-67).
+ */
+fun pairingQrText(host: String, port: Int, code: String, secret: String? = null): String =
+    "bugsy://pair?host=$host&port=$port&code=$code" + (secret?.let { "&key=$it" } ?: "")

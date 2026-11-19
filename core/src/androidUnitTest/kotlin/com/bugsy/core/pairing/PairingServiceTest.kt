@@ -1,11 +1,15 @@
 package com.bugsy.core.pairing
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -57,9 +61,11 @@ class PairingServiceTest {
     private fun newService(
         desktop: (PairingMessage, String) -> List<PairingMessage> = desktop(),
         token: String? = "tok3n",
+        fingerprint: String? = null,
     ): PairingService = PairingService(
         wsPort = 7788,
         tokenProvider = { token },
+        fingerprintProvider = { fingerprint },
         openTransport = { FakeTransport(desktop, sent).also { transports += it } },
         broadcasts = { listOf("255.255.255.255") },
         deviceName = { "Pixel 7 Pro" },
@@ -210,5 +216,249 @@ class PairingServiceTest {
             Thread.sleep(10)
         }
         throw AssertionError("expected datagram was never sent; sent=$sent")
+    }
+
+    // --- DEB-67: nothing secret in clear on the QR flow, and the fingerprint to pin on every flow ---
+
+    // 16 bytes, base64url, as the desktop's QR carries it. Computed, not written out: it is a test value, not a credential.
+    private val qrSecret = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(16) { it.toByte() })
+
+    private fun openSealed(message: PairingMessage, secret: String = qrSecret): String {
+        val key = deriveAesKey(java.util.Base64.getUrlDecoder().decode(secret))
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(
+            javax.crypto.Cipher.DECRYPT_MODE,
+            key,
+            javax.crypto.spec.GCMParameterSpec(128, java.util.Base64.getDecoder().decode(message.iv)),
+        )
+        cipher.updateAAD(message.code!!.encodeToByteArray())
+        return cipher.doFinal(java.util.Base64.getDecoder().decode(message.enc)).decodeToString()
+    }
+
+    @Test
+    fun `pairing by a qr with a secret seals the token and the fingerprint`() = runBlocking {
+        val result = newService(fingerprint = "ab12cd").pairWithQr("bugsy://pair?host=10.0.0.5&port=7790&code=482913&key=$qrSecret")
+
+        assertEquals(PairingResult.Success(null), result)
+        val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
+        assertNull(pair.token, "the token must not travel in clear")
+        assertNull(pair.fp, "the fingerprint must not travel in clear")
+        assertEquals("482913", pair.code)
+        val opened = openSealed(pair)
+        assertTrue("tok3n" in opened && "ab12cd" in opened, opened)
+        assertTrue(sent.none { "tok3n" in (it.third.toString()) }, "no datagram may contain the token in clear")
+    }
+
+    @Test
+    fun `a sealed pair cannot be opened with another secret`() = runBlocking {
+        newService().pairWithQr("bugsy://pair?host=10.0.0.5&port=7790&code=482913&key=$qrSecret")
+        val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
+
+        assertFailsWith<javax.crypto.AEADBadTagException> { openSealed(pair, secret = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(16) { (it + 1).toByte() })) }
+        Unit
+    }
+
+    @Test
+    fun `a qr without a secret (older desktop) still pairs in clear`() = runBlocking {
+        newService(fingerprint = "ab12cd").pairWithQr("bugsy://pair?host=10.0.0.5&port=7790&code=482913")
+
+        val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
+        assertEquals("tok3n", pair.token)
+        assertEquals("ab12cd", pair.fp)
+        assertNull(pair.enc)
+    }
+
+    @Test
+    fun `pairing by code sends the fingerprint so the desktop can pin it`() = runBlocking {
+        newService(fingerprint = "ab12cd").pairWithCode("482913")
+
+        assertEquals("ab12cd", sent.first { it.third.type == PairingMessage.PAIR }.third.fp)
+    }
+
+    @Test
+    fun `the qr round trips its secret`() {
+        val qr = parsePairingQr("bugsy://pair?host=10.0.0.5&port=7790&code=482913&key=$qrSecret")
+
+        assertEquals(PairingQr("10.0.0.5", 7790, "482913", qrSecret), qr)
+        assertEquals("bugsy://pair?host=10.0.0.5&port=7790&code=482913&key=$qrSecret", qr!!.toQrText())
+    }
+
+    // --- DEB-67: code and list flows seal the token to the desktop's one-time ECDH key ---
+
+    private val desktopKeys = java.security.KeyPairGenerator.getInstance("EC")
+        .apply { initialize(java.security.spec.ECGenParameterSpec("secp256r1")) }.generateKeyPair()
+    private val desktopPk = java.util.Base64.getEncoder().encodeToString(desktopKeys.public.encoded)
+
+    /** What the desktop does with a sealed `pair`: ECDH with the phone's key, then AES-GCM with [aad]. */
+    private fun openForDesktop(message: PairingMessage, aad: String): String {
+        val phone = java.security.KeyFactory.getInstance("EC").generatePublic(
+            java.security.spec.X509EncodedKeySpec(java.util.Base64.getDecoder().decode(message.cpk)),
+        )
+        val shared = javax.crypto.KeyAgreement.getInstance("ECDH").apply {
+            init(desktopKeys.private)
+            doPhase(phone, true)
+        }.generateSecret()
+        val digest = java.security.MessageDigest.getInstance("SHA-256").apply { update("bugsy-pair-v2".encodeToByteArray()) }
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(
+            javax.crypto.Cipher.DECRYPT_MODE,
+            javax.crypto.spec.SecretKeySpec(digest.digest(shared), "AES"),
+            javax.crypto.spec.GCMParameterSpec(128, java.util.Base64.getDecoder().decode(message.iv)),
+        )
+        cipher.updateAAD(aad.encodeToByteArray())
+        return cipher.doFinal(java.util.Base64.getDecoder().decode(message.enc)).decodeToString()
+    }
+
+    /** Runs [block] while a person compares the short codes: waits for the prompt, then answers [match]. */
+    private suspend fun pairConfirming(service: PairingService, code: String, match: Boolean): PairingResult = coroutineScope {
+        val result = async { service.pairWithCode(code) }
+        val deadline = System.currentTimeMillis() + 5_000
+        while (service.pendingVerification.value == null && System.currentTimeMillis() < deadline) delay(10)
+        service.confirmVerification(match)
+        result.await()
+    }
+
+    private val answeringWithKey = { message: PairingMessage, _: String ->
+        when (message.type) {
+            PairingMessage.DISCOVER -> listOf(PairingMessage(PairingMessage.DESKTOP_HERE, name = "MacBook", pk = desktopPk))
+            PairingMessage.PAIR -> listOf(PairingMessage(PairingMessage.PAIR_RESULT, ok = true))
+            else -> emptyList()
+        }
+    }
+
+    @Test
+    fun `pairing by code seals the token to the key the desktop answered with`() = runBlocking {
+        val result = pairConfirming(newService(answeringWithKey, fingerprint = "ab12cd"), "482913", match = true)
+
+        assertEquals(PairingResult.Success("MacBook"), result)
+        val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
+        assertNull(pair.token, "the token must not travel in clear")
+        assertNull(pair.fp)
+        val opened = openForDesktop(pair, aad = "482913")
+        assertTrue("tok3n" in opened && "ab12cd" in opened, opened)
+        assertTrue(sent.none { "tok3n" in it.third.toString() })
+    }
+
+    @Test
+    fun `a sealed code flow pair cannot be opened with the wrong code as authenticated data`() = runBlocking {
+        pairConfirming(newService(answeringWithKey), "482913", match = true)
+        val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
+
+        assertFailsWith<javax.crypto.AEADBadTagException> { openForDesktop(pair, aad = "000000") }
+        Unit
+    }
+
+    @Test
+    fun `approving a connect request seals the token to the key the request carried`() = runBlocking {
+        val service = newService(fingerprint = "ab12cd")
+        service.startResponder()
+        val request = PairingMessage(PairingMessage.CONNECT_REQUEST, nonce = "n0nce", name = "MacBook", port = PAIRING_DESKTOP_UDP_PORT, pk = desktopPk)
+        transports.single().inbox.add(UdpPacket(request.encode(), "10.0.0.5", 50000))
+        awaitPending(service)
+
+        service.respondToConnectRequest(allow = true)
+
+        val pair = awaitSent { it.third.type == PairingMessage.PAIR }.third
+        assertNull(pair.token)
+        assertEquals("n0nce", pair.nonce)
+        val opened = openForDesktop(pair, aad = "n0nce")
+        assertTrue("tok3n" in opened && "ab12cd" in opened, opened)
+    }
+
+    @Test
+    fun `an older desktop that sends no key still gets the token in clear`() = runBlocking {
+        newService().pairWithCode("482913")
+
+        assertEquals("tok3n", sent.first { it.third.type == PairingMessage.PAIR }.third.token)
+    }
+
+    // --- DEB-67: nothing secret is sent before the person confirms the short codes match ---
+
+    @Test
+    fun `the phone sends its key first and no token until the person confirms the code`() = runBlocking {
+        val service = newService(answeringWithKey)
+        val result = async(kotlinx.coroutines.Dispatchers.Default) { service.pairWithCode("482913") }
+        val deadline = System.currentTimeMillis() + 5_000
+        while (service.pendingVerification.value == null && System.currentTimeMillis() < deadline) delay(10)
+
+        val prompt = service.pendingVerification.value
+        assertEquals("MacBook", prompt?.desktopName)
+        assertEquals(4, prompt?.code?.length)
+        val kex = sent.first { it.third.type == PairingMessage.KEX }.third
+        assertEquals("482913", kex.code)
+        assertTrue(!kex.cpk.isNullOrEmpty())
+        assertTrue(sent.none { it.third.type == PairingMessage.PAIR }, "no pair before the person confirms")
+
+        service.confirmVerification(true)
+        assertEquals(PairingResult.Success("MacBook"), result.await())
+        // The code the phone showed is the one the desktop would compute from the same two keys.
+        assertEquals(prompt?.code, verificationCode(java.util.Base64.getDecoder().decode(desktopPk), java.util.Base64.getDecoder().decode(kex.cpk), "482913"))
+    }
+
+    @Test
+    fun `saying the codes differ stops the pairing and nothing secret is sent`() = runBlocking {
+        val result = pairConfirming(newService(answeringWithKey), "482913", match = false)
+
+        assertEquals(PairingResult.NotVerified, result)
+        assertTrue(sent.none { it.third.type == PairingMessage.PAIR }, "no pair after a mismatch")
+        assertTrue(sent.none { "tok3n" in it.third.toString() })
+    }
+
+    @Test
+    fun `not answering in time counts as not verified`() = runBlocking {
+        val service = PairingService(
+            wsPort = 7788,
+            tokenProvider = { "tok3n" },
+            openTransport = { FakeTransport(answeringWithKey, sent).also { transports += it } },
+            broadcasts = { listOf("255.255.255.255") },
+            deviceName = { "Pixel 7 Pro" },
+            osName = { "Android 14" },
+            discoverWaitMs = 150,
+            pairWaitMs = 300,
+            verificationWaitMs = 200,
+        ).also { this@PairingServiceTest.service = it }
+
+        assertEquals(PairingResult.NotVerified, service.pairWithCode("482913"))
+        assertNull(service.pendingVerification.value)
+        assertTrue(sent.none { it.third.type == PairingMessage.PAIR })
+    }
+
+    @Test
+    fun `a connect request with a key sends kex right away and carries the code to compare`() = runBlocking {
+        val service = newService()
+        service.startResponder()
+        val request = PairingMessage(PairingMessage.CONNECT_REQUEST, nonce = "n0nce", name = "MacBook", port = PAIRING_DESKTOP_UDP_PORT, pk = desktopPk)
+        transports.single().inbox.add(UdpPacket(request.encode(), "10.0.0.5", 50000))
+
+        val pending = awaitPending(service)
+        val kex = awaitSent { it.third.type == PairingMessage.KEX }
+        assertEquals("n0nce", kex.third.nonce)
+        assertEquals("10.0.0.5", kex.first)
+        assertEquals(PAIRING_DESKTOP_UDP_PORT, kex.second)
+        assertEquals(verificationCode(java.util.Base64.getDecoder().decode(desktopPk), java.util.Base64.getDecoder().decode(kex.third.cpk), "n0nce"), pending.verificationCode)
+        assertTrue(sent.none { it.third.type == PairingMessage.PAIR }, "no pair before the person allows")
+    }
+
+    @Test
+    fun `a connect request from an older desktop has no code and sends no kex`() = runBlocking {
+        val service = newService()
+        service.startResponder()
+        val request = PairingMessage(PairingMessage.CONNECT_REQUEST, nonce = "n0nce", name = "MacBook", port = PAIRING_DESKTOP_UDP_PORT)
+        transports.single().inbox.add(UdpPacket(request.encode(), "10.0.0.5", 50000))
+
+        assertNull(awaitPending(service).verificationCode)
+        assertTrue(sent.none { it.third.type == PairingMessage.KEX })
+    }
+
+    @Test
+    fun `the verification code is the same on both sides and changes with any input`() {
+        val desktop = ByteArray(91) { it.toByte() }
+        val phone = ByteArray(91) { (it + 1).toByte() }
+
+        val code = verificationCode(desktop, phone, "482913")
+        assertEquals(code, verificationCode(desktop, phone, "482913"))
+        assertEquals("4942", code, "fixed vector: the desktop computes the same value")
+        assertTrue(code != verificationCode(desktop, phone, "482914"))
+        assertTrue(code != verificationCode(phone, desktop, "482913"))
     }
 }

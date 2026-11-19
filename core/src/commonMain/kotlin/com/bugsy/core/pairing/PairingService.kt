@@ -1,5 +1,6 @@
 package com.bugsy.core.pairing
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -11,6 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.time.TimeSource
 
 /** Outcome of an attempt to pair this device with Bugsy Desktop (DEB-64). */
@@ -29,14 +33,30 @@ sealed class PairingResult {
 
     /** The BugsyWsServer isn't running (not initialized, or no server on this platform). */
     data object ServerUnavailable : PairingResult()
+
+    /** The person said the verification codes differ, or never confirmed them: nothing secret was sent. */
+    data object NotVerified : PairingResult()
 }
 
+/** The short code to compare with the one on the desktop before the token is sent (DEB-67). */
+data class PairingVerification(val code: String, val desktopName: String?)
+
 /** A desktop that picked this device from its "Devices on your network" list and is waiting for approval. */
-data class ConnectRequest(val desktopName: String, val desktopHost: String, val desktopPort: Int, val nonce: String)
+data class ConnectRequest(
+    val desktopName: String,
+    val desktopHost: String,
+    val desktopPort: Int,
+    val nonce: String,
+    /** The desktop's one-time ECDH public key, so the token is sent sealed (DEB-67). */
+    val desktopPk: String? = null,
+    /** The short code to compare with the desktop's screen before allowing; `null` for an older desktop with no key. */
+    val verificationCode: String? = null,
+)
 
 private const val CONNECT_REQUEST_TTL_MS = 60_000L
 private const val DISCOVER_ATTEMPTS = 3
 private const val RECEIVE_SLICE_MS = 200L
+private const val VERIFICATION_TIMEOUT_MS = 45_000L
 
 /**
  * Both halves of the pairing protocol (see [PairingMessage]) for the mobile side:
@@ -47,6 +67,7 @@ private const val RECEIVE_SLICE_MS = 200L
 internal class PairingService(
     private val wsPort: Int,
     private val tokenProvider: () -> String?,
+    private val fingerprintProvider: () -> String? = { null },
     private val openTransport: (Int?) -> UdpTransport? = ::openUdpTransport,
     private val broadcasts: () -> List<String> = ::broadcastAddresses,
     private val deviceName: () -> String = ::deviceDisplayName,
@@ -54,6 +75,7 @@ internal class PairingService(
     private val nowMs: () -> Long = ::monotonicMillis,
     private val discoverWaitMs: Long = 1_000L,
     private val pairWaitMs: Long = 3_000L,
+    private val verificationWaitMs: Long = VERIFICATION_TIMEOUT_MS,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var responderJob: Job? = null
@@ -61,6 +83,31 @@ internal class PairingService(
 
     private val _pendingConnectRequest = MutableStateFlow<ConnectRequest?>(null)
     val pendingConnectRequest: StateFlow<ConnectRequest?> = _pendingConnectRequest
+
+    private val _pendingVerification = MutableStateFlow<PairingVerification?>(null)
+
+    /** Set while pairing by code is waiting for the person to compare the short code with the desktop's. */
+    val pendingVerification: StateFlow<PairingVerification?> = _pendingVerification
+
+    private var verificationAnswer: CompletableDeferred<Boolean>? = null
+
+    /** The one-time keys of connect requests waiting for the person's answer, by nonce. */
+    private val requestSessions = mutableMapOf<String, PeerSession>()
+
+    /** The person compared the codes: [match] is whether they were the same. A `false` sends nothing secret. */
+    fun confirmVerification(match: Boolean) {
+        verificationAnswer?.complete(match)
+    }
+
+    private suspend fun awaitVerification(code: String, desktopName: String?): Boolean {
+        val answer = CompletableDeferred<Boolean>()
+        verificationAnswer = answer
+        _pendingVerification.value = PairingVerification(code, desktopName)
+        val matched = withTimeoutOrNull(verificationWaitMs) { answer.await() } ?: false
+        _pendingVerification.value = null
+        verificationAnswer = null
+        return matched
+    }
 
     /** Starts answering the desktop's discovery. Idempotent; silently does nothing if the port is taken. */
     fun startResponder() {
@@ -83,6 +130,9 @@ internal class PairingService(
         responderJob = null
         expiryJob = null
         _pendingConnectRequest.value = null
+        _pendingVerification.value = null
+        verificationAnswer?.complete(false)
+        requestSessions.clear()
         scope.cancel()
     }
 
@@ -94,11 +144,23 @@ internal class PairingService(
             }
             PairingMessage.CONNECT_REQUEST -> {
                 val nonce = message.nonce ?: return
+                val desktopPkBytes = message.pk?.let(::decodeBase64)
+                val session = desktopPkBytes?.let(::openPeerSession)
+                val desktopPort = message.port ?: PAIRING_DESKTOP_UDP_PORT
+                var verification: String? = null
+                if (session != null && desktopPkBytes != null) {
+                    // The desktop shows the same code as soon as it gets this, so the person can compare before allowing.
+                    verification = verificationCode(desktopPkBytes, session.publicKey, nonce)
+                    requestSessions[nonce] = session
+                    transport.send(packet.fromHost, desktopPort, PairingMessage(PairingMessage.KEX, nonce = nonce, cpk = session.publicKey.toBase64()).encode())
+                }
                 val request = ConnectRequest(
                     desktopName = message.name ?: packet.fromHost,
                     desktopHost = packet.fromHost,
-                    desktopPort = message.port ?: PAIRING_DESKTOP_UDP_PORT,
+                    desktopPort = desktopPort,
                     nonce = nonce,
+                    desktopPk = message.pk,
+                    verificationCode = verification,
                 )
                 _pendingConnectRequest.value = request
                 expiryJob?.cancel()
@@ -115,12 +177,13 @@ internal class PairingService(
         val request = _pendingConnectRequest.value ?: return
         _pendingConnectRequest.value = null
         expiryJob?.cancel()
+        val session = requestSessions.remove(request.nonce)
         if (!allow) return
         val token = tokenProvider() ?: return
         withContext(Dispatchers.Default) {
             val transport = openTransport(null) ?: return@withContext
             try {
-                transport.send(request.desktopHost, request.desktopPort, pairMessage(token, nonce = request.nonce).encode())
+                transport.send(request.desktopHost, request.desktopPort, pairMessage(token, nonce = request.nonce, session = session).encode())
             } finally {
                 transport.close()
             }
@@ -144,7 +207,7 @@ internal class PairingService(
                 if (reply != null) {
                     val (packet, message) = reply
                     return@withContext when (message.type) {
-                        PairingMessage.DESKTOP_HERE -> pairAt(transport, packet.fromHost, packet.fromPort, code, token, message.name)
+                        PairingMessage.DESKTOP_HERE -> pairWithCodeAt(transport, packet, code, token, message)
                         else -> message.toFailure()
                     }
                 }
@@ -161,14 +224,38 @@ internal class PairingService(
         val token = tokenProvider() ?: return@withContext PairingResult.ServerUnavailable
         val transport = openTransport(null) ?: return@withContext PairingResult.NoNetwork
         try {
-            pairAt(transport, qr.host, qr.port, qr.code, token, desktopName = null)
+            pairAt(transport, qr.host, qr.port, qr.code, token, desktopName = null, secret = qr.secret, session = null)
         } finally {
             transport.close()
         }
     }
 
-    private fun pairAt(transport: UdpTransport, host: String, port: Int, code: String, token: String, desktopName: String?): PairingResult {
-        val payload = pairMessage(token, code = code).encode()
+    /**
+     * The desktop answered the code. When it gave a one-time key, the phone sends its own (`kex`), both screens show
+     * the same short code, and only once the person confirms they match does the sealed token go out. An older
+     * desktop with no key gets the token the way it always did.
+     */
+    private suspend fun pairWithCodeAt(transport: UdpTransport, packet: UdpPacket, code: String, token: String, hello: PairingMessage): PairingResult {
+        val desktopPkBytes = hello.pk?.let(::decodeBase64)
+        val session = desktopPkBytes?.let(::openPeerSession)
+        if (session != null && desktopPkBytes != null) {
+            transport.send(packet.fromHost, packet.fromPort, PairingMessage(PairingMessage.KEX, code = code, cpk = session.publicKey.toBase64()).encode())
+            if (!awaitVerification(verificationCode(desktopPkBytes, session.publicKey, code), hello.name)) return PairingResult.NotVerified
+        }
+        return pairAt(transport, packet.fromHost, packet.fromPort, code, token, hello.name, secret = null, session = session)
+    }
+
+    private fun pairAt(
+        transport: UdpTransport,
+        host: String,
+        port: Int,
+        code: String,
+        token: String,
+        desktopName: String?,
+        secret: String?,
+        session: PeerSession?,
+    ): PairingResult {
+        val payload = pairMessage(token, code = code, secret = secret, session = session).encode()
         // UDP can drop a datagram: one retry halfway through the wait costs nothing, and the desktop treats a
         // repeated `pair` for an already-used code as invalid, which is why it only retries while still silent.
         if (!transport.send(host, port, payload)) return PairingResult.NoNetwork
@@ -188,8 +275,35 @@ internal class PairingService(
         return PairingResult.DesktopNotFound
     }
 
-    private fun pairMessage(token: String, code: String? = null, nonce: String? = null) =
-        PairingMessage(PairingMessage.PAIR, code = code, nonce = nonce, port = wsPort, token = token, name = deviceName(), os = osName())
+    /**
+     * What goes in the `pair`. The token and the certificate fingerprint are sealed whenever the platform can:
+     *  1. with the QR [secret], the strongest: only the desktop's screen has it;
+     *  2. otherwise to the desktop's one-time ECDH key, through [session] (code and list flows), which keeps them
+     *     from anyone who only listens. The short verification code the person confirmed before this is what
+     *     exposes someone who answers in the desktop's place;
+     *  3. otherwise (an iOS phone, or an older desktop) they go in clear, as before.
+     */
+    private fun pairMessage(token: String, code: String? = null, nonce: String? = null, secret: String? = null, session: PeerSession? = null): PairingMessage {
+        val fingerprint = fingerprintProvider()
+        val plaintext = pairingJson.encodeToString(PairSecret.serializer(), PairSecret(token, fingerprint)).encodeToByteArray()
+        val aad = (code ?: nonce)?.encodeToByteArray()
+
+        val qrKey = secret?.let(::decodeUrlSafeBase64)
+        if (qrKey != null && code != null) {
+            sealPairingPayload(qrKey, code.encodeToByteArray(), plaintext)?.let { sealed ->
+                return PairingMessage(PairingMessage.PAIR, code = code, port = wsPort, name = deviceName(), os = osName(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64(), alg = sealed.alg)
+            }
+        }
+        if (session != null && aad != null) {
+            session.seal(aad, plaintext)?.let { sealed ->
+                return PairingMessage(
+                    PairingMessage.PAIR, code = code, nonce = nonce, port = wsPort, name = deviceName(), os = osName(),
+                    cpk = sealed.publicKey.toBase64(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64(), alg = sealed.alg,
+                )
+            }
+        }
+        return PairingMessage(PairingMessage.PAIR, code = code, nonce = nonce, port = wsPort, token = token, name = deviceName(), os = osName(), fp = fingerprint)
+    }
 
     private fun PairingMessage.toFailure(): PairingResult = when (reason) {
         PairingMessage.REASON_EXPIRED -> PairingResult.ExpiredCode
@@ -216,3 +330,9 @@ internal class PairingService(
 private val monotonicOrigin = TimeSource.Monotonic.markNow()
 
 private fun monotonicMillis(): Long = monotonicOrigin.elapsedNow().inWholeMilliseconds
+
+/** What the sealed `pair` carries. */
+@Serializable
+private class PairSecret(val token: String, val fp: String? = null)
+
+private val pairingJson = Json { explicitNulls = false }

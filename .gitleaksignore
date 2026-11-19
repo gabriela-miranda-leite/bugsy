@@ -1,0 +1,5 @@
+# Test values in PairingServiceTest (the bytes 0..15 and 1..16 in base64url), flagged as "generic-api-key" in an
+# earlier commit of the DEB-67 branch. They are not credentials: they stand in for the random secret a desktop's
+# QR code carries. The test now computes them instead of spelling them out.
+e2fdfae63723017cfe2de24c7d1b6f2f596e536a:core/src/androidUnitTest/kotlin/com/bugsy/core/pairing/PairingServiceTest.kt:generic-api-key:220
+e2fdfae63723017cfe2de24c7d1b6f2f596e536a:core/src/androidUnitTest/kotlin/com/bugsy/core/pairing/PairingServiceTest.kt:generic-api-key:253

@@ -82,10 +82,10 @@ class DeviceDiscovery(
     }
 
     /** Asks the phone to approve this desktop; it answers with a `pair` carrying [nonce] if the user allows it. */
-    suspend fun requestConnect(device: DiscoveredDevice, nonce: String, desktopName: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun requestConnect(device: DiscoveredDevice, nonce: String, desktopName: String, publicKey: String? = null): Boolean = withContext(Dispatchers.IO) {
         runCatching {
             DatagramSocket().use { socket ->
-                val bytes = PairingMessage(PairingMessage.CONNECT_REQUEST, nonce = nonce, name = desktopName, port = PAIRING_DESKTOP_UDP_PORT).encode()
+                val bytes = PairingMessage(PairingMessage.CONNECT_REQUEST, nonce = nonce, name = desktopName, port = PAIRING_DESKTOP_UDP_PORT, pk = publicKey).encode()
                 socket.send(DatagramPacket(bytes, bytes.size, InetAddress.getByName(device.host), devicePort))
             }
         }.isSuccess

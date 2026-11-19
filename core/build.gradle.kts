@@ -79,6 +79,7 @@ kotlin {
             implementation(libs.ktor.server.core)
             implementation(libs.ktor.server.cio)
             implementation(libs.ktor.server.websockets)
+            implementation(libs.ktor.network.tls.certificates)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -87,6 +88,7 @@ kotlin {
             implementation(libs.okhttp.mockwebserver)
             implementation(libs.ktor.server.test.host)
             implementation(libs.ktor.client.websockets)
+            implementation(libs.ktor.client.cio)
         }
     }
 }

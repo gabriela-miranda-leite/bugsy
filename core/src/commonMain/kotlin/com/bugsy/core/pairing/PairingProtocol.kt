@@ -39,6 +39,18 @@ data class PairingMessage(
     val os: String? = null,
     val ok: Boolean? = null,
     val reason: String? = null,
+    /** SHA-256 hex of the device's TLS certificate, which the desktop pins. Absent when the device has no TLS. */
+    val fp: String? = null,
+    /** With [enc]: the AES-GCM nonce (base64). In the QR flow `enc` replaces [token] and [fp], so neither is in clear. */
+    val iv: String? = null,
+    /** AES-GCM of `{"token","fp"}` (base64), keyed by the secret in the QR code and bound to [code]. */
+    val enc: String? = null,
+    /** The desktop's one-time ECDH public key (base64), in `desktop_here` and `connect_request`. */
+    val pk: String? = null,
+    /** The phone's one-time ECDH public key (base64), in a sealed `pair` of the code and list flows. */
+    val cpk: String? = null,
+    /** How [enc] was sealed: absent means AES-256-GCM, `cbc-hmac` means AES-256-CBC then HMAC-SHA256 (iOS). */
+    val alg: String? = null,
 ) {
     companion object {
         const val DISCOVER = "discover"
@@ -48,6 +60,12 @@ data class PairingMessage(
         const val WHO = "who"
         const val DEVICE = "device"
         const val CONNECT_REQUEST = "connect_request"
+
+        /**
+         * Phone to desktop, before any token: "here is my one-time key". Both screens then show the same short
+         * verification code, and the phone only sends the token once the person confirms they match (DEB-67).
+         */
+        const val KEX = "kex"
 
         const val REASON_INVALID = "invalid"
         const val REASON_EXPIRED = "expired"
@@ -62,12 +80,17 @@ fun PairingMessage.encode(): ByteArray = pairingJson.encodeToString(PairingMessa
 fun decodePairingMessage(bytes: ByteArray): PairingMessage? =
     runCatching { pairingJson.decodeFromString(PairingMessage.serializer(), bytes.decodeToString()) }.getOrNull()
 
-/** What the desktop's QR code carries: `bugsy://pair?host=192.168.0.10&port=7790&code=482913`. */
-data class PairingQr(val host: String, val port: Int, val code: String)
+/**
+ * What the desktop's QR code carries: `bugsy://pair?host=192.168.0.10&port=7790&code=482913&key=<base64url>`.
+ * `key` is a random 128-bit secret only the screen shows; with it the phone encrypts the token (DEB-67), so
+ * someone sniffing the Wi-Fi sees neither the token nor the certificate fingerprint. Optional for older desktops.
+ */
+data class PairingQr(val host: String, val port: Int, val code: String, val secret: String? = null)
 
 private const val QR_PREFIX = "bugsy://pair?"
 
-fun PairingQr.toQrText(): String = "${QR_PREFIX}host=$host&port=$port&code=$code"
+fun PairingQr.toQrText(): String =
+    "${QR_PREFIX}host=$host&port=$port&code=$code" + (secret?.let { "&key=$it" } ?: "")
 
 fun parsePairingQr(text: String): PairingQr? {
     if (!text.startsWith(QR_PREFIX)) return null
@@ -78,7 +101,8 @@ fun parsePairingQr(text: String): PairingQr? {
     val host = params["host"]?.takeIf { it.isNotBlank() } ?: return null
     val port = params["port"]?.toIntOrNull()?.takeIf { it in 1..65535 } ?: return null
     val code = params["code"]?.takeIf { it.length == PAIRING_CODE_LENGTH && it.all(Char::isDigit) } ?: return null
-    return PairingQr(host, port, code)
+    val secret = params["key"]?.takeIf { it.isNotBlank() }
+    return PairingQr(host, port, code, secret)
 }
 
 /** A received datagram plus who sent it, so replies can go straight back. */

@@ -11,6 +11,7 @@ import com.bugsy.desktop.pairing.DesktopPairingServer
 import com.bugsy.desktop.pairing.DeviceDiscovery
 import com.bugsy.desktop.pairing.DiscoveredDevice
 import com.bugsy.desktop.pairing.PAIRING_DESKTOP_UDP_PORT
+import com.bugsy.desktop.pairing.DesktopVerification
 import com.bugsy.desktop.pairing.PairedDevice
 import com.bugsy.desktop.pairing.PairingCode
 import com.bugsy.desktop.pairing.PairingCodeManager
@@ -57,6 +58,9 @@ class DesktopViewModel {
 
     val connectionState: StateFlow<ConnectionState> = client.state
 
+    /** Why the connection to the phone is failing, while it is. */
+    val connectionError: StateFlow<String?> = client.lastError
+
     // --- Pairing with a phone (DEB-64) -------------------------------------------------------------------
 
     private val codeManager = PairingCodeManager()
@@ -70,11 +74,14 @@ class DesktopViewModel {
 
     val pairingCode: StateFlow<PairingCode> = codeManager.current
 
+    /** The short code to compare with the phone's screen while a pairing waits for the person (DEB-67). */
+    val verification: StateFlow<DesktopVerification?> = pairingHandler.verification
+
     private val _localIp = MutableStateFlow(localIpv4Address())
 
     /** What the QR code encodes, or `null` when this machine isn't on a network. */
     val pairingQrText: StateFlow<String?> = combine(codeManager.current, _localIp) { code, ip ->
-        ip?.let { pairingQrText(it, PAIRING_DESKTOP_UDP_PORT, code.code) }
+        ip?.let { pairingQrText(it, PAIRING_DESKTOP_UDP_PORT, code.code, code.secret) }
     }.stateIn(scope, SharingStarted.Eagerly, null)
 
     val devices: StateFlow<List<DiscoveredDevice>> = discovery.devices
@@ -93,11 +100,11 @@ class DesktopViewModel {
     /** "Connect" on a discovered device: the phone can't just hand out its token to anyone on the network who
      * asks, so the user has to approve this desktop in the phone's overlay first. */
     fun connectToDevice(device: DiscoveredDevice) {
-        val nonce = (1..16).map { "0123456789abcdef"[Random.nextInt(16)] }.joinToString("")
-        pairingHandler.expectNonce(nonce, device.host)
+        val nonce = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
+        val publicKey = pairingHandler.expectNonce(nonce, device.host)
         _pendingDeviceRequest.value = device
         scope.launch {
-            if (!discovery.requestConnect(device, nonce, desktopDisplayName())) {
+            if (!discovery.requestConnect(device, nonce, desktopDisplayName(), publicKey)) {
                 _pendingDeviceRequest.value = null
                 DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Error, title = "Could not reach ${device.name}", subtitle = "Check that it is on the same network"))
                 return@launch
@@ -109,7 +116,7 @@ class DesktopViewModel {
 
     private fun onDevicePaired(device: PairedDevice) {
         _pendingDeviceRequest.value = null
-        client.connect(device.host, device.port, device.token)
+        client.connect(device.host, device.port, device.token, device.fingerprint)
         DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "Paired with ${device.name ?: device.host}", subtitle = listOfNotNull(device.os, device.host).joinToString(" · ")))
     }
 
@@ -292,6 +299,7 @@ class DesktopViewModel {
             while (true) {
                 delay(1_000)
                 codeManager.rotateIfExpired()
+                pairingHandler.clearExpiredVerification()
             }
         }
         scope.launch {

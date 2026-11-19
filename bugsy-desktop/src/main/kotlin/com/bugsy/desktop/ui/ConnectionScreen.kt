@@ -59,9 +59,12 @@ fun ConnectionScreen(
     onRefreshDevices: () -> Unit,
     onConnectDevice: (DiscoveredDevice) -> Unit,
     onConnect: (host: String, port: Int, token: String) -> Unit,
+    /** The short code to compare with the phone's screen before it sends its token (DEB-67), or `null`. */
+    verificationCode: String? = null,
 ) {
     Column(Modifier.fillMaxSize().background(BugsyDesktopColors.Background)) {
         ConnectTopBar()
+        if (verificationCode != null) VerificationBanner(verificationCode)
 
         Row(Modifier.weight(1f).fillMaxWidth()) {
             Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
@@ -314,5 +317,32 @@ private fun ConnectBottomBar(waitingForPhone: Boolean) {
             Text(if (waitingForPhone) "Waiting for the phone" else "Disconnected", style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
         }
         Text(BugsyDesktopVersion, style = BugsyDesktopTypography.Caption, color = BugsyDesktopColors.TextDisabled)
+    }
+}
+
+/** Shown while a phone is pairing by code or from the device list: the same 4 digits must be on the phone. */
+@Composable
+private fun VerificationBanner(code: String) {
+    Row(
+        Modifier.fillMaxWidth()
+            .background(BugsyDesktopColors.SurfaceElevated)
+            .border(1.dp, BugsyDesktopColors.Brand)
+            .padding(horizontal = BugsyDesktopSpacing.xl, vertical = BugsyDesktopSpacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(BugsyDesktopSpacing.xl),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            code.chunked(2).joinToString(" "),
+            style = BugsyDesktopTypography.Body.copy(fontSize = androidx.compose.ui.unit.TextUnit(32f, androidx.compose.ui.unit.TextUnitType.Sp), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+            color = BugsyDesktopColors.Brand,
+        )
+        Column {
+            Text("Check this code on your phone", style = BugsyDesktopTypography.Body, color = BugsyDesktopColors.TextPrimary)
+            Text(
+                "Confirm on the phone only if it shows exactly the same digits. If they differ, someone else may be on the network: refuse it.",
+                style = BugsyDesktopTypography.Body,
+                color = BugsyDesktopColors.TextSecondary,
+            )
+        }
     }
 }

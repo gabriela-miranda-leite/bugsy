@@ -111,6 +111,28 @@ class AndroidBugsyWsServerTest {
     }
 
     @Test
+    fun `an event right after the snapshot is never missed`() {
+        // The window is tiny, so one try proves little: repeat it. Before each subscription was started on its own
+        // this lost the event now and then, more often on a slow machine.
+        repeat(25) { attempt ->
+            testApplication {
+                application { bugsyModule(token) }
+                val client = createClient { install(ClientWebSockets) }
+
+                client.webSocket("/bugsy") {
+                    send(Frame.Text(json.encodeToString(HandshakeMessage.serializer(), HandshakeMessage(token))))
+                    incoming.receive() // snapshot
+
+                    DebugRepository.add(fakeRequest("race-$attempt"))
+
+                    val event = json.decodeFromString(BugsyEvent.serializer(), (incoming.receive() as Frame.Text).readText())
+                    assertEquals("race-$attempt", assertIs<BugsyEvent.RequestRecorded>(event).request.id)
+                }
+            }
+        }
+    }
+
+    @Test
     fun `applies an add_mock_rule command sent by the desktop client`() {
         testApplication {
             application { bugsyModule(token) }

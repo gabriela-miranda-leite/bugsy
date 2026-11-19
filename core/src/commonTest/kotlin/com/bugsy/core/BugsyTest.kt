@@ -16,8 +16,10 @@ class BugsyTest {
     }
 
     @Test
-    fun `version matches VERSION_NAME configured in gradle properties`() {
-        assertEquals("0.3.0-alpha", Bugsy.version)
+    fun `version is a release number and not a placeholder`() {
+        // The exact value is checked against gradle.properties in the Android unit tests (BugsyVersionTest); this one runs on
+        // iOS too, which can't read that file, and no version number is written out here: it would break on every release.
+        assertTrue(Regex("""\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?""").matches(Bugsy.version), Bugsy.version)
     }
 
     @Test

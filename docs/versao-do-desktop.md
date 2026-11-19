@@ -33,6 +33,17 @@ formato `X.Y.Z` ou `X.Y.Z-sufixo`, ou fora desses limites, faz o build falhar co
 O app lê as duas de `bugsy-version.properties`, gerado no build a partir de `VERSION_NAME`. Rodando fora do Gradle ele mostra
 `dev` e `unknown`, em vez de inventar um número.
 
+## O que é conferido
+
+Mudar a versão não deve exigir mexer em teste nenhum: nenhum teste tem o número escrito. Eles leem o `gradle.properties`
+ou conferem o formato. O que garante que todos os lugares concordam:
+
+- `./gradlew :bugsy-desktop:verifyVersions` confere, de uma vez, que os artefatos publicados (`core`, `ui`, `bugsy-noop`),
+  a versão do instalador e a versão que o app mostra batem com o `VERSION_NAME`. Falha listando cada lugar que diverge, e
+  roda no CI.
+- `BugsyVersionTest` (a biblioteca reporta o `VERSION_NAME`) e `DesktopVersionResourceTest` (o app mostra a mesma versão).
+- `DesktopVersionTest` confere a regra de conversão.
+
 ## Onde está o código
 
 A regra está em `buildSrc/src/main/kotlin/DesktopVersion.kt`, com testes em `buildSrc/src/test/kotlin/DesktopVersionTest.kt`

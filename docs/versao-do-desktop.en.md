@@ -33,6 +33,17 @@ Windows installers also cap the parts (MAJOR and MINOR at 255, PATCH at 65535). 
 The app reads both from `bugsy-version.properties`, written at build time from `VERSION_NAME`. Run outside Gradle it shows
 `dev` and `unknown` rather than an invented number.
 
+## What is checked
+
+Changing the version should not mean editing any test: no test has the number written out. They read `gradle.properties`
+or check the format. What makes sure every place agrees:
+
+- `./gradlew :bugsy-desktop:verifyVersions` checks, in one go, that the published artifacts (`core`, `ui`, `bugsy-noop`), the
+  installer version and the version the app shows all match `VERSION_NAME`. It fails listing each place that differs, and
+  it runs in CI.
+- `BugsyVersionTest` (the library reports `VERSION_NAME`) and `DesktopVersionResourceTest` (the app shows the same version).
+- `DesktopVersionTest` checks the conversion rule.
+
 ## Where the code is
 
 The rule is in `buildSrc/src/main/kotlin/DesktopVersion.kt`, with tests in `buildSrc/src/test/kotlin/DesktopVersionTest.kt`

@@ -1,4 +1,5 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinJvm)
@@ -90,5 +91,32 @@ compose.desktop {
             windows { iconFile.set(project.file("packaging/icon.ico")) }
             linux { iconFile.set(project.file("packaging/icon.png")) }
         }
+    }
+}
+
+// Every place that carries a version has to agree with VERSION_NAME (DEB-70): the published artifacts, the installer's
+// version and the file the app reads. This is the one check that ties them together, and it runs in CI, so a bump that
+// misses a place fails there instead of shipping.
+val configuredPackageVersion: String? = compose.desktop.application.nativeDistributions.packageVersion
+tasks.register("verifyVersions") {
+    group = "verification"
+    description = "Checks that the published artifacts, the installer version and the version shown in the app agree with VERSION_NAME."
+    dependsOn(generateVersionProperties)
+    notCompatibleWithConfigurationCache("reads the version of other projects")
+    val propertiesFile = layout.buildDirectory.file("generated/version/bugsy-version.properties")
+    doLast {
+        val problems = mutableListOf<String>()
+        for (path in listOf(":core", ":ui", ":bugsy-noop")) {
+            val published = project(path).version.toString()
+            if (published != libraryVersion) problems += "$path is published as $published, but VERSION_NAME is $libraryVersion"
+        }
+        if (configuredPackageVersion != desktopVersion) {
+            problems += "the installer version is $configuredPackageVersion, but VERSION_NAME $libraryVersion gives $desktopVersion"
+        }
+        val shown = Properties().apply { propertiesFile.get().asFile.reader().use { load(it) } }
+        if (shown.getProperty("library") != libraryVersion) problems += "the app shows library ${shown.getProperty("library")}, but VERSION_NAME is $libraryVersion"
+        if (shown.getProperty("app") != desktopVersion) problems += "the app shows version ${shown.getProperty("app")}, but the installer has $desktopVersion"
+        if (problems.isNotEmpty()) throw GradleException("Version mismatch:\n" + problems.joinToString("\n") { " - $it" })
+        println("Versions agree: library $libraryVersion, desktop $desktopVersion (core, ui, noop, installer and app).")
     }
 }

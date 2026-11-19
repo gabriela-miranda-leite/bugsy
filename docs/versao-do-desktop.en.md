@@ -5,6 +5,13 @@ _[Também disponível em português](versao-do-desktop.md)._
 The Bugsy Desktop version comes from the library's version, so there is one place to change (DEB-70): `VERSION_NAME` in
 `gradle.properties`. Releasing a library version already leaves the desktop on the right one.
 
+## Why one version
+
+Decided in DEB-70: the desktop and the library move together. One place to change, and the desktop always says which library
+it follows, which matters because it has to speak the same protocol as the phone. The cost is that a desktop-only fix also
+bumps the library version. If the desktop needs independent releases, the step is to add its own `DESKTOP_VERSION` and change
+what `verifyVersions` checks.
+
 ## The rule
 
 The installers can't take the library's text as it is: `jpackage` (DMG and MSI) only takes `MAJOR.MINOR.PATCH`, macOS

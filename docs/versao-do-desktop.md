@@ -5,6 +5,13 @@ _[Also available in English](versao-do-desktop.en.md)._
 A versão do Bugsy Desktop sai da versão da biblioteca, então há um lugar só para mudar (DEB-70): `VERSION_NAME` no
 `gradle.properties`. Quem publica uma versão da biblioteca já deixa o desktop na versão certa.
 
+## Por que uma versão só
+
+Decidido na DEB-70: o desktop e a biblioteca andam juntos. Um lugar só para mudar, e o desktop sempre diz qual biblioteca
+acompanha, o que importa porque ele precisa falar o mesmo protocolo do celular. O custo é que uma correção só do desktop
+também sobe a versão da biblioteca. Se o desktop precisar de releases independentes, o passo é criar uma
+`DESKTOP_VERSION` própria e trocar o que `verifyVersions` confere.
+
 ## A regra
 
 Os instaladores não aceitam o texto da biblioteca como está: o `jpackage` (DMG e MSI) só aceita `MAJOR.MINOR.PATCH`, o

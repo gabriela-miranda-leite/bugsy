@@ -27,6 +27,7 @@ import platform.Foundation.NSURLSession
 import platform.Foundation.NSURLSessionConfiguration
 import platform.Foundation.NSURLSessionDataTask
 import platform.Foundation.NSUTF8StringEncoding
+import platform.Foundation.NSURL
 import platform.Foundation.create
 import platform.Foundation.dataTaskWithRequest
 import platform.Foundation.dataUsingEncoding
@@ -62,12 +63,13 @@ internal class BugsyUrlProtocol @OverrideInit constructor(
 
     override fun startLoading() {
         val original = request
-        val url = original.URL?.absoluteString.orEmpty()
+        val requestUrl = original.URL
+        val url = requestUrl?.absoluteString.orEmpty()
         val method = original.HTTPMethod ?: "GET"
 
         val mockRule = MockEngine.match(method, url, (NSDate().timeIntervalSince1970 * 1000).toLong())
-        if (mockRule != null) {
-            respondWithMock(original, mockRule)
+        if (mockRule != null && requestUrl != null) {
+            respondWithMock(original, requestUrl, mockRule)
             return
         }
 
@@ -83,15 +85,15 @@ internal class BugsyUrlProtocol @OverrideInit constructor(
     }
 
     /** Synthesizes a response from [rule] instead of hitting the network, mirroring the Android OkHttp flow. */
-    private fun respondWithMock(original: NSURLRequest, rule: MockRule) {
+    private fun respondWithMock(original: NSURLRequest, requestUrl: NSURL, rule: MockRule) {
         val startedAt = TimeSource.Monotonic.markNow()
         val deliver = {
             val data = NSString.create(string = rule.responseBody).dataUsingEncoding(NSUTF8StringEncoding)
             val httpResponse = NSHTTPURLResponse(
-                uRL = original.URL!!,
+                uRL = requestUrl,
                 statusCode = rule.statusCode.toLong(),
                 HTTPVersion = "HTTP/1.1",
-                headerFields = rule.responseHeaders as Map<Any?, *>,
+                headerFields = buildMap<Any?, Any?> { rule.responseHeaders.forEach { (k, v) -> put(k, v) } },
             )
             client?.URLProtocol(this, didReceiveResponse = httpResponse, cacheStoragePolicy = NSURLCacheStoragePolicy.NSURLCacheStorageNotAllowed)
             if (data != null) client?.URLProtocol(this, didLoadData = data)

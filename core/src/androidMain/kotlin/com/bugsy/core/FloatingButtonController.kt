@@ -4,7 +4,6 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
-import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -145,16 +144,14 @@ actual class FloatingButtonController private constructor(
             }
         }
 
+        // The Bugsy mark on the overlay's dark surface (see res/drawable/bugsy_floating_button.xml), not a plain
+        // purple circle, so the button looks like the rest of Bugsy.
         private fun createButtonView(): View = View(context).apply {
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(BUTTON_COLOR)
-            }
+            background = context.getDrawable(R.drawable.bugsy_floating_button)
         }
 
         private companion object {
             const val BUTTON_SIZE_DP = 56
-            const val BUTTON_COLOR = 0xFF6200EE.toInt()
             const val TAP_SLOP_PX = 10
             const val SNAP_ANIMATION_DURATION_MS = 200L
         }

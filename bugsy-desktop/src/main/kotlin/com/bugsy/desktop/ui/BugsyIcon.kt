@@ -8,8 +8,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.loadSvgPainter
 
 /**
- * The real Bugsy mark (cropped from `assets/logo.svg`'s icon, as `bugsy-desktop/src/main/resources/bugsy-icon.svg`
- * — just the bug shape, no wordmark or background), not an emoji. `bugsy-desktop` is a plain JVM module without
+ * The Bugsy mark, drawn straight from `assets/brand/bugsy-mark.svg`: the one file every platform's logo is made from,
+ * so changing the brand there changes it here (DEB-68). Just the bug shape, no wordmark or background. `bugsy-desktop` is a plain JVM module without
  * the Compose Resources pipeline `:ui` uses, so this loads the SVG straight from the classpath via
  * `loadSvgPainter` instead of a generated `Res.drawable`.
  */
@@ -17,7 +17,7 @@ import androidx.compose.ui.res.loadSvgPainter
 fun BugsyIcon(modifier: Modifier = Modifier) {
     val density = LocalDensity.current
     val painter = remember(density) {
-        object {}.javaClass.getResourceAsStream("/bugsy-icon.svg")!!.use { stream -> loadSvgPainter(stream, density) }
+        object {}.javaClass.getResourceAsStream("/bugsy-mark.svg")!!.use { stream -> loadSvgPainter(stream, density) }
     }
     Image(painter = painter, contentDescription = null, modifier = modifier)
 }

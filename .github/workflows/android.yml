@@ -33,8 +33,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit tests (core, noop)
-        run: ./gradlew :core:testDebugUnitTest :bugsy-noop:testDebugUnitTest
+      # buildSrc holds the rule that turns VERSION_NAME into the desktop installer version (DEB-70): pure Kotlin, so cheap here.
+      - name: Unit tests (core, noop, build logic) and version check
+        run: ./gradlew :core:testDebugUnitTest :bugsy-noop:testDebugUnitTest :buildSrc:test :bugsy-desktop:verifyVersions
 
       - name: Build Android sample (debug + release)
         run: ./gradlew :sample-android:assembleDebug :sample-android:assembleRelease

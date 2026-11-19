@@ -177,13 +177,6 @@ class ConnectionFailureTextTest {
     }
 
     @Test
-    fun `a certificate that does not name the expected host says the phone needs an update`() {
-        val text = describeConnectionFailure(io.ktor.network.tls.TLSException("No server host: x in the server certificate. Provided in certificate: y"))
-
-        assertTrue("Update Bugsy" in text, text)
-    }
-
-    @Test
     fun `a refused connection points at the network`() {
         assertTrue("same Wi-Fi" in describeConnectionFailure(java.net.ConnectException("Connection refused")))
     }

@@ -38,7 +38,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio)
+    // OkHttp, not Ktor's own CIO engine: CIO implements TLS itself, and under load it read garbage ("Invalid TLS record
+    // type code") or never finished a close, against a plain JDK TLS server. OkHttp uses the JDK's TLS.
+    implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.websockets)
     implementation(libs.zxing.core)
 

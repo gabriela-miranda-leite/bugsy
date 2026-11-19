@@ -1,7 +1,7 @@
 package com.bugsy.core.ws
 
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.websocket.Frame
@@ -11,6 +11,8 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import java.net.ServerSocket
 import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -42,9 +44,19 @@ class SecureServerEndToEndTest {
         override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
     }
 
-    private fun client(fingerprint: String) = HttpClient(CIO) {
-        install(WebSockets)
-        engine { https { serverName = BUGSY_TLS_SERVER_NAME; trustManager = pinned(fingerprint) } }
+    /** The same shape as the desktop's client: OkHttp, trusting only the pinned fingerprint, no hostname check. */
+    private fun client(fingerprint: String): HttpClient {
+        val trust = pinned(fingerprint)
+        val context = SSLContext.getInstance("TLS").apply { init(null, arrayOf<TrustManager>(trust), null) }
+        return HttpClient(OkHttp) {
+            install(WebSockets)
+            engine {
+                config {
+                    sslSocketFactory(context.socketFactory, trust)
+                    hostnameVerifier { _, _ -> true }
+                }
+            }
+        }
     }
 
     @Test

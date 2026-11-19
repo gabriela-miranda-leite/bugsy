@@ -5,7 +5,11 @@ import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import javax.net.ssl.X509TrustManager
 
-/** The name every Bugsy phone certificate carries (same value as `:core`); the TLS client asks for it whatever the phone's address. */
+/**
+ * The name every Bugsy phone certificate carries (same value as `:core`). The desktop's own client does not need it
+ * (it trusts the pinned fingerprint and skips the hostname check), but a certificate that names something lets any
+ * standards-following TLS client verify it.
+ */
 const val BUGSY_TLS_SERVER_NAME = "bugsy.local"
 
 /** SHA-256 of a certificate's DER encoding, lowercase hex: the same value the phone reports as its fingerprint. */

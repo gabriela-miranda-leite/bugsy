@@ -19,6 +19,41 @@ App de exemplo em **Swift puro** (sem KMP) que integra o Bugsy via `Bugsy.xcfram
 2. Abra `sample-ios/BugsySample.xcodeproj` no Xcode e rode no simulador.
 3. Toque em **Fazer request (URLSession.shared)** e depois em **Abrir Bugsy** (ou chacoalhe o dispositivo: *Device > Shake* no simulador). A request aparece na aba Requests, com `Authorization` mascarado como `***`.
 
+## Rodando num iPhone de verdade
+
+O simulador não pede assinatura. Para um iPhone, o Xcode exige uma conta, mas **um Apple ID gratuito basta** (o mesmo do
+iCloud); o Programa de Desenvolvedores pago não é necessário. É preciso fazer isso uma vez:
+
+1. **Xcode > Settings > Accounts > "+" > Apple ID** e entre com o seu.
+2. No target **BugsySample > Signing & Capabilities**, escolha **Team: Seu Nome (Personal Team)**.
+3. Troque o **Bundle Identifier** (`dev.bugsy.sample`) por um seu, por exemplo `dev.bugsy.sample.seunome`. Com conta
+   gratuita, o Xcode costuma recusar um identificador que não é seu.
+4. Gere o framework **para aparelho** (o de simulador não serve):
+
+   ```sh
+   ./gradlew :ui:linkDebugFrameworkIosArm64 :ui:iosArm64AggregateResources
+   ```
+
+5. No iPhone, ligue o **Modo Desenvolvedor** (Ajustes > Privacidade e Segurança; o aparelho reinicia).
+6. Rode pelo Xcode. Na primeira vez, o iPhone avisa que o certificado não é confiável: vá em **Ajustes > Geral > VPN e
+   Gerenciamento de Dispositivo**, toque no seu Apple ID em "Apps do Desenvolvedor" e em **Confiar**. Rode de novo.
+7. Aceite os pedidos de **câmera** (para ler o QR code) e de **Rede Local** (para o pareamento).
+
+Com Apple ID gratuito o app instalado **expira em 7 dias**; é só rodar de novo pelo Xcode.
+
+O Xcode grava o seu time e o seu identificador em `project.pbxproj`: **não inclua essas mudanças em um commit**.
+
+### Erros comuns
+
+| Mensagem | Causa e solução |
+|---|---|
+| `Signing for "BugsySample" requires a development team` | Falta escolher o time: passos 1 e 2. |
+| `Unable to resolve module dependency: 'Bugsy'` | Falta o framework do destino escolhido: aparelho usa `...IosArm64` e simulador usa `...IosSimulatorArm64`. Gere o do destino. |
+| `The Developer App Certificate is not trusted` | Falta confiar no certificado no iPhone: passo 6. |
+
+No **simulador** a câmera e o broadcast são limitados: o pareamento por QR e por código não funciona. Use a conexão manual
+com o desktop.
+
 ## Sacudir (Shake)
 
 O gatilho `Shake` funciona em aparelho de verdade (acelerômetro e gesto de sacudir do iOS) e também no Simulator, em **Device > Shake** (Ctrl+Cmd+Z): o Bugsy escuta o evento de movimento do UIKit além do acelerômetro, que não existe no Simulator. O Simulator só entrega o gesto se o app estiver em primeiro plano.

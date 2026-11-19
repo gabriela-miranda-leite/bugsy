@@ -274,6 +274,12 @@ internal fun describeConnectionFailure(error: Throwable, address: String? = null
     val text = chain.joinToString(" ") { "${it::class.simpleName} ${it.message.orEmpty()}" }
     val lower = text.lowercase()
     val target = address ?: "the phone"
+    // localhost means "this Mac": the only phone that can be there is an emulator, and its port has to be forwarded.
+    val emulatorHint = if (address != null && (address.startsWith("localhost:") || address.startsWith("127.0.0.1:"))) {
+        " If the phone is an Android emulator, run `adb forward tcp:7788 tcp:7788` first."
+    } else {
+        ""
+    }
     return when {
         "pinned fingerprint" in text ->
             "The phone's certificate is not the one it reported when pairing. Pair again, and be careful if you did not expect this."
@@ -281,7 +287,7 @@ internal fun describeConnectionFailure(error: Throwable, address: String? = null
             "No route to $target. On a Mac, allow Bugsy under System Settings > Privacy & Security > Local Network. " +
                 "If it is already allowed, the Wi-Fi may keep devices from reaching each other (guest or office networks)."
         "connection refused" in lower || "econnrefused" in lower ->
-            "$target refused the connection: the Bugsy app on the phone is closed or its server is not running. Open the app and pair again."
+            "$target refused the connection: the Bugsy app on the phone is closed or its server is not running. Open the app and pair again.$emulatorHint"
         "timed out" in lower || "timeout" in lower ->
             "$target did not answer. Check that both are on the same Wi-Fi network. Some networks (guest or office Wi-Fi) block devices " +
                 "from reaching each other: try another network or a phone hotspot."

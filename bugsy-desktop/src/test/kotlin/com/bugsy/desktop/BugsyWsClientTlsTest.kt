@@ -184,6 +184,14 @@ class ConnectionFailureTextTest {
     }
 
     @Test
+    fun `a refused connection to localhost suggests forwarding the emulator's port`() {
+        val text = describeConnectionFailure(java.net.ConnectException("Connection refused"), "localhost:7788")
+
+        assertTrue("adb forward tcp:7788 tcp:7788" in text, text)
+        assertTrue("adb forward" !in describeConnectionFailure(java.net.ConnectException("Connection refused"), "192.168.0.24:7788"))
+    }
+
+    @Test
     fun `no route to host points at the Mac's Local Network permission first and the network second`() {
         val text = describeConnectionFailure(
             java.net.ConnectException("Failed to connect to /192.168.0.24:7788").apply { initCause(java.net.NoRouteToHostException("No route to host")) },

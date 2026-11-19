@@ -26,6 +26,12 @@ data class PairingMessage(
     val os: String? = null,
     val ok: Boolean? = null,
     val reason: String? = null,
+    /** SHA-256 hex of the phone's TLS certificate. Mirrors `:core`'s `PairingMessage.fp`. */
+    val fp: String? = null,
+    /** AES-GCM nonce (base64) of [enc]. */
+    val iv: String? = null,
+    /** AES-GCM of `{"token","fp"}` (base64), keyed by the QR secret and bound to [code]. Replaces [token] and [fp]. */
+    val enc: String? = null,
 ) {
     companion object {
         const val DISCOVER = "discover"
@@ -49,5 +55,9 @@ fun PairingMessage.encode(): ByteArray = pairingJson.encodeToString(PairingMessa
 fun decodePairingMessage(bytes: ByteArray): PairingMessage? =
     runCatching { pairingJson.decodeFromString(PairingMessage.serializer(), bytes.decodeToString()) }.getOrNull()
 
-/** What the QR code carries: `bugsy://pair?host=192.168.0.10&port=7790&code=482913`. */
-fun pairingQrText(host: String, port: Int, code: String): String = "bugsy://pair?host=$host&port=$port&code=$code"
+/**
+ * What the QR code carries: `bugsy://pair?host=192.168.0.10&port=7790&code=482913&key=<secret>`. The secret never
+ * leaves the screen, and the phone uses it to encrypt the token (DEB-67).
+ */
+fun pairingQrText(host: String, port: Int, code: String, secret: String? = null): String =
+    "bugsy://pair?host=$host&port=$port&code=$code" + (secret?.let { "&key=$it" } ?: "")

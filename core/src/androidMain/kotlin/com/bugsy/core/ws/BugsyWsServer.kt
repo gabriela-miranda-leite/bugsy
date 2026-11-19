@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import java.net.InetAddress
+import java.net.ServerSocket
 
 private val json = Json { ignoreUnknownKeys = true }
 
@@ -36,12 +38,26 @@ internal class AndroidBugsyWsServer(private val port: Int) : BugsyWsServerHandle
     override val connectedClients: StateFlow<Int> = _connectedClients
 
     private var engine: EmbeddedServer<*, *>? = null
+    private var terminator: TlsTerminator? = null
+    private val tls = generateWsTlsIdentity()
 
+    override val certFingerprint: String = tls.fingerprint
+
+    /**
+     * Ktor serves plain HTTP/WebSocket on loopback only, and a [TlsTerminator] on the public [port] is the only way
+     * in from the network: the token and the captured requests never cross the Wi-Fi in clear.
+     */
     fun start() {
-        engine = embeddedServer(CIO, port = port) { bugsyModule(sessionToken, _connectedClients) }.start(wait = false)
+        val backendPort = ServerSocket(0, 0, InetAddress.getByName("127.0.0.1")).use { it.localPort }
+        engine = embeddedServer(CIO, host = "127.0.0.1", port = backendPort) {
+            bugsyModule(sessionToken, _connectedClients)
+        }.start(wait = false)
+        terminator = TlsTerminator(tls.keyStore, tls.password, port, backendPort)
     }
 
     override fun stop() {
+        terminator?.close()
+        terminator = null
         engine?.stop(gracePeriodMillis = 1000, timeoutMillis = 2000)
         engine = null
     }

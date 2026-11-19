@@ -74,7 +74,7 @@ class DesktopViewModel {
 
     /** What the QR code encodes, or `null` when this machine isn't on a network. */
     val pairingQrText: StateFlow<String?> = combine(codeManager.current, _localIp) { code, ip ->
-        ip?.let { pairingQrText(it, PAIRING_DESKTOP_UDP_PORT, code.code) }
+        ip?.let { pairingQrText(it, PAIRING_DESKTOP_UDP_PORT, code.code, code.secret) }
     }.stateIn(scope, SharingStarted.Eagerly, null)
 
     val devices: StateFlow<List<DiscoveredDevice>> = discovery.devices
@@ -109,7 +109,7 @@ class DesktopViewModel {
 
     private fun onDevicePaired(device: PairedDevice) {
         _pendingDeviceRequest.value = null
-        client.connect(device.host, device.port, device.token)
+        client.connect(device.host, device.port, device.token, device.fingerprint)
         DesktopToastHost.show(DesktopToastData(type = DesktopToastType.Success, title = "Paired with ${device.name ?: device.host}", subtitle = listOfNotNull(device.os, device.host).joinToString(" · ")))
     }
 

@@ -36,7 +36,7 @@ object BugsyPairing {
 
     internal fun start() {
         stop()
-        service = PairingService(wsPort = BUGSY_WS_DEFAULT_PORT, tokenProvider = { Bugsy.wsServerToken }).also { it.startResponder() }
+        service = PairingService(wsPort = BUGSY_WS_DEFAULT_PORT, tokenProvider = { Bugsy.wsServerToken }, fingerprintProvider = { Bugsy.wsServerFingerprint }).also { it.startResponder() }
     }
 
     internal fun stop() {

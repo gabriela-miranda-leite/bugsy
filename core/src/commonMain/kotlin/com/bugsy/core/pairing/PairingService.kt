@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.time.TimeSource
 
 /** Outcome of an attempt to pair this device with Bugsy Desktop (DEB-64). */
@@ -47,6 +49,7 @@ private const val RECEIVE_SLICE_MS = 200L
 internal class PairingService(
     private val wsPort: Int,
     private val tokenProvider: () -> String?,
+    private val fingerprintProvider: () -> String? = { null },
     private val openTransport: (Int?) -> UdpTransport? = ::openUdpTransport,
     private val broadcasts: () -> List<String> = ::broadcastAddresses,
     private val deviceName: () -> String = ::deviceDisplayName,
@@ -144,7 +147,7 @@ internal class PairingService(
                 if (reply != null) {
                     val (packet, message) = reply
                     return@withContext when (message.type) {
-                        PairingMessage.DESKTOP_HERE -> pairAt(transport, packet.fromHost, packet.fromPort, code, token, message.name)
+                        PairingMessage.DESKTOP_HERE -> pairAt(transport, packet.fromHost, packet.fromPort, code, token, message.name, secret = null)
                         else -> message.toFailure()
                     }
                 }
@@ -161,14 +164,22 @@ internal class PairingService(
         val token = tokenProvider() ?: return@withContext PairingResult.ServerUnavailable
         val transport = openTransport(null) ?: return@withContext PairingResult.NoNetwork
         try {
-            pairAt(transport, qr.host, qr.port, qr.code, token, desktopName = null)
+            pairAt(transport, qr.host, qr.port, qr.code, token, desktopName = null, secret = qr.secret)
         } finally {
             transport.close()
         }
     }
 
-    private fun pairAt(transport: UdpTransport, host: String, port: Int, code: String, token: String, desktopName: String?): PairingResult {
-        val payload = pairMessage(token, code = code).encode()
+    private fun pairAt(
+        transport: UdpTransport,
+        host: String,
+        port: Int,
+        code: String,
+        token: String,
+        desktopName: String?,
+        secret: String?,
+    ): PairingResult {
+        val payload = pairMessage(token, code = code, secret = secret).encode()
         // UDP can drop a datagram: one retry halfway through the wait costs nothing, and the desktop treats a
         // repeated `pair` for an already-used code as invalid, which is why it only retries while still silent.
         if (!transport.send(host, port, payload)) return PairingResult.NoNetwork
@@ -188,8 +199,25 @@ internal class PairingService(
         return PairingResult.DesktopNotFound
     }
 
-    private fun pairMessage(token: String, code: String? = null, nonce: String? = null) =
-        PairingMessage(PairingMessage.PAIR, code = code, nonce = nonce, port = wsPort, token = token, name = deviceName(), os = osName())
+    /**
+     * With the QR [secret] (and a platform that can encrypt), the token and the certificate fingerprint travel
+     * sealed, so a sniffer sees neither. Otherwise they go in clear, as before (code and list flows, iOS).
+     */
+    private fun pairMessage(token: String, code: String? = null, nonce: String? = null, secret: String? = null): PairingMessage {
+        val fingerprint = fingerprintProvider()
+        val key = secret?.let(::decodeUrlSafeBase64)
+        val sealed = if (key != null && code != null) {
+            val plaintext = pairingJson.encodeToString(PairSecret.serializer(), PairSecret(token, fingerprint)).encodeToByteArray()
+            sealPairingPayload(key, code.encodeToByteArray(), plaintext)
+        } else {
+            null
+        }
+        return if (sealed != null) {
+            PairingMessage(PairingMessage.PAIR, code = code, port = wsPort, name = deviceName(), os = osName(), iv = sealed.iv.toBase64(), enc = sealed.ciphertext.toBase64())
+        } else {
+            PairingMessage(PairingMessage.PAIR, code = code, nonce = nonce, port = wsPort, token = token, name = deviceName(), os = osName(), fp = fingerprint)
+        }
+    }
 
     private fun PairingMessage.toFailure(): PairingResult = when (reason) {
         PairingMessage.REASON_EXPIRED -> PairingResult.ExpiredCode
@@ -216,3 +244,9 @@ internal class PairingService(
 private val monotonicOrigin = TimeSource.Monotonic.markNow()
 
 private fun monotonicMillis(): Long = monotonicOrigin.elapsedNow().inWholeMilliseconds
+
+/** What the sealed `pair` carries. */
+@Serializable
+private class PairSecret(val token: String, val fp: String? = null)
+
+private val pairingJson = Json { explicitNulls = false }

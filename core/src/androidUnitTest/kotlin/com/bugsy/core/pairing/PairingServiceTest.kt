@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -57,9 +58,11 @@ class PairingServiceTest {
     private fun newService(
         desktop: (PairingMessage, String) -> List<PairingMessage> = desktop(),
         token: String? = "tok3n",
+        fingerprint: String? = null,
     ): PairingService = PairingService(
         wsPort = 7788,
         tokenProvider = { token },
+        fingerprintProvider = { fingerprint },
         openTransport = { FakeTransport(desktop, sent).also { transports += it } },
         broadcasts = { listOf("255.255.255.255") },
         deviceName = { "Pixel 7 Pro" },
@@ -210,5 +213,69 @@ class PairingServiceTest {
             Thread.sleep(10)
         }
         throw AssertionError("expected datagram was never sent; sent=$sent")
+    }
+
+    // --- DEB-67: nothing secret in clear on the QR flow, and the fingerprint to pin on every flow ---
+
+    private val qrSecret = "AAECAwQFBgcICQoLDA0ODw" // 16 bytes, base64url, as the desktop's QR carries it
+
+    private fun openSealed(message: PairingMessage, secret: String = qrSecret): String {
+        val key = deriveAesKey(java.util.Base64.getUrlDecoder().decode(secret))
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(
+            javax.crypto.Cipher.DECRYPT_MODE,
+            key,
+            javax.crypto.spec.GCMParameterSpec(128, java.util.Base64.getDecoder().decode(message.iv)),
+        )
+        cipher.updateAAD(message.code!!.encodeToByteArray())
+        return cipher.doFinal(java.util.Base64.getDecoder().decode(message.enc)).decodeToString()
+    }
+
+    @Test
+    fun `pairing by a qr with a secret seals the token and the fingerprint`() = runBlocking {
+        val result = newService(fingerprint = "ab12cd").pairWithQr("bugsy://pair?host=10.0.0.5&port=7790&code=482913&key=$qrSecret")
+
+        assertEquals(PairingResult.Success(null), result)
+        val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
+        assertNull(pair.token, "the token must not travel in clear")
+        assertNull(pair.fp, "the fingerprint must not travel in clear")
+        assertEquals("482913", pair.code)
+        val opened = openSealed(pair)
+        assertTrue("tok3n" in opened && "ab12cd" in opened, opened)
+        assertTrue(sent.none { "tok3n" in (it.third.toString()) }, "no datagram may contain the token in clear")
+    }
+
+    @Test
+    fun `a sealed pair cannot be opened with another secret`() = runBlocking {
+        newService().pairWithQr("bugsy://pair?host=10.0.0.5&port=7790&code=482913&key=$qrSecret")
+        val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
+
+        assertFailsWith<javax.crypto.AEADBadTagException> { openSealed(pair, secret = "AQIDBAUGBwgJCgsMDQ4PEA") }
+        Unit
+    }
+
+    @Test
+    fun `a qr without a secret (older desktop) still pairs in clear`() = runBlocking {
+        newService(fingerprint = "ab12cd").pairWithQr("bugsy://pair?host=10.0.0.5&port=7790&code=482913")
+
+        val pair = sent.first { it.third.type == PairingMessage.PAIR }.third
+        assertEquals("tok3n", pair.token)
+        assertEquals("ab12cd", pair.fp)
+        assertNull(pair.enc)
+    }
+
+    @Test
+    fun `pairing by code sends the fingerprint so the desktop can pin it`() = runBlocking {
+        newService(fingerprint = "ab12cd").pairWithCode("482913")
+
+        assertEquals("ab12cd", sent.first { it.third.type == PairingMessage.PAIR }.third.fp)
+    }
+
+    @Test
+    fun `the qr round trips its secret`() {
+        val qr = parsePairingQr("bugsy://pair?host=10.0.0.5&port=7790&code=482913&key=$qrSecret")
+
+        assertEquals(PairingQr("10.0.0.5", 7790, "482913", qrSecret), qr)
+        assertEquals("bugsy://pair?host=10.0.0.5&port=7790&code=482913&key=$qrSecret", qr!!.toQrText())
     }
 }

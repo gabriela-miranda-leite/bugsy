@@ -47,6 +47,12 @@ interface BugsyWsServerHandle {
     /** Shown in the mobile overlay; the desktop client must send it as the first frame to authenticate. */
     val sessionToken: String
 
+    /**
+     * SHA-256 (lowercase hex) of the server's TLS certificate, which the desktop pins; `null` when the server has no
+     * TLS (iOS, for now), in which case the desktop falls back to plain `ws://`.
+     */
+    val certFingerprint: String? get() = null
+
     /** How many desktop clients are connected right now (past the handshake). */
     val connectedClients: StateFlow<Int>
 

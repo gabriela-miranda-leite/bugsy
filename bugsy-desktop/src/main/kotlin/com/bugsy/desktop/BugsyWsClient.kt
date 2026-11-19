@@ -72,7 +72,13 @@ class BugsyWsClient(private val scope: CoroutineScope) {
      * whenever [state] isn't [ConnectionState.CONNECTED]. */
     private var session: DefaultClientWebSocketSession? = null
 
-    fun connect(host: String, port: Int, token: String) {
+    /**
+     * @param fingerprint SHA-256 hex of the phone's TLS certificate, learned over the pairing channel (DEB-67):
+     * the connection is then `wss://` and accepts only that certificate. Without it (manual connection, or an
+     * older/iOS phone) the client tries `wss://` first, remembers the certificate it saw, and only falls back to
+     * plain `ws://` when the phone has no TLS.
+     */
+    fun connect(host: String, port: Int, token: String, fingerprint: String? = null) {
         disconnect()
         _requests.value = emptyList()
         _mockRules.value = emptyList()
@@ -82,11 +88,17 @@ class BugsyWsClient(private val scope: CoroutineScope) {
         job = scope.launch {
             var backoffMs = INITIAL_BACKOFF_MS
             var firstAttempt = true
+            var known: Route = fingerprint?.let { Route.Pinned(it) } ?: Route.Discover
             while (isActive) {
                 _state.value = if (firstAttempt) ConnectionState.CONNECTING else ConnectionState.RECONNECTING
                 firstAttempt = false
+                val routes = if (known == Route.Discover) listOf(Route.Discover, Route.Plain) else listOf(known)
+                for (route in routes) {
+                val learned = java.util.concurrent.atomic.AtomicReference<String?>(null)
+                var connected = false
                 try {
-                    client.webSocket(host = host, port = port, path = "/bugsy") {
+                    openRoute(route, host, port, learned) {
+                        connected = true
                         send(Frame.Text(encodeHandshake(token)))
                         session = this
                         _state.value = ConnectionState.CONNECTED
@@ -130,11 +142,54 @@ class BugsyWsClient(private val scope: CoroutineScope) {
                 } catch (e: Exception) {
                     // Connection refused, dropped mid-session, or handshake rejected — fall through to retry.
                 }
+                if (connected) {
+                    known = if (route == Route.Discover) learned.get()?.let { Route.Pinned(it) } ?: Route.Discover else route
+                    break
+                }
+                }
                 if (!isActive) break
                 _state.value = ConnectionState.RECONNECTING
                 delay(backoffMs)
                 backoffMs = (backoffMs * 2).coerceAtMost(MAX_BACKOFF_MS)
             }
+        }
+    }
+
+    private sealed interface Route {
+        /** TLS, accepting only the certificate with this SHA-256 (hex). */
+        data class Pinned(val fingerprint: String) : Route
+
+        /** TLS, accepting whatever certificate shows up and remembering its fingerprint (trust on first use). */
+        data object Discover : Route
+
+        /** No TLS: an iOS or older phone. */
+        data object Plain : Route
+    }
+
+    private suspend fun openRoute(
+        route: Route,
+        host: String,
+        port: Int,
+        learned: java.util.concurrent.atomic.AtomicReference<String?>,
+        block: suspend DefaultClientWebSocketSession.() -> Unit,
+    ) {
+        if (route == Route.Plain) {
+            client.webSocket(host = host, port = port, path = "/bugsy", block = block)
+            return
+        }
+        val trust = when (route) {
+            is Route.Pinned -> PinnedTrustManager(route.fingerprint)
+            else -> LearningTrustManager { learned.set(it) }
+        }
+        val tlsClient = HttpClient(CIO) {
+            install(WebSockets)
+            engine { https { trustManager = trust } }
+        }
+        try {
+            tlsClient.webSocket(urlString = "wss://$host:$port/bugsy", block = block)
+        } finally {
+            // Same as [close]: CIO's close() can block on teardown, so never on the caller's thread.
+            Thread({ runCatching { tlsClient.close() } }, "BugsyWsClient-tls-close").apply { isDaemon = true }.start()
         }
     }
 

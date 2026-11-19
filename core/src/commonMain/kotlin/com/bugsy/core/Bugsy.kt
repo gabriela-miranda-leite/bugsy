@@ -54,6 +54,9 @@ object Bugsy {
      */
     val wsServerToken: String? get() = wsServer?.sessionToken
 
+    /** SHA-256 hex of the BugsyWsServer's TLS certificate, or `null` when it runs without TLS. See [BugsyWsServerHandle.certFingerprint]. */
+    val wsServerFingerprint: String? get() = wsServer?.certFingerprint
+
     /**
      * Stops and restarts the BugsyWsServer, generating a new [wsServerToken] and dropping any desktop client
      * currently connected with the old one — a manual "disconnect" since there's no per-connection control.

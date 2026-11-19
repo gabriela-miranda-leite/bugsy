@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import java.security.SecureRandom
 
 /** The code currently shown on screen and when it stops being accepted. */
-data class PairingCode(val code: String, val expiresAtMs: Long)
+data class PairingCode(val code: String, val expiresAtMs: Long, val secret: String = "")
 
 enum class CodeCheck { VALID, INVALID, EXPIRED, LOCKED }
 
@@ -16,6 +16,7 @@ enum class CodeCheck { VALID, INVALID, EXPIRED, LOCKED }
 class PairingCodeManager(
     private val nowMs: () -> Long = System::currentTimeMillis,
     private val nextCode: () -> String = ::randomCode,
+    private val nextSecret: () -> String = ::randomSecret,
     private val ttlMs: Long = 60_000L,
     private val maxFailedAttempts: Int = 5,
 ) {
@@ -23,7 +24,7 @@ class PairingCodeManager(
     private var failedAttempts = 0
     private var lastRetiredCode: String? = null
 
-    private val _current = MutableStateFlow(PairingCode(nextCode(), nowMs() + ttlMs))
+    private val _current = MutableStateFlow(PairingCode(nextCode(), nowMs() + ttlMs, nextSecret()))
     val current: StateFlow<PairingCode> = _current
 
     /** Checks a code a device sent. Wrong guesses count towards the lockout; right ones don't. */
@@ -46,6 +47,9 @@ class PairingCodeManager(
         }
     }
 
+    /** The QR secret that goes with [code] while it is the one on screen, `null` once it rotated. */
+    fun secretFor(code: String): String? = synchronized(lock) { _current.value.takeIf { it.code == code }?.secret }
+
     /** A pairing succeeded: the code is single-use, so replace it. */
     fun consume() = synchronized(lock) { rotateLocked(retire = false) }
 
@@ -57,7 +61,7 @@ class PairingCodeManager(
     private fun rotateLocked(retire: Boolean = true) {
         if (retire) lastRetiredCode = _current.value.code
         failedAttempts = 0
-        _current.value = PairingCode(nextCode(), nowMs() + ttlMs)
+        _current.value = PairingCode(nextCode(), nowMs() + ttlMs, nextSecret())
     }
 }
 

@@ -26,6 +26,7 @@ dependencies {
     testImplementation(libs.ktor.server.core)
     testImplementation(libs.ktor.server.cio)
     testImplementation(libs.ktor.server.websockets)
+    testImplementation(libs.ktor.network.tls.certificates)
 }
 
 compose.desktop {

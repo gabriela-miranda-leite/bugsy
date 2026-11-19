@@ -15,6 +15,8 @@ internal fun currentBugsySnapshot(): BugsyEvent.Snapshot = BugsyEvent.Snapshot(
     mockRules = MockEngine.rulesFlow.value,
     flags = Bugsy.flagManager.flags.value,
     deviceInfo = Bugsy.deviceInfo(),
+    // The provider is the app's own code; a throwing one must not stop the desktop from connecting.
+    customInfo = runCatching { Bugsy.customInfo() }.getOrDefault(emptyList()).map { (label, value) -> CustomInfoEntry(label, value) },
 )
 
 /** Shared by both platform implementations: applies a desktop-sent command to the local engines. */

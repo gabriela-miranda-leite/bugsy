@@ -30,19 +30,17 @@ import androidx.compose.ui.unit.dp
 import com.bugsy.desktop.ui.theme.BugsyDesktopColors
 import com.bugsy.desktop.ui.theme.BugsyDesktopSpacing
 import com.bugsy.desktop.ui.theme.BugsyDesktopTypography
+import com.bugsy.desktop.wire.WireCustomInfo
 import com.bugsy.desktop.wire.WireDeviceInfo
 
 /**
- * Mirrors `:ui`'s `DeviceInfoScreen` (DEB-60): APP/DEVICE/RUNTIME sections, each row copyable. `DeviceInfo`
- * itself is mostly placeholder values today on mobile too ("Placeholder until a per-platform (Android/iOS)
- * DeviceInfo provider exists" — see DEB-3/`BugsyWsServerHandle.currentDeviceInfo`), so most rows read "—" until
- * that lands; this isn't a desktop bug, it's what mobile's own screen shows. The reference design's Package/
- * Screen/IP rows aren't included — `DeviceInfo` has no such fields, inventing values for them would be fake
- * data. "Connected since" is a real desktop-local fact (not sent by mobile); "Copy as text" is a desktop-only
+ * Mirrors `:ui`'s `DeviceInfoScreen`: ACCOUNT (the app's own custom info, only when it has any), APP, DEVICE and
+ * RUNTIME sections, each row copyable. The values are whatever the phone reports; a "—" means the phone couldn't
+ * read it. "Connected since" is a real desktop-local fact (not sent by mobile); "Copy as text" is a desktop-only
  * convenience mobile's screen doesn't have.
  */
 @Composable
-fun DeviceScreen(info: WireDeviceInfo?, connectedAtEpochMs: Long?, modifier: Modifier = Modifier) {
+fun DeviceScreen(info: WireDeviceInfo?, connectedAtEpochMs: Long?, modifier: Modifier = Modifier, customInfo: List<WireCustomInfo> = emptyList()) {
     val clipboard = LocalClipboardManager.current
 
     Box(modifier.fillMaxSize().background(BugsyDesktopColors.Surface)) {
@@ -57,6 +55,8 @@ fun DeviceScreen(info: WireDeviceInfo?, connectedAtEpochMs: Long?, modifier: Mod
         }
 
         val rows = buildList {
+            // Same order as mobile: the app's own "Account" rows first, and only when the app provided any.
+            if (customInfo.isNotEmpty()) add("ACCOUNT" to customInfo.map { it.label to it.value })
             add("APP" to listOf("Version" to "${info.appVersionName} (${info.appVersionCode})", "Environment" to info.environment, "Build" to info.buildType))
             add("DEVICE" to listOf("Model" to info.deviceModel, "OS" to "${info.osName} ${info.osVersion}", "Locale" to info.locale))
             add(

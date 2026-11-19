@@ -11,6 +11,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class HandshakeMessage(val value: String)
 
+/** One row of the app's custom info (the Device tab's "Account" section). */
+@Serializable
+data class CustomInfoEntry(val label: String, val value: String)
+
 /** Mobile -> desktop messages broadcast by the BugsyWsServer (DEB-58), discriminated by `type`. */
 @Serializable
 sealed class BugsyEvent {
@@ -22,6 +26,8 @@ sealed class BugsyEvent {
         val mockRules: List<MockRule>,
         val flags: List<DebugFlag>,
         val deviceInfo: DeviceInfo,
+        /** The app's `BugsyConfig.customInfoProvider` rows (the "Account" section), read when the snapshot is built. */
+        val customInfo: List<CustomInfoEntry> = emptyList(),
     ) : BugsyEvent()
 
     @Serializable

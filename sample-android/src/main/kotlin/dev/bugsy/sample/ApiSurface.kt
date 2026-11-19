@@ -27,6 +27,7 @@ private fun apiSurface() {
             flagsProvider = { listOf(DebugFlag(key = "k", label = "l", value = true, isOverridden = false)) },
             allowRevealingSecrets = true,
             customInfoProvider = { listOf("k" to "v") },
+            environment = "staging",
         )
     )
     Trigger.entries.forEach { trigger -> BugsyConfig(trigger = trigger) }

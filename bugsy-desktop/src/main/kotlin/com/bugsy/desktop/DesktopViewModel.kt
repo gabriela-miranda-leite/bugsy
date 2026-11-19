@@ -20,6 +20,7 @@ import com.bugsy.desktop.pairing.localIpv4Address
 import com.bugsy.desktop.pairing.pairingQrText
 import com.bugsy.desktop.wire.WireDebugFlag
 import com.bugsy.desktop.wire.WireDebugRequest
+import com.bugsy.desktop.wire.WireCustomInfo
 import com.bugsy.desktop.wire.WireDeviceInfo
 import com.bugsy.desktop.wire.WireMockRule
 import com.bugsy.desktop.wire.displayName
@@ -279,6 +280,7 @@ class DesktopViewModel {
     fun resetAllFlags() = client.sendResetAllFlags()
 
     val deviceInfo: StateFlow<WireDeviceInfo?> = client.deviceInfo
+    val customInfo: StateFlow<List<WireCustomInfo>> = client.customInfo
 
     /** Set the moment [connectionState] first becomes [ConnectionState.CONNECTED] after a [connect] call, `null`
      * once disconnected — a purely local fact (mobile doesn't report a connection time), shown in the Device tab. */

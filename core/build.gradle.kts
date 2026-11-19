@@ -96,6 +96,8 @@ buildkonfig {
 
     defaultConfigs {
         buildConfigField(STRING, "VERSION", project.property("VERSION_NAME") as String)
+        // The Compose Multiplatform version Bugsy's overlay is built with, for the Device tab.
+        buildConfigField(STRING, "COMPOSE_VERSION", libs.versions.compose.multiplatform.get())
     }
 }
 

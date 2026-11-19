@@ -14,20 +14,7 @@ class DebugViewModel {
 
     val customInfo: List<Pair<String, String>> get() = Bugsy.customInfo()
 
-    // Placeholder until a per-platform (Android/iOS) DeviceInfo provider exists — see DEB-3.
-    val deviceInfo: DeviceInfo = DeviceInfo(
-        appVersionName = "—",
-        appVersionCode = "—",
-        environment = "—",
-        buildType = "—",
-        deviceModel = "—",
-        osName = "—",
-        osVersion = "—",
-        locale = "—",
-        bugsyVersion = "0.1.0-alpha",
-        kotlinVersion = "2.0.21",
-        composeVersion = "1.7.0",
-    )
+    val deviceInfo: DeviceInfo get() = Bugsy.deviceInfo()
 
     fun clearRequests() {
         DebugRepository.clear()

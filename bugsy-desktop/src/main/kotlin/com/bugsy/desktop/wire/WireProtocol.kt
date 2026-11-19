@@ -159,12 +159,17 @@ data class WireDeviceInfo(
     val composeVersion: String,
 )
 
+/** One row of the app's custom info (the "Account" section), same shape as `core`'s `CustomInfoEntry`. */
+@Serializable
+data class WireCustomInfo(val label: String, val value: String)
+
 sealed class WireEvent {
     data class Snapshot(
         val requests: List<WireDebugRequest>,
         val mockRules: List<WireMockRule>,
         val flags: List<WireDebugFlag>,
         val deviceInfo: WireDeviceInfo?,
+        val customInfo: List<WireCustomInfo> = emptyList(),
     ) : WireEvent()
     data class RequestRecorded(val request: WireDebugRequest) : WireEvent()
     data class MockRuleChanged(val rule: WireMockRule, val action: String) : WireEvent()
@@ -237,7 +242,10 @@ fun parseWireEvent(text: String): WireEvent {
             }
             val deviceInfo = root["deviceInfo"]
                 ?.let { runCatching { wireJson.decodeFromJsonElement(WireDeviceInfo.serializer(), it) }.getOrNull() }
-            WireEvent.Snapshot(requests, mockRules, flags, deviceInfo)
+            val customInfo = (root["customInfo"] as? JsonArray).orEmpty().mapNotNull { element ->
+                runCatching { wireJson.decodeFromJsonElement(WireCustomInfo.serializer(), element) }.getOrNull()
+            }
+            WireEvent.Snapshot(requests, mockRules, flags, deviceInfo, customInfo)
         }
         "request_recorded" -> root["request"]
             ?.let { runCatching { wireJson.decodeFromJsonElement(WireDebugRequest.serializer(), it) }.getOrNull() }

@@ -144,25 +144,14 @@ devices or with the team.
 
 ## Bugsy Desktop
 
+[![Download](https://img.shields.io/github/v/release/gabriela-miranda-leite/bugsy?label=download&color=0A7BBB)](https://github.com/gabriela-miranda-leite/bugsy/releases/latest)
+
 Desktop client (macOS, Windows, Linux) that pairs with the phone over Wi-Fi to view requests,
 mocks, flags and device info on a bigger screen. Download the installer for your system from the
-[Releases page](https://github.com/gabriela-miranda-leite/bugsy/releases/latest):
-
-- **macOS**: `Bugsy-<version>.dmg`
-- **Windows**: `Bugsy-<version>.msi`
-- **Linux**: `bugsy_<version>-1_amd64.deb`
-
-The app isn't signed or notarized yet — that requires a paid developer certificate (an Apple
-Developer Program membership and a Windows code signing certificate), which is out of scope for
-now. Without them, the OS shows an "untrusted app" warning on first launch; the workaround is:
-
-- **macOS**: right-click (or Control-click) `Bugsy.app` and choose "Open", confirming the
-  Gatekeeper dialog. It opens normally after that.
-- **Windows**: on the SmartScreen warning, click "More info" and then "Run anyway".
-- **Linux**: install with `sudo dpkg -i bugsy_<version>-1_amd64.deb` (or your package manager's
-  GUI); with no Gatekeeper/SmartScreen, it opens right away.
-
-To run from source during development: `./gradlew :bugsy-desktop:run`.
+[Releases page](https://github.com/gabriela-miranda-leite/bugsy/releases/latest) and see the full
+install and pairing walkthrough in
+[`bugsy-desktop/README.en.md`](bugsy-desktop/README.en.md)
+([versão em português](bugsy-desktop/README.md)).
 
 ## Modules
 
@@ -171,6 +160,7 @@ settings.gradle.kts
  ├─ :core            (KMP lib — capture, redaction, logic)
  ├─ :ui              (KMP lib — Compose Multiplatform overlay, depends on :core)
  ├─ :bugsy-noop      (KMP lib — same public API as core+ui, zero instrumentation)
+ ├─ :bugsy-desktop   (Compose desktop app — see bugsy-desktop/README.en.md)
  └─ :sample-android  (Android demo app, not published)
 ```
 

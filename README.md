@@ -144,26 +144,14 @@ regras como um arquivo JSON para compartilhar entre devices ou com o time.
 
 ## Bugsy Desktop
 
+[![Download](https://img.shields.io/github/v/release/gabriela-miranda-leite/bugsy?label=download&color=0A7BBB)](https://github.com/gabriela-miranda-leite/bugsy/releases/latest)
+
 Cliente desktop (macOS, Windows, Linux) que pareia com o celular por Wi-Fi para ver requests,
 mocks, flags e informações de device numa tela maior. Baixe o instalador do seu sistema na
-[página de Releases](https://github.com/gabriela-miranda-leite/bugsy/releases/latest):
-
-- **macOS**: `Bugsy-<versão>.dmg`
-- **Windows**: `Bugsy-<versão>.msi`
-- **Linux**: `bugsy_<versão>-1_amd64.deb`
-
-O app ainda não é assinado nem notarizado — isso exige um certificado de desenvolvedor pago (Apple
-Developer Program e um code signing certificate no Windows), o que fica fora do escopo por ora.
-Sem eles, o sistema mostra um aviso de "app não confiável" na primeira abertura; o contorno é:
-
-- **macOS**: clique com o botão direito (ou Control+clique) em `Bugsy.app` e escolha "Abrir",
-  confirmando no diálogo do Gatekeeper. Abre normalmente nas próximas vezes.
-- **Windows**: no aviso do SmartScreen, clique em "Mais informações" e depois em "Executar assim
-  mesmo".
-- **Linux**: instale com `sudo dpkg -i bugsy_<versão>-1_amd64.deb` (ou pelo gerenciador de pacotes
-  gráfico); sem Gatekeeper/SmartScreen, abre direto.
-
-Para rodar a partir do código-fonte durante o desenvolvimento: `./gradlew :bugsy-desktop:run`.
+[página de Releases](https://github.com/gabriela-miranda-leite/bugsy/releases/latest) e veja o
+passo a passo completo de instalação e pareamento em
+[`bugsy-desktop/README.md`](bugsy-desktop/README.md)
+([English version](bugsy-desktop/README.en.md)).
 
 ## Módulos
 
@@ -172,6 +160,7 @@ settings.gradle.kts
  ├─ :core            (KMP lib — captura, redação, lógica)
  ├─ :ui              (KMP lib — overlay Compose Multiplatform, depende de :core)
  ├─ :bugsy-noop      (KMP lib — mesma API pública de core+ui, zero instrumentação)
+ ├─ :bugsy-desktop   (app desktop Compose — ver bugsy-desktop/README.md)
  └─ :sample-android  (app Android de demonstração, não publicado)
 ```
 

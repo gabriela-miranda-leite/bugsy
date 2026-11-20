@@ -145,10 +145,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Gradle itself needs 21 to resolve :ui's buildscript classpath (the Paparazzi plugin
+      # requires it); 17 stays installed too so bugsy-desktop's jvmToolchain(17) can find it.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: |
+            17
+            21
 
       - uses: gradle/actions/setup-gradle@v4
 

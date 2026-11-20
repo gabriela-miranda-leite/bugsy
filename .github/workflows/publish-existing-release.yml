@@ -3,7 +3,10 @@ name: Publish existing release to Maven Central
 # Publica no Maven Central uma tag de release que já existe (ex: quando o
 # publish falhou por credencial inválida mas a tag/GitHub Release já tinham
 # sido criadas). Não cria tag nem release, só builda a partir da tag informada
-# e publica.
+# e publica. Também builda os instaladores do bugsy-desktop nos três sistemas
+# e sobe pra essa mesma GitHub Release, pra cobrir o caso de o job
+# package-desktop original ter falhado (ex: credencial do WiX/fakeroot, rate
+# limit) e a release ter ficado sem os instaladores.
 on:
   workflow_dispatch:
     inputs:
@@ -44,3 +47,56 @@ jobs:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
+
+  package-desktop:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            task: packageDmg
+            glob: bugsy-desktop/build/compose/binaries/main/dmg/*.dmg
+          - os: windows-latest
+            task: packageMsi
+            glob: bugsy-desktop/build/compose/binaries/main/msi/*.msi
+          - os: ubuntu-latest
+            task: packageDeb
+            glob: bugsy-desktop/build/compose/binaries/main/deb/*.deb
+    steps:
+      - name: Restrict who can trigger this
+        if: github.actor != 'gabriela-miranda-leite'
+        run: |
+          echo "::error::Apenas gabriela-miranda-leite pode disparar isso." >&2
+          exit 1
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # jpackage needs fakeroot to build a .deb, and it isn't on the ubuntu-latest image.
+      - name: Install fakeroot (Linux .deb packaging)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
+      # jpackage needs the WiX v3 toolset to build an .msi, and it isn't on the windows-latest image.
+      - name: Install WiX Toolset (Windows .msi packaging)
+        if: matrix.os == 'windows-latest'
+        run: choco install wixtoolset -y
+
+      - name: Build installer
+        run: ./gradlew :bugsy-desktop:${{ matrix.task }} --no-configuration-cache
+
+      - name: Attach installer to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        shell: bash
+        run: gh release upload "${{ inputs.tag }}" ${{ matrix.glob }} --clobber

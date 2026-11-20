@@ -5,6 +5,9 @@ name: Pre-release
 # abrem sem crashar, antes de qualquer coisa ser publicada no Maven Central.
 # A versão rc também é disponibilizada como artifact do workflow, pra quem
 # quiser testar numa máquina/projeto local antes do release de verdade.
+# Também builda o instalador do bugsy-desktop nos três sistemas (sem publicar
+# nada, já que não existe GitHub Release nesse ponto), pra pegar quebra de
+# packaging (jpackage, WiX, fakeroot) antes do release de verdade rodar.
 # Chamado pelo Release (workflow_call) como gate, e pode ser disparado manualmente
 # pra testar o estado atual da main sem iniciar um release.
 on:
@@ -125,3 +128,39 @@ jobs:
 
       - name: Install, abrir e checar o sample no simulador
         run: ./scripts/smoke-test-ios.sh "build/ios-prerelease/Build/Products/Debug-iphonesimulator/BugsySample.app"
+
+  verify-desktop-package:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            task: packageDmg
+          - os: windows-latest
+            task: packageMsi
+          - os: ubuntu-latest
+            task: packageDeb
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # jpackage needs fakeroot to build a .deb, and it isn't on the ubuntu-latest image.
+      - name: Install fakeroot (Linux .deb packaging)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
+      # jpackage needs the WiX v3 toolset to build an .msi, and it isn't on the windows-latest image.
+      - name: Install WiX Toolset (Windows .msi packaging)
+        if: matrix.os == 'windows-latest'
+        run: choco install wixtoolset -y
+
+      - name: Build installer
+        run: ./gradlew :bugsy-desktop:${{ matrix.task }} --no-configuration-cache

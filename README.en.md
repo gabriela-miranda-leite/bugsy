@@ -183,6 +183,24 @@ In release, `bugsy-noop` replaces `ui`/`core` with an artifact that has no behav
 actual gate, though, is that the interceptor/`NSURLProtocol` is only activated if the host is
 debuggable, even when the full artifact is on the classpath.
 
+Body masking (`BodyFieldMasker`) has defense in depth worth calling out:
+
+- **Iterative depth check before parsing the JSON.** On Kotlin/Native a stack overflow is a
+  `SIGSEGV` (it can't be caught), so measuring depth with a loop before parsing recursively is the
+  only safe way out.
+- **Progressive fallback:** valid JSON masks straight on the tree; JSON embedded in a string masks
+  recursively; non-JSON/form-encoded text falls back to an iterative regex, with no recursive regex
+  engine that would choke on a 1 MB body.
+- **Explicit fail-closed:** if anything breaks along the way, the body never passes through
+  unmasked; `UNMASKABLE_PLACEHOLDER` is the last resort.
+- **Thread-safe:** a `MutableStateFlow` with `update {}` swaps the sensitive-field set atomically
+  while network interceptors read it from other threads.
+
+`CurlGenerator` has shell-injection tests with a POSIX parser written right in the test class,
+covering a URL with single quotes, a header with `'; rm -rf ~; echo '`, a body with `$(whoami)`
+and a method with `; rm -rf ~` — proving that no untrusted traffic data can inject a command into
+the terminal of whoever exports the cURL.
+
 The connection between the phone (Android and iOS) and Bugsy Desktop uses TLS with a pinned
 certificate, and pairing encrypts the token. When pairing by code or from the device list, you
 compare a 4-digit code on both screens. What is and is not protected is described in

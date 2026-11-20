@@ -32,6 +32,7 @@ senhas, CPF) por acidente.
   - [Flutter](#flutter)
 - [Uso básico](#uso-básico)
 - [Mocks](#mocks)
+- [Bugsy Desktop](#bugsy-desktop)
 - [Módulos](#módulos)
 - [Segurança](#segurança)
 - [Sobre o desenvolvimento](#sobre-o-desenvolvimento)
@@ -140,6 +141,29 @@ regras como um arquivo JSON para compartilhar entre devices ou com o time.
 | Android | iOS |
 |---|---|
 | <video src="https://github.com/user-attachments/assets/0beb8daa-9e65-485a-a59d-dea6fae9b89f" controls width="300"></video> | <video src="https://github.com/user-attachments/assets/08e92c81-3fd4-4ddc-a94e-95e9a4b42c5d" controls width="300"></video> |
+
+## Bugsy Desktop
+
+Cliente desktop (macOS, Windows, Linux) que pareia com o celular por Wi-Fi para ver requests,
+mocks, flags e informações de device numa tela maior. Baixe o instalador do seu sistema na
+[página de Releases](https://github.com/gabriela-miranda-leite/bugsy/releases/latest):
+
+- **macOS**: `Bugsy-<versão>.dmg`
+- **Windows**: `Bugsy-<versão>.msi`
+- **Linux**: `bugsy_<versão>-1_amd64.deb`
+
+O app ainda não é assinado nem notarizado — isso exige um certificado de desenvolvedor pago (Apple
+Developer Program e um code signing certificate no Windows), o que fica fora do escopo por ora.
+Sem eles, o sistema mostra um aviso de "app não confiável" na primeira abertura; o contorno é:
+
+- **macOS**: clique com o botão direito (ou Control+clique) em `Bugsy.app` e escolha "Abrir",
+  confirmando no diálogo do Gatekeeper. Abre normalmente nas próximas vezes.
+- **Windows**: no aviso do SmartScreen, clique em "Mais informações" e depois em "Executar assim
+  mesmo".
+- **Linux**: instale com `sudo dpkg -i bugsy_<versão>-1_amd64.deb` (ou pelo gerenciador de pacotes
+  gráfico); sem Gatekeeper/SmartScreen, abre direto.
+
+Para rodar a partir do código-fonte durante o desenvolvimento: `./gradlew :bugsy-desktop:run`.
 
 ## Módulos
 

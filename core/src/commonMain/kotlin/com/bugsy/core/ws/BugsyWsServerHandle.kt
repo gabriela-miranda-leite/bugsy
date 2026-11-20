@@ -65,7 +65,8 @@ interface BugsyWsServerHandle {
 
     /**
      * SHA-256 (lowercase hex) of the server's TLS certificate, which the desktop pins; `null` when the server has no
-     * TLS (iOS, for now), in which case the desktop falls back to plain `ws://`.
+     * TLS, in which case the desktop falls back to plain `ws://`. Both Android and iOS run TLS normally (DEB-67);
+     * this is only `null` when the platform's certificate store isn't available, such as a test process.
      */
     val certFingerprint: String? get() = null
 
@@ -77,7 +78,7 @@ interface BugsyWsServerHandle {
 
 /**
  * Starts the BugsyWsServer on [port], or returns `null` where it isn't supported. Ktor's `embeddedServer` has no
- * supported iOS target (only JVM + macOS/Linux/Windows native) — Android is the only mobile platform with a real
- * implementation for now; iOS is a noop until a non-Ktor server is built for it.
+ * supported iOS target (only JVM + macOS/Linux/Windows native), so iOS hand-rolls its own WebSocket server directly
+ * over POSIX sockets instead (see the iOS `BugsyWsServer.kt`); both platforms have a real implementation.
  */
 expect fun startBugsyWsServer(port: Int = BUGSY_WS_DEFAULT_PORT): BugsyWsServerHandle?

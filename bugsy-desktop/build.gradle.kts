@@ -83,6 +83,7 @@ compose.desktop {
             packageName = "Bugsy"
             packageVersion = desktopVersion
             description = "Remote debug client for apps embedding Bugsy."
+            vendor = "Gabriela Miranda"
             // The app icon of each platform, generated from assets/brand/bugsy-mark.svg (`generateBrandAssets`).
             macOS {
                 dockName = "Bugsy"

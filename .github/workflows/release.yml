@@ -135,3 +135,51 @@ jobs:
           gh release create "v${VERSION}" \
             --title "v${VERSION}" \
             --generate-notes
+
+  package-desktop:
+    needs: [compute-version, release]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            task: packageDmg
+            glob: bugsy-desktop/build/compose/binaries/main/dmg/*.dmg
+          - os: windows-latest
+            task: packageMsi
+            glob: bugsy-desktop/build/compose/binaries/main/msi/*.msi
+          - os: ubuntu-latest
+            task: packageDeb
+            glob: bugsy-desktop/build/compose/binaries/main/deb/*.deb
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: "v${{ needs.compute-version.outputs.version }}"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # jpackage needs fakeroot to build a .deb, and it isn't on the ubuntu-latest image.
+      - name: Install fakeroot (Linux .deb packaging)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
+      # jpackage needs the WiX v3 toolset to build an .msi, and it isn't on the windows-latest image.
+      - name: Install WiX Toolset (Windows .msi packaging)
+        if: matrix.os == 'windows-latest'
+        run: choco install wixtoolset -y
+
+      - name: Build installer
+        run: ./gradlew :bugsy-desktop:${{ matrix.task }} --no-configuration-cache
+
+      - name: Attach installer to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        shell: bash
+        run: gh release upload "v${{ needs.compute-version.outputs.version }}" ${{ matrix.glob }} --clobber

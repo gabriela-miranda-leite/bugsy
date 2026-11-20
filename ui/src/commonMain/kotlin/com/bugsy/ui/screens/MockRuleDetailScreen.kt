@@ -63,6 +63,7 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.formatDuration
+import com.bugsy.ui.theme.formatLocalHms
 import org.jetbrains.compose.resources.stringResource
 
 /** Read-only view of a [MockRule]: metrics, recent matches, response body, and Edit/Delete actions. */
@@ -214,7 +215,7 @@ private fun MatchRow(match: MockMatch) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            Text(match.timestamp.formatHms(), style = BugsyTypography.Caption, color = BugsyColors.TextDisabled)
+            Text(formatLocalHms(match.timestamp), style = BugsyTypography.Caption, color = BugsyColors.TextDisabled)
             MockTag()
         }
         HorizontalDivider(thickness = BugsySpacing.strokeBorder, color = BugsyColors.BorderSubtle)
@@ -231,16 +232,6 @@ private fun MockTag() {
         Text(stringResource(Res.string.tag_mock), style = BugsyTypography.Caption, color = BugsyColors.OverrideBadge)
     }
 }
-
-private fun Long.formatHms(): String {
-    val totalSeconds = this / 1000
-    val hours = (totalSeconds / 3600) % 24
-    val minutes = (totalSeconds / 60) % 60
-    val seconds = totalSeconds % 60
-    return "${hours.pad()}:${minutes.pad()}:${seconds.pad()}"
-}
-
-private fun Long.pad(): String = this.toString().padStart(2, '0')
 
 @Preview
 @Composable

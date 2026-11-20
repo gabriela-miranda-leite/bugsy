@@ -67,6 +67,11 @@ class BugsyScreenshotTest {
         // regardless of the machine running the tests.
         Locale.setDefault(Locale.ENGLISH)
 
+        // RequestDetailScreen/MockRuleDetailScreen render the request time in the JVM's default time zone
+        // (formatLocalHms) — fix it too, or the goldens would show a different hour depending on which
+        // time zone the machine running the tests is in.
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("UTC"))
+
         // Paparazzi doesn't trigger the ContentProvider that compose-resources uses to
         // initialize the Context on Android — without this, stringResource() breaks.
         // AndroidContextProvider is `internal` in Kotlin but public in bytecode, so

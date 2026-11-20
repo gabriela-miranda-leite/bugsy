@@ -89,8 +89,23 @@ compose.desktop {
                 dockName = "Bugsy"
                 iconFile.set(project.file("packaging/icon.icns"))
             }
-            windows { iconFile.set(project.file("packaging/icon.ico")) }
-            linux { iconFile.set(project.file("packaging/icon.png")) }
+            windows {
+                iconFile.set(project.file("packaging/icon.ico"))
+                // Without these, jpackage only copies files under Program Files, with no Start Menu entry and no
+                // listing in "Installed apps" (DEB-65 follow-up).
+                menu = true
+                menuGroup = "Bugsy"
+                shortcut = true
+                perUserInstall = true
+                dirChooser = true
+            }
+            linux {
+                iconFile.set(project.file("packaging/icon.png"))
+                // Without this, the .deb installs the binary but creates no .desktop entry, so the app doesn't show
+                // up in the distro's application menu (same issue the Windows block above fixes).
+                shortcut = true
+                menuGroup = "Bugsy"
+            }
         }
     }
 }

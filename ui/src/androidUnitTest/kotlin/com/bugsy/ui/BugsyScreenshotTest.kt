@@ -345,9 +345,13 @@ class BugsyScreenshotTest {
         }
     }
 
+    // Fixed, not the real version: it follows VERSION_NAME, which changes on every release and would make these
+    // snapshots fail on every version bump otherwise.
+    private val FixedVersion = "0.0.0-test"
+
     @Test
     fun settingsScreen() {
-        snapshotOnSurface { SettingsScreen() }
+        snapshotOnSurface { SettingsScreen(versionOverride = FixedVersion) }
     }
 
     @Test
@@ -355,14 +359,24 @@ class BugsyScreenshotTest {
         // Fixed values, not the real ones: the token is randomly generated per Bugsy.initialize() call (DEB-58) and
         // the address depends on the machine running the test, which would make this snapshot non-deterministic.
         snapshotOnSurface {
-            SettingsScreen(wsTokenOverride = "5gnywzFu", deviceAddressOverride = "192.168.0.24:7788", desktopConnectedOverride = false)
+            SettingsScreen(
+                wsTokenOverride = "5gnywzFu",
+                deviceAddressOverride = "192.168.0.24:7788",
+                desktopConnectedOverride = false,
+                versionOverride = FixedVersion,
+            )
         }
     }
 
     @Test
     fun settingsScreenDesktopConnected() {
         snapshotOnSurface {
-            SettingsScreen(wsTokenOverride = "5gnywzFu", deviceAddressOverride = "192.168.0.24:7788", desktopConnectedOverride = true)
+            SettingsScreen(
+                wsTokenOverride = "5gnywzFu",
+                deviceAddressOverride = "192.168.0.24:7788",
+                desktopConnectedOverride = true,
+                versionOverride = FixedVersion,
+            )
         }
     }
 
@@ -374,6 +388,7 @@ class BugsyScreenshotTest {
                 wsTokenOverride = "5gnywzFu",
                 deviceAddressOverride = "192.168.0.24:7788",
                 desktopConnectedOverride = false,
+                versionOverride = FixedVersion,
             )
         }
     }
@@ -386,6 +401,7 @@ class BugsyScreenshotTest {
                 wsTokenOverride = "5gnywzFu",
                 deviceAddressOverride = "192.168.0.24:7788",
                 desktopConnectedOverride = false,
+                versionOverride = FixedVersion,
             )
         }
     }
@@ -398,6 +414,7 @@ class BugsyScreenshotTest {
                 wsTokenOverride = "5gnywzFu",
                 deviceAddressOverride = "192.168.0.24:7788",
                 desktopConnectedOverride = false,
+                versionOverride = FixedVersion,
             )
         }
     }

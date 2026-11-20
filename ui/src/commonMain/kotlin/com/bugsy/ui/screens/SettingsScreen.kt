@@ -95,9 +95,10 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * Bugsy version.
  *
  * @param onScanQr opens the full-screen QR scanner (owned by the overlay, since it covers the whole sheet).
- * @param wsTokenOverride, [deviceAddressOverride], [desktopConnectedOverride] bypass the real values when set, so
- * screenshot tests can pass fixed ones: the token is random per [Bugsy.initialize]/[Bugsy.restartWsServer] call,
- * and the address/connection depend on the machine running the test.
+ * @param wsTokenOverride, [deviceAddressOverride], [desktopConnectedOverride], [versionOverride] bypass the real
+ * values when set, so screenshot tests can pass fixed ones: the token is random per [Bugsy.initialize]/
+ * [Bugsy.restartWsServer] call, the address/connection depend on the machine running the test, and the version
+ * follows VERSION_NAME, which changes on every release.
  */
 @Composable
 fun SettingsScreen(
@@ -107,6 +108,7 @@ fun SettingsScreen(
     wsTokenOverride: String? = null,
     deviceAddressOverride: String? = null,
     desktopConnectedOverride: Boolean? = null,
+    versionOverride: String? = null,
 ) {
     val revealDefault by BugsySettings.revealSensitiveByDefault.collectAsState()
     val clipboard = LocalClipboardManager.current
@@ -193,7 +195,7 @@ fun SettingsScreen(
 
         item { HorizontalDivider(thickness = BugsySpacing.rowDividerThickness, color = BugsyColors.BorderHeader) }
         item { SectionLabel(stringResource(Res.string.settings_section_about)) }
-        item { KeyValueRow(stringResource(Res.string.settings_bugsy_version), Bugsy.version) }
+        item { KeyValueRow(stringResource(Res.string.settings_bugsy_version), versionOverride ?: Bugsy.version) }
     }
 }
 

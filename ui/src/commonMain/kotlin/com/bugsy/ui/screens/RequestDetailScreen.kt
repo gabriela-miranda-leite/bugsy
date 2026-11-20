@@ -76,6 +76,7 @@ import com.bugsy.ui.theme.BugsySpacing
 import com.bugsy.ui.theme.BugsyTheme
 import com.bugsy.ui.theme.BugsyTypography
 import com.bugsy.ui.theme.formatDuration
+import com.bugsy.ui.theme.formatLocalHms
 import com.bugsy.ui.theme.statusColor
 import org.jetbrains.compose.resources.stringResource
 
@@ -175,7 +176,7 @@ fun RequestDetailScreen(
                     }
                     MetricCard(
                         stringResource(Res.string.label_time),
-                        request.timestamp.formatHms(),
+                        formatLocalHms(request.timestamp),
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -304,16 +305,6 @@ private val SlowTooltipOffset = 8.dp
 private val SlowTooltipArrowSize = 8.dp
 
 private fun Map<String, String>.asText(): String = entries.joinToString("\n") { (name, value) -> "$name: $value" }
-
-private fun Long.formatHms(): String {
-    val totalSeconds = this / 1000
-    val hours = (totalSeconds / 3600) % 24
-    val minutes = (totalSeconds / 60) % 60
-    val seconds = totalSeconds % 60
-    return "${hours.pad()}:${minutes.pad()}:${seconds.pad()}"
-}
-
-private fun Long.pad(): String = this.toString().padStart(2, '0')
 
 @Preview
 @Composable

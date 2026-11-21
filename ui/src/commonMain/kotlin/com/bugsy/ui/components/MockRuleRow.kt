@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +31,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.cd_delete_mock_rule
+import bugsy.ui.generated.resources.cd_mock_conflict
 import bugsy.ui.generated.resources.cd_toggle_mock_rule
 import bugsy.ui.generated.resources.tag_mock_once
 import com.bugsy.core.model.MockRule
@@ -48,6 +50,7 @@ fun MockRuleRow(
     onToggleActive: (Boolean) -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    hasConflict: Boolean = false,
 ) {
     val toggleDescription = stringResource(Res.string.cd_toggle_mock_rule)
     Column(modifier) {
@@ -67,6 +70,7 @@ fun MockRuleRow(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
+                    if (hasConflict) ConflictIcon()
                 }
                 if (!rule.name.isNullOrBlank()) {
                     Text(
@@ -121,6 +125,17 @@ private fun ActiveDot(active: Boolean) {
         modifier = Modifier
             .size(BugsySpacing.mockActiveDotSize)
             .background(if (active) BugsyColors.SwitchOn else BugsyColors.TextDisabled, CircleShape),
+    )
+}
+
+/** Warns that another active rule shares this one's route ([MockRule.conflictsWith]) — only one of them will ever fire. */
+@Composable
+private fun ConflictIcon() {
+    Icon(
+        Icons.Outlined.WarningAmber,
+        contentDescription = stringResource(Res.string.cd_mock_conflict),
+        tint = BugsyColors.Status3xx,
+        modifier = Modifier.size(BugsySpacing.iconSizeSmall),
     )
 }
 

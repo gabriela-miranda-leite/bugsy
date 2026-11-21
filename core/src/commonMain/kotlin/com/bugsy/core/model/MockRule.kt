@@ -56,6 +56,22 @@ private fun String.toDisplayRoute(): String {
     }
 }
 
+/**
+ * True when [this] and [other] are both active and would intercept the exact same requests: same [urlPattern]
+ * and overlapping [method] (`null` acts as "any method", so it overlaps with every specific method). A
+ * one-shot rule paired with a non-one-shot rule for the same route is exempt — that's the deliberate "fire
+ * once, then fall back to this other response" pattern, not a conflict. Doesn't attempt general regex-overlap
+ * detection, only the common case of two rules authored with the literal same pattern.
+ */
+fun MockRule.conflictsWith(other: MockRule): Boolean {
+    if (id == other.id) return false
+    if (!isActive || !other.isActive) return false
+    if (isOneShot != other.isOneShot) return false
+    if (urlPattern != other.urlPattern) return false
+    if (method == null || other.method == null) return true
+    return method.equals(other.method, ignoreCase = true)
+}
+
 /** One time [MockRule] fired: the exact URL it matched and when, shown in the rule's "Last matches" list. */
 data class MockMatch(
     val url: String,

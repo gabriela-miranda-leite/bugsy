@@ -46,6 +46,9 @@ import com.bugsy.desktop.ui.theme.formatDuration
 import com.bugsy.desktop.ui.theme.highlightJsonPretty
 import com.bugsy.desktop.ui.theme.statusColor
 import com.bugsy.desktop.wire.WireDebugRequest
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Mirrors `:ui`'s `RequestDetailScreen` (DEB-60): metrics, headers, bodies (JSON-highlighted), cURL, a
@@ -252,12 +255,7 @@ private fun CreateMockButton(onClick: () -> Unit) {
     }
 }
 
-private fun Long.formatHms(): String {
-    val totalSeconds = this / 1000
-    val hours = (totalSeconds / 3600) % 24
-    val minutes = (totalSeconds / 60) % 60
-    val seconds = totalSeconds % 60
-    return "${hours.pad()}:${minutes.pad()}:${seconds.pad()}"
-}
+private val HmsFormatter = ThreadLocal.withInitial { SimpleDateFormat("HH:mm:ss", Locale.US) }
 
-private fun Long.pad(): String = this.toString().padStart(2, '0')
+/** [this] (epoch millis, UTC) as `HH:mm:ss` in the machine's own time zone, matching mobile's `formatLocalHms`. */
+private fun Long.formatHms(): String = HmsFormatter.get()!!.format(Date(this))

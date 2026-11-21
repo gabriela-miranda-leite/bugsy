@@ -187,3 +187,42 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         shell: bash
         run: gh release upload "v${{ needs.compute-version.outputs.version }}" ${{ matrix.glob }} --clobber
+
+  package-ios-xcframework:
+    needs: [compute-version, release]
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.compute-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: "v${{ needs.compute-version.outputs.version }}"
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-
+
+      - name: Build release XCFramework
+        run: ./gradlew :ui:assembleBugsyReleaseXCFramework --no-configuration-cache
+
+      - name: Zip XCFramework
+        run: |
+          cd ui/build/XCFrameworks/release
+          zip -r -y Bugsy.xcframework.zip Bugsy.xcframework
+
+      # DEB-85 "Option A": bugsy-react-native's postinstall downloads this exact asset name
+      # (see its scripts/download-xcframework.js) for a pinned version of this repo.
+      - name: Attach XCFramework to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: gh release upload "v${VERSION}" ui/build/XCFrameworks/release/Bugsy.xcframework.zip --clobber

@@ -31,7 +31,7 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # buildSrc holds the rule that turns VERSION_NAME into the desktop installer version (DEB-70): pure Kotlin, so cheap here.
       - name: Unit tests (core, noop, build logic) and version check

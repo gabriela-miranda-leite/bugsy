@@ -27,12 +27,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Test coverage (Kover, core + ui)
         run: ./gradlew :core:testDebugUnitTest :ui:testDebugUnitTest :koverXmlReport

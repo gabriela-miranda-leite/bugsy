@@ -1,0 +1,71 @@
+name: 🐛 Bug report
+description: Report a reproducible bug or regression in Bugsy.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Bug report
+
+        Please fill in the following carefully before opening a new issue.
+        *(Your issue may be closed if it doesn't provide the required information.)*
+  - type: checkboxes
+    attributes:
+      label: Before submitting a new issue
+      description: Please perform these simple checks first.
+      options:
+        - label: I tested using the latest version of Bugsy, as the bug might already be fixed.
+          required: true
+        - label: I checked for possible duplicate issues.
+          required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Bug summary
+      description: |
+        A clear and concise description of what the bug is.
+        Error messages, stack traces, screenshots or GIFs are welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - Android
+        - iOS
+        - Desktop
+    validations:
+      required: true
+  - type: input
+    id: bugsy-version
+    attributes:
+      label: Bugsy version
+      description: Which version of Bugsy are you using?
+      placeholder: "x.x.x"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment info
+      description: OS version, device or simulator, Kotlin / Gradle / Xcode versions.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description: A clear list of steps (and code) to reproduce the problem.
+      value: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: input
+    id: reproducible-example
+    attributes:
+      label: Reproducible example
+      description: Link to a repository with a minimal reproducible example, if possible.

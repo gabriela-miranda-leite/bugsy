@@ -74,7 +74,7 @@ class MockEngineTest {
     }
 
     @Test
-    fun `the first matching rule wins, among non-conflicting overlapping patterns`() {
+    fun `the first matching rule wins among non-conflicting overlapping patterns`() {
         // Different patterns, so this isn't a conflictsWith case — both stay active, and match() still
         // picks whichever comes first in rulesFlow.
         MockEngine.addRule(MockRule(id = "1", urlPattern = "/v1/feed", statusCode = 200))

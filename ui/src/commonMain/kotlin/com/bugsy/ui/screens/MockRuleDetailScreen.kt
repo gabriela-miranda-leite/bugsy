@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -41,6 +42,7 @@ import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.action_delete
 import bugsy.ui.generated.resources.action_edit
 import bugsy.ui.generated.resources.label_duration
+import bugsy.ui.generated.resources.label_mock_conflict
 import bugsy.ui.generated.resources.label_response_body
 import bugsy.ui.generated.resources.label_status
 import bugsy.ui.generated.resources.mocks_empty_last_matches
@@ -75,6 +77,7 @@ fun MockRuleDetailScreen(
     onToggleActive: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    hasConflict: Boolean = false,
 ) {
     val clipboard = LocalClipboardManager.current
     Column {
@@ -138,6 +141,19 @@ fun MockRuleDetailScreen(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                }
+            }
+            if (hasConflict) {
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(BugsySpacing.xs)) {
+                        Icon(
+                            Icons.Outlined.WarningAmber,
+                            contentDescription = null,
+                            tint = BugsyColors.Status3xx,
+                            modifier = Modifier.size(BugsySpacing.iconSizeSmall),
+                        )
+                        Text(stringResource(Res.string.label_mock_conflict), style = BugsyTypography.Caption, color = BugsyColors.Status3xx)
+                    }
                 }
             }
 

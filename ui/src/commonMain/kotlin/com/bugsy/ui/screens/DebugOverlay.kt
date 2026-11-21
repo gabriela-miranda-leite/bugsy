@@ -33,6 +33,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import bugsy.ui.generated.resources.Res
 import bugsy.ui.generated.resources.action_undo
 import bugsy.ui.generated.resources.mock_form_prefilled_from
+import bugsy.ui.generated.resources.toast_mock_conflict_subtitle
+import bugsy.ui.generated.resources.toast_mock_conflict_title
 import bugsy.ui.generated.resources.toast_mock_deleted_title
 import bugsy.ui.generated.resources.toast_mock_disabled_title
 import bugsy.ui.generated.resources.toast_mock_saved_subtitle
@@ -44,6 +46,7 @@ import com.bugsy.core.pairing.BugsyPairing
 import com.bugsy.core.model.DebugRequest
 import com.bugsy.core.model.MockRule
 import com.bugsy.core.model.displayName
+import com.bugsy.core.model.displayPattern
 import com.bugsy.ui.DebugViewModel
 import com.bugsy.ui.components.BugsyTab
 import com.bugsy.ui.components.BugsyTabBar
@@ -109,6 +112,23 @@ fun DebugOverlay(
                     type = BugsyToastType.Warning,
                     title = getString(Res.string.toast_mock_used_up_title),
                     subtitle = getString(Res.string.toast_mock_used_up_subtitle, rule.displayName, rule.statusCode),
+                ),
+            )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        MockEngine.conflictResolvedEvents.collect { conflict ->
+            BugsyToastHost.show(
+                BugsyToastData(
+                    type = BugsyToastType.Warning,
+                    title = getString(Res.string.toast_mock_conflict_title),
+                    subtitle = getString(
+                        Res.string.toast_mock_conflict_subtitle,
+                        conflict.disabled.size,
+                        conflict.rule.method ?: "ANY",
+                        conflict.rule.displayPattern,
+                    ),
                 ),
             )
         }

@@ -2,6 +2,7 @@ package com.bugsy.core
 
 import com.bugsy.core.model.MockMatch
 import com.bugsy.core.model.MockRule
+import com.bugsy.core.model.conflictsWith
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,9 @@ enum class MockRuleChangeAction { ADDED, UPDATED, DELETED }
 
 /** One [MockEngine.ruleChanges] event: [rule] in its state *after* [action] (its last known state for DELETED). */
 data class MockRuleChange(val rule: MockRule, val action: MockRuleChangeAction)
+
+/** Emitted when adding [rule] auto-disabled [disabled] for [MockRule.conflictsWith] it — the UI toasts this. */
+data class MockRuleConflict(val rule: MockRule, val disabled: List<MockRule>)
 
 object MockEngine {
     /** `false` here; the `:bugsy-noop` module's `MockEngine` reports `true` so the UI can hide the Mocks tab. */
@@ -44,17 +48,28 @@ object MockEngine {
     /** Emits on every add/update/delete — the BugsyWsServer (DEB-58) broadcasts this as `mock_rule_changed`. */
     val ruleChanges: SharedFlow<MockRuleChange> = _ruleChanges
 
+    private val _conflictResolved = MutableSharedFlow<MockRuleConflict>(extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    /** Emits whenever [addRule] auto-disables conflicting rules — the UI toasts "conflict resolved" off of this. */
+    val conflictResolvedEvents: SharedFlow<MockRuleConflict> = _conflictResolved
+
+    /** Adding an active [rule] auto-disables any other active rule [MockRule.conflictsWith] it, so at most one
+     * rule ever answers a given route (except a one-shot/non-one-shot pair, which is a deliberate pairing). */
     fun addRule(rule: MockRule) {
-        val isUpdate = runBlocking {
+        val (isUpdate, disabled) = runBlocking {
             mutex.withLock {
                 val isUpdate = rules.any { it.id == rule.id }
                 rules.removeAll { it.id == rule.id }
+                val conflicting = if (rule.isActive) rules.filter { it.conflictsWith(rule) } else emptyList()
+                val disabled = conflicting.map { it.copy(isActive = false) }
+                disabled.forEach { disabledRule -> rules[rules.indexOfFirst { it.id == disabledRule.id }] = disabledRule }
                 rules.add(rule)
                 _rules.value = rules.toList()
-                isUpdate
+                isUpdate to disabled
             }
         }
         _ruleChanges.tryEmit(MockRuleChange(rule, if (isUpdate) MockRuleChangeAction.UPDATED else MockRuleChangeAction.ADDED))
+        disabled.forEach { _ruleChanges.tryEmit(MockRuleChange(it, MockRuleChangeAction.UPDATED)) }
+        if (disabled.isNotEmpty()) _conflictResolved.tryEmit(MockRuleConflict(rule, disabled))
     }
 
     fun removeRule(id: String) {

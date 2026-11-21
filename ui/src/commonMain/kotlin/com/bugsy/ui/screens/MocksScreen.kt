@@ -58,6 +58,7 @@ import com.bugsy.core.MockRuleFileResult
 import com.bugsy.core.MockRuleFileSerializer
 import com.bugsy.core.model.MockMatch
 import com.bugsy.core.model.MockRule
+import com.bugsy.core.model.conflictsWith
 import com.bugsy.ui.PreviewFixtures
 import com.bugsy.ui.components.BugsyToastAction
 import com.bugsy.ui.components.BugsyToastData
@@ -179,6 +180,7 @@ fun MocksScreen(
             onToggleActive = { onToggleActive(current.id, it) },
             onEdit = { editing = current; creating = true },
             onDelete = { onRemoveRule(current.id); viewing = null },
+            hasConflict = rules.any { it.conflictsWith(current) },
         )
         return
     }
@@ -236,6 +238,7 @@ fun MocksScreen(
                         onClick = { viewing = rule },
                         onToggleActive = { onToggleActive(rule.id, it) },
                         onDelete = { onRemoveRule(rule.id) },
+                        hasConflict = rules.any { it.conflictsWith(rule) },
                     )
                 }
             }

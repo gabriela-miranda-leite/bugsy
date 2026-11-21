@@ -1,0 +1,74 @@
+{
+    "version": 1,
+    "rules": [
+        {
+            "name": "GET server error (one-shot)",
+            "urlPattern": "^/get$",
+            "method": "GET",
+            "statusCode": 500,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "delay": 0,
+            "singleUse": true,
+            "body": {
+                "error": "internal_server_error",
+                "message": "Simulated failure for testing error handling"
+            }
+        },
+        {
+            "name": "GET success",
+            "urlPattern": "^/get$",
+            "method": "GET",
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "delay": 0,
+            "singleUse": false,
+            "body": {
+                "user_id": "u_42",
+                "status": "ok"
+            }
+        },
+        {
+            "name": "POST success",
+            "urlPattern": "^/post$",
+            "method": "POST",
+            "statusCode": 201,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "delay": 0,
+            "singleUse": false,
+            "body": {
+                "user_id": "u_42",
+                "created": true
+            }
+        },
+        {
+            "name": "PUT with delay",
+            "urlPattern": "^/put$",
+            "method": "PUT",
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "delay": 1500,
+            "singleUse": false,
+            "body": {
+                "user_id": "u_42",
+                "updated": true
+            }
+        },
+        {
+            "name": "DELETE success",
+            "urlPattern": "^/delete$",
+            "method": "DELETE",
+            "statusCode": 204,
+            "delay": 0,
+            "singleUse": false,
+            "body": ""
+        }
+    ]
+}

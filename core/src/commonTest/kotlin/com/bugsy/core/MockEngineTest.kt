@@ -74,11 +74,43 @@ class MockEngineTest {
     }
 
     @Test
-    fun `the first matching rule wins`() {
+    fun `the first matching rule wins among non-conflicting overlapping patterns`() {
+        // Different patterns, so this isn't a conflictsWith case — both stay active, and match() still
+        // picks whichever comes first in rulesFlow.
+        MockEngine.addRule(MockRule(id = "1", urlPattern = "/v1/feed", statusCode = 200))
+        MockEngine.addRule(MockRule(id = "2", urlPattern = "/v1/f.*", statusCode = 500))
+
+        assertEquals("1", MockEngine.match("GET", "https://api.bugsy.dev/v1/feed", timestamp = 0)?.id)
+    }
+
+    @Test
+    fun `adding an active rule auto-disables another active rule for the exact same route`() {
         MockEngine.addRule(MockRule(id = "1", urlPattern = "/v1/feed", statusCode = 200))
         MockEngine.addRule(MockRule(id = "2", urlPattern = "/v1/feed", statusCode = 500))
 
+        assertFalse(MockEngine.rulesFlow.value.single { it.id == "1" }.isActive)
+        assertEquals("2", MockEngine.match("GET", "https://api.bugsy.dev/v1/feed", timestamp = 0)?.id)
+    }
+
+    @Test
+    fun `a one-shot rule and a non-one-shot rule for the same route are not a conflict`() {
+        // Deliberate "fire once, then fall back" pairing (e.g. a one-shot 500 followed by a 200) — both
+        // stay active.
+        MockEngine.addRule(MockRule(id = "1", urlPattern = "/v1/feed", statusCode = 500, isOneShot = true))
+        MockEngine.addRule(MockRule(id = "2", urlPattern = "/v1/feed", statusCode = 200))
+
+        assertTrue(MockEngine.rulesFlow.value.single { it.id == "1" }.isActive)
+        assertTrue(MockEngine.rulesFlow.value.single { it.id == "2" }.isActive)
         assertEquals("1", MockEngine.match("GET", "https://api.bugsy.dev/v1/feed", timestamp = 0)?.id)
+        assertEquals("2", MockEngine.match("GET", "https://api.bugsy.dev/v1/feed", timestamp = 1)?.id)
+    }
+
+    @Test
+    fun `adding an inactive rule never disables anything`() {
+        MockEngine.addRule(MockRule(id = "1", urlPattern = "/v1/feed", statusCode = 200))
+        MockEngine.addRule(MockRule(id = "2", urlPattern = "/v1/feed", statusCode = 500, isActive = false))
+
+        assertTrue(MockEngine.rulesFlow.value.single { it.id == "1" }.isActive)
     }
 
     @Test

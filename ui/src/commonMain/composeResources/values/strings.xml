@@ -161,6 +161,10 @@
     <string name="toast_mock_disabled_title">Mock disabled</string>
     <string name="toast_mock_used_up_title">Mock used up (ONCE)</string>
     <string name="toast_mock_used_up_subtitle">%1$s · %2$d</string>
+    <string name="toast_mock_conflict_title">Conflicting mock disabled</string>
+    <string name="toast_mock_conflict_subtitle">%1$d other mock(s) for %2$s %3$s turned off</string>
+    <string name="cd_mock_conflict">Conflicts with another active mock for this route</string>
+    <string name="label_mock_conflict">Conflicts with another active mock — only one of them will fire</string>
     <string name="toast_invalid_pattern_title">Invalid regex pattern</string>
     <string name="toast_invalid_pattern_subtitle">Check the URL match field</string>
     <string name="toast_har_exported_title">HAR exported</string>

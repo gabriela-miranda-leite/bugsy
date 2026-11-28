@@ -3,7 +3,7 @@
 // Force the newer, backward-compatible version to resolve the conflict.
 buildscript {
     configurations.classpath {
-        resolutionStrategy.force("org.jetbrains:annotations:23.0.0")
+        resolutionStrategy.force("org.jetbrains:annotations:26.1.0")
     }
 }
 
